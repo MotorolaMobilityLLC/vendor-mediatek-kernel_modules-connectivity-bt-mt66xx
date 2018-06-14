@@ -20,6 +20,12 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
 
+ifeq ($(CONFIG_MTK_CONN_LTE_IDC_SUPPORT),y)
+    ccflags-y += -D WMT_IDC_SUPPORT=1
+else
+    ccflags-y += -D WMT_IDC_SUPPORT=0
+endif
+
 ###############################################################################
 # To include BT driver dependent header file
 
