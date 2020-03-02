@@ -124,6 +124,11 @@ static inline struct sk_buff *h4_recv_buf(struct hci_dev *hdev,
 				/* Double octet variable length */
 				dlen = get_unaligned_le16(skb->data +
 							  (&pkts[i])->loff);
+				/* parse ISO packet len*/
+				if ((&pkts[i])->type == HCI_ISODATA_PKT) {
+					unsigned char *cp = (unsigned char *)&dlen + 1;
+					*cp = *cp & 0x3F;
+				}
 				hci_skb_expect(skb) += dlen;
 
 				if (skb_tailroom(skb) < dlen) {
@@ -156,6 +161,7 @@ static const struct h4_recv_pkt mtk_recv_pkts[] = {
 	{ H4_RECV_ACL,      .recv = btmtk_recv_acl },
 	{ H4_RECV_SCO,      .recv = hci_recv_frame },
 	{ H4_RECV_EVENT,    .recv = btmtk_recv_event },
+	{ H4_RECV_ISO,      .recv = btmtk_recv_iso },
 };
 #if ENABLESTP
 static inline struct sk_buff *mtk_add_stp(struct btmtk_dev *bdev, struct sk_buff *skb)
@@ -402,6 +408,19 @@ err_free_skb:
 err_out:
 	return err;
 }
+
+int btmtk_recv_iso(struct hci_dev *hdev, struct sk_buff *skb)
+{
+	int err = 0;
+
+#if (USE_DEVICE_NODE == 0)
+	err = hci_recv_frame(hdev, skb);
+#else
+	err = rx_skb_enqueue(skb);
+#endif
+	return err;
+}
+
 
 int btmtk_main_send_cmd(struct hci_dev *hdev, const uint8_t *cmd, const int cmd_len, const int tx_state)
 {
