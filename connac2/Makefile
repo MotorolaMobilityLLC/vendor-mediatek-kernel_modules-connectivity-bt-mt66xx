@@ -8,6 +8,10 @@ ifeq ($(AUTOCONF_H),)
     $(error AUTOCONF_H is not defined)
 endif
 
+ifndef TOP
+    TOP := $(srctree)/..
+endif
+
 USE_DEVICE_NODE := y
 #CUSTOMER_FW_UPDATE := y
 
