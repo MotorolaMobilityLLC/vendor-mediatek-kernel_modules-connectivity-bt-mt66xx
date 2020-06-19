@@ -103,8 +103,9 @@ int32_t rx_skb_enqueue(struct sk_buff *skb)
 		return -1;
 	}
 
-	/* TODO: add rx_buf_ctrl feature to normal flow */
-	if(g_bt_dbg_st.rx_buf_ctrl == 1) {
+	/* FW will block the data if it's buffer is full,
+	   driver can wait a interval for native process to read out */
+	if(g_bt_dbg_st.rx_buf_ctrl == TRUE) {
 		for(i = 0; i < WAIT_TIMES; i++) {
 			if (!is_rx_queue_res_available(skb->len + 1)) {
 				msleep(5);
