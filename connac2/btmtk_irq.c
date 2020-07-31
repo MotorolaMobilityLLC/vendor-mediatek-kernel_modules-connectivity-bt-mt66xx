@@ -141,22 +141,13 @@ void bt_bgf2ap_irq_handler(void)
 		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
 	}
 
-	/*
-	 * Conn-infra bus timeout : 160ms
-	 * Bgf bus timeout : 80ms
-	 *
-	 * There's still a case that we pass conninfra check but still get
-	 * bus hang, so we have to check mail box for sure
-	 */
-	mailbox_status = REG_READL(CON_REG_SPM_BASE_ADDR + 0x268);
-	if (mailbox_status != 0 &&
-		(mailbox_status & 0xFF000000) != 0x87000000) {
-		BTMTK_INFO("mailbox_status = 0x%08x", mailbox_status);
+	/* 2. Check bgf bus status */
+	if (bt_is_bgf_bus_timeout()) {
 		bt_dump_bgfsys_all();
 		return;
 	}
 
-	/* 2. Read IRQ status CR to identify what happens */
+	/* 3. Read IRQ status CR to identify what happens */
 	bgf_status = REG_READL(BGF_SW_IRQ_STATUS);
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {
 		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
