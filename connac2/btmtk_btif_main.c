@@ -792,12 +792,14 @@ int32_t btmtk_btif_close()
 	}
 
 #if SUPPORT_BT_THREAD
+	down(&g_bdev->btif_dpidle_ctrl.sem);
 	if(&g_bdev->btif_dpidle_ctrl.task != NULL) {
 		cancel_delayed_work(&g_bdev->btif_dpidle_ctrl.work);
 		flush_workqueue(g_bdev->btif_dpidle_ctrl.task);
 		destroy_workqueue(g_bdev->btif_dpidle_ctrl.task);
 		g_bdev->btif_dpidle_ctrl.task = NULL;
 	}
+	up(&g_bdev->btif_dpidle_ctrl.sem);
 #endif
 
 	ret = mtk_wcn_btif_close(g_btif_id);
@@ -829,37 +831,41 @@ static int32_t btmtk_btif_dpidle_ctrl(u_int8_t enable)
 {
 	int32_t ret = 0;
 	struct btif_deepidle_ctrl *idle_ctrl = &g_bdev->btif_dpidle_ctrl;
+	down(&idle_ctrl->sem);
 
 	if (!g_btif_id) {
 		BTMTK_ERR("NULL BTIF ID reference!");
 		return -1;
 	}
 
-	BTMTK_DBG("%s enable = %d", __func__, enable);
-	/* 1. Remove active timer, and remove a unschedule timer does no harm */
-	cancel_delayed_work(&idle_ctrl->work);
+	if(idle_ctrl->task != NULL) {
+		BTMTK_DBG("%s enable = %d", __func__, enable);
+		/* 1. Remove active timer, and remove a unschedule timer does no harm */
+		cancel_delayed_work(&idle_ctrl->work);
 
-	down(&idle_ctrl->sem);
-	/* 2. Check enable or disable */
-	if (!enable) {
-		/* disable deep idle, call BTIF api directly */
-		bt_hold_wake_lock(&g_bdev->psm.wake_lock);
-		ret = mtk_wcn_btif_dpidle_ctrl(g_btif_id, BTIF_DPIDLE_DISABLE);
-		idle_ctrl->is_dpidle = (ret) ? TRUE : FALSE;
+		/* 2. Check enable or disable */
+		if (!enable) {
+			/* disable deep idle, call BTIF api directly */
+			bt_hold_wake_lock(&g_bdev->psm.wake_lock);
+			ret = mtk_wcn_btif_dpidle_ctrl(g_btif_id, BTIF_DPIDLE_DISABLE);
+			idle_ctrl->is_dpidle = (ret) ? TRUE : FALSE;
 
-		if (ret)
-			BTMTK_ERR("BTIF exit dpidle failed(%d)", ret);
-		else
-			BTMTK_DBG("BTIF exit dpidle succeed");
+			if (ret)
+				BTMTK_ERR("BTIF exit dpidle failed(%d)", ret);
+			else
+				BTMTK_DBG("BTIF exit dpidle succeed");
+		} else {
+			BTMTK_DBG("create timer for enable deep idle");
+			idle_ctrl->is_dpidle = TRUE;
+			/* enable deep idle, schedule a timer */
+			queue_delayed_work(idle_ctrl->task, &idle_ctrl->work,
+						(BTIF_IDLE_WAIT_TIME * HZ) >> 10);
+		}
 	} else {
-		BTMTK_DBG("create timer for enable deep idle");
-		idle_ctrl->is_dpidle = TRUE;
-		/* enable deep idle, schedule a timer */
-		queue_delayed_work(idle_ctrl->task, &idle_ctrl->work,
-					(BTIF_IDLE_WAIT_TIME * HZ) >> 10);
+		BTMTK_INFO("idle_ctrl->task already cancelled!");
 	}
-	up(&idle_ctrl->sem);
 
+	up(&idle_ctrl->sem);
 	return ret;
 }
 #endif
