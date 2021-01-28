@@ -82,6 +82,8 @@ static wait_queue_head_t inq;
 static DECLARE_WAIT_QUEUE_HEAD(BT_wq);
 static INT32 flag;
 static INT32 bt_ftrace_flag;
+static bool btonflag = 0;
+
 /*
  * Reset flag for whole chip reset scenario, to indicate reset status:
  *   0 - normal, no whole chip reset occurs
@@ -504,6 +506,10 @@ long BT_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 
 static int BT_open(struct inode *inode, struct file *file)
 {
+	if(btonflag) {
+		BT_LOG_PRT_WARN("BT already on!\n");
+		return -EIO;
+	}
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 
 	/* Turn on BT */
@@ -534,6 +540,7 @@ static int BT_open(struct inode *inode, struct file *file)
 
 	rstflag = 0;
 	bt_ftrace_flag = 1;
+	btonflag = 1;
 
 	sema_init(&wr_mtx, 1);
 	sema_init(&rd_mtx, 1);
@@ -555,6 +562,8 @@ static int BT_close(struct inode *inode, struct file *file)
 
 	rstflag = 0;
 	bt_ftrace_flag = 0;
+	btonflag = 0;
+
 	mtk_wcn_wmt_msgcb_unreg(WMTDRV_TYPE_BT);
 	mtk_wcn_stp_register_event_cb(BT_TASK_INDX, NULL);
 
