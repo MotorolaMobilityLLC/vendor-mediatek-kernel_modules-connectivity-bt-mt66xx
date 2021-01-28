@@ -1223,7 +1223,7 @@ int32_t btmtk_cif_dispatch_event(struct hci_dev *hdev, struct sk_buff *skb)
 		p_inter_cmd->result = WMT_EVT_SUCCESS;
 	} else {
 		/* Not WMT event */
-		p_inter_cmd->result = WMT_EVT_INVALID;
+		p_inter_cmd->result = WMT_EVT_SKIP;
 	}
 
 	//return (p_inter_cmd->result == 1) ? 0 : -1;

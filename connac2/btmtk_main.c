@@ -476,7 +476,7 @@ int btmtk_recv_event(struct hci_dev *hdev, struct sk_buff *skb)
 	 */
 	if (test_bit(BTMTKUART_TX_WAIT_VND_EVT, &bdev->tx_state)) {
 		/* check is corresponding wmt event */
-		if (btmtk_dispatch_event(hdev, skb) != WMT_EVT_INVALID) {
+		if (btmtk_dispatch_event(hdev, skb) != WMT_EVT_SKIP) {
 			bdev->evt_skb = skb_copy(skb, GFP_KERNEL);
 			if (!bdev->evt_skb) {
 				err = -ENOMEM;
@@ -589,8 +589,10 @@ uint8_t *_internal_evt_result(u_int8_t wmt_evt_result)
 		return "WMT_EVT_SUCCESS";
 	else if (wmt_evt_result == WMT_EVT_FAIL)
 		return "WMT_EVT_FAIL";
-	else
+	else if (wmt_evt_result == WMT_EVT_INVALID)
 		return "WMT_EVT_INVALID";
+	else
+		return "WMT_EVT_SKIP";
 }
 
 int btmtk_load_code_from_bin(u8 **image, char *bin_name,
