@@ -412,14 +412,24 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 		return;
 
 	_bt_dbg_reset_dump_buf();
-	snprintf(g_bt_dump_buf, 6, "0x04 "); // write event packet type
-	for (i = 0; i < len; i++)
-		snprintf(g_bt_dump_buf + 5*(i+1), 6, "0x%02X ", ptr[i]);
+	// write event packet type
+	if (snprintf(g_bt_dump_buf, 6, "0x04 ") < 0) {
+		BTMTK_INFO("%s: snprintf error", __func__);
+		goto end;
+
+	}
+	for (i = 0; i < len; i++) {
+		if (snprintf(g_bt_dump_buf + 5*(i+1), 6, "0x%02X ", ptr[i]) < 0) {
+			BTMTK_INFO("%s: snprintf error", __func__);
+			goto end;
+		}
+	}
 	len++;
 	g_bt_dump_buf[5*len] = '\n';
 	g_bt_dump_buf[5*len + 1] = '\0';
 	g_bt_dump_buf_len = 5*len + 1;
 
+end:
 	// complete trx process
 	complete(&g_bt_dbg_st.trx_comp);
 }

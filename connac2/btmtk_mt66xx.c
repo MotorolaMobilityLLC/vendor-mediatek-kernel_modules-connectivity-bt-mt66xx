@@ -231,8 +231,11 @@ static void fwp_update_info(struct fwp_info *info) {
 	do_gettimeofday(&time);
 	local_time = (uint32_t)(time.tv_sec - (sys_tz.tz_minuteswest * 60));
 	rtc_time_to_tm(local_time, &tm);
-	snprintf(info->update_time, EMI_DATETIME_LEN, "%04d%02d%02d%02d%02d%02d",
-		tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec);
+	if (snprintf(info->update_time, EMI_DATETIME_LEN, "%04d%02d%02d%02d%02d%02d",
+			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec) < 0) {
+		BTMTK_INFO("%s: snprintf error", __func__);
+		return;
+	}
 	info->update_time[EMI_DATETIME_LEN - 2] = '\0'; // 14 bytes actually
 
 	BTMTK_INFO("%s: result=%s, status=%d, datetime=%s, update_time=%s", __func__,
@@ -255,11 +258,14 @@ int fwp_if_get_update_info(char *buf, int max_len)
 	};
 
 	/* return update information */
-	snprintf(buf, max_len - 1, "result=%s\nstatus=%s\nversion=%s\nupdate_time=%s",
-		g_fwp_info.result == FWP_DIR_DEFAULT ? "FAIL" : "PASS",
-		status_info[g_fwp_info.status],
-		g_fwp_info.datetime[0],
-		g_fwp_info.update_time);
+	if (snprintf(buf, max_len - 1, "result=%s\nstatus=%s\nversion=%s\nupdate_time=%s",
+			g_fwp_info.result == FWP_DIR_DEFAULT ? "FAIL" : "PASS",
+			status_info[g_fwp_info.status],
+			g_fwp_info.datetime[0],
+			g_fwp_info.update_time) < 0) {
+		BTMTK_INFO("%s: snprintf error", __func__);
+		return 0;
+	}
 	buf[strlen(buf)] = '\0';
 	BTMTK_INFO("%s: %s, %d", __func__, buf, strlen(buf));
 	return strlen(buf) + 1;
@@ -273,11 +279,14 @@ int fwp_if_get_datetime(char *buf, int max_len)
 	bool fwp_from = g_fwp_info.result;
 	char *tmp = buf;
 
-	if(PATCH_FILE_NUM * VER_STR_LEN > max_len)
+	if (PATCH_FILE_NUM * VER_STR_LEN > max_len)
 		return 0;
 	/* write datetime information of each patch */
-	for(i = 0; i < PATCH_FILE_NUM; i++) {
-		snprintf(tmp, VER_STR_LEN, "%s: %s\n", g_fwp_names[i][fwp_from], g_fwp_info.datetime[i]);
+	for (i = 0; i < PATCH_FILE_NUM; i++) {
+		if (snprintf(tmp, VER_STR_LEN, "%s: %s\n", g_fwp_names[i][fwp_from], g_fwp_info.datetime[i]) < 0) {
+			BTMTK_INFO("%s: snprintf error", __func__);
+			return 0;
+		}
 		ret_len += strlen(tmp);
 		tmp = tmp + strlen(tmp);
 	}
@@ -291,17 +300,23 @@ int fwp_if_get_bt_patch_path(char *buf, int max_len)
 	#undef VER_STR_LEN
 	#define VER_STR_LEN	100
 	bool fwp_from = g_fwp_info.result;
+	int ret = 0;
 
-	if(VER_STR_LEN > max_len)
+	if (VER_STR_LEN > max_len)
 		return 0;
-	if(fwp_from == FWP_DIR_DEFAULT) {
-		snprintf(buf, VER_STR_LEN, "/vendor/firmware/%s", g_fwp_names[1][fwp_from]);
+	if (fwp_from == FWP_DIR_DEFAULT) {
+		ret = snprintf(buf, VER_STR_LEN, "/vendor/firmware/%s", g_fwp_names[1][fwp_from]);
 	} else {
 #if (CUSTOMER_FW_UPDATE == 1)
-		snprintf(buf, VER_STR_LEN, "/data/vendor/firmware/update/%s", g_fwp_names[1][fwp_from]);
+		ret = snprintf(buf, VER_STR_LEN, "/data/vendor/firmware/update/%s", g_fwp_names[1][fwp_from]);
 #else
-		snprintf(buf, VER_STR_LEN, "");
+		ret = snprintf(buf, VER_STR_LEN, "");
 #endif
+	}
+
+	if (ret < 0) {
+		BTMTK_INFO("%s: snprintf error", __func__);
+		return 0;
 	}
 	BTMTK_INFO("%s: %s, %d", __func__, buf, strlen(buf));
 	return strlen(buf) + 1;
