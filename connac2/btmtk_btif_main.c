@@ -570,10 +570,16 @@ static int32_t bt_do_calibration(void)
 	}
 
 	ret = btmtk_calibration_flow(g_bdev->hdev);
-	if (g_bdev->bt_precal_state == FUNC_OFF)
+	/* return -1 means driver unable to recv calibration event and reseting
+	 * In such case, we don't have to turn off bt, it will be handled by 
+	 * reset thread */
+	if (ret != -1 && g_bdev->bt_precal_state == FUNC_OFF)
 		btmtk_set_power_off(g_bdev->hdev, TRUE);
 
-	if (ret) {
+	if (ret == -1) {
+		BTMTK_ERR("%s: error return in recving calibration event, reset", __func__);
+		return CONNINFRA_CB_RET_CAL_FAIL_POWER_ON;
+	} else if (ret) {
 		BTMTK_ERR("%s: error return in sent calibration cmd", __func__);
 		return (g_bdev->bt_precal_state) ? CONNINFRA_CB_RET_CAL_FAIL_POWER_ON :
 						   CONNINFRA_CB_RET_CAL_FAIL_POWER_OFF;
