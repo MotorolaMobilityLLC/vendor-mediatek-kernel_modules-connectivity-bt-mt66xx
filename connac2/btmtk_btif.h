@@ -169,7 +169,7 @@ struct bt_dump_packet {
 	u_int16_t 				data_length;
 	u_int8_t 				data[MAX_DUMP_DATA_SIZE];
 	struct timespec 		kerneltime;
-	struct timeval 			time;
+	struct timespec64		time;
 };
 
 struct bt_dump_queue {
