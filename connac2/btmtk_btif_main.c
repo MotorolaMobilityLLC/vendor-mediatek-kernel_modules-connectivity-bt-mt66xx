@@ -175,12 +175,14 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 	case FB_BLANK_UNBLANK:
 	case FB_BLANK_POWERDOWN:
 		if(g_bdev->bt_state == FUNC_ON) {
+			if (conninfra_reg_readable()) {
+				val = REG_READL(CON_REG_SPM_BASE_ADDR + 0x26C);
+				BTMTK_INFO("%s: HOST_MAILBOX_BT_ADDR[0x1806026C] read[0x%08x]", __func__, val);
+			}
+
 			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, g_bdev->blank_state, blank);
 			g_bdev->blank_state = blank;
 			btmtk_send_blank_status_cmd(g_bdev->hdev, blank);
-
-			val = REG_READL(CON_REG_SPM_BASE_ADDR + 0x26C);
-			BTMTK_INFO("%s: HOST_MAILBOX_BT_ADDR[0x1806026C] read[0x%08x]", __func__, val);
 		} else {
 			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, g_bdev->blank_state, blank);
 			g_bdev->blank_state = blank;
