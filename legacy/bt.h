@@ -52,22 +52,22 @@
 #define RAW_MAX_BYTES           30
 
 static uint8_t raw_buf[RAW_MAX_BYTES * 5 + 10];
-extern UINT32 gDbgLevel;
+extern UINT32 gBtDbgLevel;
 
 #define BT_LOG_PRT_DBG(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_DBG) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
+	do { if (gBtDbgLevel >= BT_LOG_DBG) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
 #define BT_LOG_PRT_INFO(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_INFO) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
+	do { if (gBtDbgLevel >= BT_LOG_INFO) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
 #define BT_LOG_PRT_WARN(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_WARN) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
+	do { if (gBtDbgLevel >= BT_LOG_WARN) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
 #define BT_LOG_PRT_ERR(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_ERR) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
+	do { if (gBtDbgLevel >= BT_LOG_ERR) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
 #define BT_LOG_PRT_INFO_RATELIMITED(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_ERR) pr_info_ratelimited(PFX "%s: " fmt, __func__, ##arg); } while (0)
+	do { if (gBtDbgLevel >= BT_LOG_ERR) pr_info_ratelimited(PFX "%s: " fmt, __func__, ##arg); } while (0)
 
 #define BT_LOG_PRT_DBG_RAW(p, l, fmt, ...)						\
 			do {	\
-				if (gDbgLevel >= BT_LOG_DBG) { \
+				if (gBtDbgLevel >= BT_LOG_DBG) { \
 					int cnt_ = 0;	\
 					int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
 					const unsigned char *ptr = p;	\
@@ -88,7 +88,7 @@ extern UINT32 gDbgLevel;
 
 #define BT_LOG_PRT_INFO_RAW(p, l, fmt, ...)						\
 		do {	\
-			if (gDbgLevel >= BT_LOG_INFO) {	\
+			if (gBtDbgLevel >= BT_LOG_INFO) {	\
 				int cnt_ = 0;	\
 				int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
 				const unsigned char *ptr = p;	\
