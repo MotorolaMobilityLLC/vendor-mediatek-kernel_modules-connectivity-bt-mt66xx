@@ -129,7 +129,10 @@ extern uint8_t btmtk_log_lvl;
 			int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
 			const unsigned char *ptr = p;	\
 			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
-				snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]);	\
+				if (snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]) < 0) {	\
+					pr_info("snprintf error\n");	\
+					break;	\
+				}	\
 			}	\
 			raw_buf[5*cnt_] = '\0';	\
 			if (l <= RAW_MAX_BYTES) {	\
@@ -147,7 +150,10 @@ extern uint8_t btmtk_log_lvl;
 			int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
 			const unsigned char *ptr = p;	\
 			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
-				snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]);	\
+				if (snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]) < 0) {	\
+					pr_info("snprintf error\n");	\
+					break;	\
+				}	\
 			}	\
 			raw_buf[5*cnt_] = '\0';	\
 			if (l <= RAW_MAX_BYTES) {	\
