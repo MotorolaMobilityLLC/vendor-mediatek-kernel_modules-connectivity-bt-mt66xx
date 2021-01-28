@@ -44,7 +44,7 @@ int32_t btmtk_send_wmt_power_on_cmd(struct hci_dev *hdev);
 int32_t btmtk_send_wmt_power_off_cmd(struct hci_dev *hdev);
 int32_t btmtk_send_calibration_cmd(struct hci_dev *hdev);
 int32_t btmtk_send_blank_status_cmd(struct hci_dev *hdev, int32_t blank);
-
+int32_t btmtk_send_utc_sync_cmd(void);
 
 #if (USE_DEVICE_NODE == 1)
 uint8_t btmtk_rx_data_valid(void);
