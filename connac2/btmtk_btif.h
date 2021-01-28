@@ -398,7 +398,7 @@ static void inline bt_notify_state(struct btmtk_dev *bdev)
 static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
 {
 	if (plock) {
-		plock->ws = wakeup_source_register(plock->name);
+		plock->ws = wakeup_source_register(NULL, plock->name);
 		if (!plock->ws)
 			BTMTK_ERR("ERROR NO MEM\n");
 	}
