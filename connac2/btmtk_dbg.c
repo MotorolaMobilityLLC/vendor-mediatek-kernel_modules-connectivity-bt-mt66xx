@@ -408,7 +408,7 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 
 	// desire rx event is received, write to read buffer as string
 	BTMTK_INFO_RAW(buf, len, "%s: len[%d], RxEvt: ", __func__, len);
-	if((len + 1)*5 > BT_DBG_DUMP_BUF_SIZE)
+	if((len + 1)*5 + 2 > BT_DBG_DUMP_BUF_SIZE)
 		return;
 
 	_bt_dbg_reset_dump_buf();
@@ -436,7 +436,8 @@ end:
 
 void bt_dbg_user_trx_proc(char *cmd_raw)
 {
-	unsigned char hci_cmd[64];
+#define LEN_64 64
+	unsigned char hci_cmd[LEN_64];
 	int len = 0;
 	long tmp = 0;
 	char *ptr = NULL, *pRaw = NULL;
@@ -446,8 +447,11 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 	pRaw = cmd_raw;
 	ptr = cmd_raw;
 	while(*ptr != '\0' && pRaw != NULL) {
+		if (len > LEN_64 - 1) {
+			BTMTK_INFO("%s: skip since cmd length exceed!", __func__);
+			return;
+		}
 		ptr = strsep(&pRaw, " ");
-
 		if (ptr != NULL) {
 			osal_strtol(ptr, 16, &tmp);
 			hci_cmd[len++] = (unsigned char)tmp;
