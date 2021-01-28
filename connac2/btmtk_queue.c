@@ -344,8 +344,6 @@ void command_response_timeout(struct work_struct *pwork)
 			BTMTK_ERR("%s,  !!!! Command Timeout !!!!  opcode 0x%4X", __func__, p_queue->head->opcode);
 			// To-do : Need to consider if it has any condition to check
 			g_bdev->cmd_timeout_count = 0;
-
-			btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_LOG);
 			bt_trigger_reset();
 		} else
 			queue_delayed_work(workqueue_task, &work, HZ>>1);

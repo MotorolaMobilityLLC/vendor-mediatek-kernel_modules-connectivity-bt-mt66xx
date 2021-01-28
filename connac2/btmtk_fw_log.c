@@ -103,7 +103,7 @@ static int32_t ascii_to_hex(uint8_t ascii, uint8_t *hex)
  *    N/A
  *
  */
-static int32_t btmtk_send_utc_sync_cmd(void)
+int32_t btmtk_send_utc_sync_cmd(void)
 {
 	struct bt_internal_cmd *p_inter_cmd = &g_bdev->internal_cmd;
 	uint8_t cmd[] =  {0x01, 0x6F, 0xFC, 0x01, 0x0C,
