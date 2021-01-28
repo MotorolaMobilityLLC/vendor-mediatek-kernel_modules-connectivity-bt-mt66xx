@@ -30,14 +30,14 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 static UINT32 gDbgLevel = BT_LOG_INFO;
 
-#define BT_LOG_PR_DBG(fmt, arg...)	\
+#define BT_LOG_PRT_DBG(fmt, arg...)	\
 	do { if (gDbgLevel >= BT_LOG_DBG) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
-#define BT_LOG_PR_INFO(fmt, arg...)	\
+#define BT_LOG_PRT_INFO(fmt, arg...)	\
 	do { if (gDbgLevel >= BT_LOG_INFO) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
-#define BT_LOG_PR_WARN(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_WARN) pr_warn(PFX "%s: " fmt, __func__, ##arg); } while (0)
-#define BT_LOG_PR_ERR(fmt, arg...)	\
-	do { if (gDbgLevel >= BT_LOG_ERR) pr_err(PFX "%s: " fmt, __func__, ##arg); } while (0)
+#define BT_LOG_PRT_WARN(fmt, arg...)	\
+	do { if (gDbgLevel >= BT_LOG_WARN) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
+#define BT_LOG_PRT_ERR(fmt, arg...)	\
+	do { if (gDbgLevel >= BT_LOG_ERR) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
 
 #define BT_LOG_NODE_NAME "fw_log_bt"
 
@@ -88,7 +88,7 @@ static int set_fw_log(unsigned char flag)
 	unsigned char HCI_CMD_FW_LOG_DEBUG[] = {0x01, 0x5d, 0xfc, 0x04, 0x02, 0x00, 0x01, 0xff}; // Via EMI
 
 	HCI_CMD_FW_LOG_DEBUG[7] = flag;
-	BT_LOG_PR_INFO("hci_cmd: %02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x\n",
+	BT_LOG_PRT_INFO("hci_cmd: %02x, %02x, %02x, %02x, %02x, %02x, %02x, %02x\n",
 			HCI_CMD_FW_LOG_DEBUG[0], HCI_CMD_FW_LOG_DEBUG[1],
 			HCI_CMD_FW_LOG_DEBUG[2], HCI_CMD_FW_LOG_DEBUG[3],
 			HCI_CMD_FW_LOG_DEBUG[4], HCI_CMD_FW_LOG_DEBUG[5],
@@ -101,14 +101,14 @@ static int set_fw_log(unsigned char flag)
 	else if (retval < 0)
 		return retval;
 	else {
-		BT_LOG_PR_ERR("Only partial sent %zu bytes, but hci cmd has %zu bytes", retval, sizeof(HCI_CMD_FW_LOG_DEBUG));
+		BT_LOG_PRT_ERR("Only partial sent %zu bytes, but hci cmd has %zu bytes", retval, sizeof(HCI_CMD_FW_LOG_DEBUG));
 		return -EFAULT;
 	}
 }
 
 void bt_state_notify(UINT32 on_off)
 {
-	BT_LOG_PR_INFO("g_bt_on %d, on_off %d\n", g_bt_on, on_off);
+	BT_LOG_PRT_INFO("g_bt_on %d, on_off %d\n", g_bt_on, on_off);
 
 	if (g_bt_on == on_off) {
 		// no change.
@@ -116,7 +116,7 @@ void bt_state_notify(UINT32 on_off)
 		// changed.
 		if (on_off == OFF) { // should turn off.
 			g_bt_on = OFF;
-			BT_LOG_PR_INFO("BT func off, no need to send hci cmd\n");
+			BT_LOG_PRT_INFO("BT func off, no need to send hci cmd\n");
 		} else {
 			g_bt_on = ON;
 			if(g_log_current)
@@ -134,7 +134,7 @@ long fw_log_bt_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long
 	switch (cmd) {
 		case BT_FW_LOG_IOCTL_ON_OFF:
 			/* connsyslogger daemon dynamically enable/disable Picus log */
-			BT_LOG_PR_INFO("BT_FW_LOG_IOCTL_ON_OFF: arg(%lu), g_bt_on(0x%02x), g_log_on(0x%02x), g_log_level(0x%02x), g_log_current(0x%02x)\n",
+			BT_LOG_PRT_INFO("BT_FW_LOG_IOCTL_ON_OFF: arg(%lu), g_bt_on(0x%02x), g_log_on(0x%02x), g_log_level(0x%02x), g_log_current(0x%02x)\n",
 					arg, g_bt_on, g_log_on, g_log_level, g_log_current);
 			log_tmp = (arg == 0 ? OFF: ON);
 			if (log_tmp == g_log_on) // no change
@@ -148,7 +148,7 @@ long fw_log_bt_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long
 			break;
 		case BT_FW_LOG_IOCTL_SET_LEVEL:
 			/* connsyslogger daemon dynamically set Picus log level */
-			BT_LOG_PR_INFO("BT_FW_LOG_IOCTL_SET_LEVEL: arg(%lu), g_bt_on(0x%02x),  g_log_on(0x%02x), g_log_level(0x%02x), g_log_current(0x%02x)\n",
+			BT_LOG_PRT_INFO("BT_FW_LOG_IOCTL_SET_LEVEL: arg(%lu), g_bt_on(0x%02x),  g_log_on(0x%02x), g_log_level(0x%02x), g_log_current(0x%02x)\n",
 					arg,  g_bt_on, g_log_on, g_log_level, g_log_current);
 			log_tmp = (unsigned char)arg;
 			if(log_tmp == g_log_level) // no change
@@ -162,10 +162,10 @@ long fw_log_bt_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long
 			break;
 		case BT_FW_LOG_IOCTL_GET_LEVEL:
 			retval = g_log_level;
-			BT_LOG_PR_INFO("BT_FW_LOG_IOCTL_GET_LEVEL: %ld\n", retval);
+			BT_LOG_PRT_INFO("BT_FW_LOG_IOCTL_GET_LEVEL: %ld\n", retval);
 			break;
 		default:
-			BT_LOG_PR_ERR("Unknown cmd: 0x%08x\n", cmd);
+			BT_LOG_PRT_ERR("Unknown cmd: 0x%08x\n", cmd);
 			retval = -EOPNOTSUPP;
 			break;
 	}
@@ -181,7 +181,7 @@ long fw_log_bt_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long a
 
 static void fw_log_bt_event_cb(void)
 {
-	BT_LOG_PR_DBG("fw_log_bt_event_cb");
+	BT_LOG_PRT_DBG("fw_log_bt_event_cb");
 	wake_up_interruptible(&BT_log_wq);
 }
 
@@ -205,16 +205,16 @@ static ssize_t fw_log_bt_write(struct file *filp, const char __user *buf, size_t
 	size_t i = 0, j = 0, k = 0;
 
 	if(count >= BT_LOG_BUFFER_SIZE) {
-		BT_LOG_PR_ERR("write count %zd exceeds max buffer size %d", count, BT_LOG_BUFFER_SIZE);
+		BT_LOG_PRT_ERR("write count %zd exceeds max buffer size %d", count, BT_LOG_BUFFER_SIZE);
 		retval = -EINVAL;
 		goto OUT;
 	}
 
 	if (copy_from_user(tmp_buf, buf, count)) {
-		BT_LOG_PR_ERR("copy_from_user failed!\n");
+		BT_LOG_PRT_ERR("copy_from_user failed!\n");
 		retval = -EFAULT;
 	} else {
-		BT_LOG_PR_INFO("adb input: %s, len %zd\n", tmp_buf, strlen(tmp_buf));
+		BT_LOG_PRT_INFO("adb input: %s, len %zd\n", tmp_buf, strlen(tmp_buf));
 		if (0 == memcmp(tmp_buf, "raw-hex,", strlen("raw-hex,"))) {
 			// Skip prefix
 			for(i = strlen("raw-hex,"); i < strlen(tmp_buf); i++) {
@@ -228,11 +228,11 @@ static ssize_t fw_log_bt_write(struct file *filp, const char __user *buf, size_t
 						tmp_h = tmp;
 					else {
 						hci_cmd[k] = tmp_h * 16 + tmp;
-						BT_LOG_PR_DBG("hci_cmd[%zd] = 0x%02x\n", k, hci_cmd[k]);
+						BT_LOG_PRT_DBG("hci_cmd[%zd] = 0x%02x\n", k, hci_cmd[k]);
 						k++;
 					 }
 				} else {
-					BT_LOG_PR_ERR("get unexpected char %c\n", tmp_buf[i]);
+					BT_LOG_PRT_ERR("get unexpected char %c\n", tmp_buf[i]);
 					retval = -EINVAL;
 					goto OUT;
 				}
@@ -242,7 +242,7 @@ static ssize_t fw_log_bt_write(struct file *filp, const char __user *buf, size_t
 		// ONLY send hci cmd when BT func on
 		if (!g_bt_on) {
 			retval = -EIO;
-			BT_LOG_PR_ERR("BT func off, skip to send hci cmd\n");
+			BT_LOG_PRT_ERR("BT func off, skip to send hci cmd\n");
 		} else
 			retval = send_hci_frame(hci_cmd, k);
 
@@ -257,19 +257,19 @@ static ssize_t fw_log_bt_read(struct file *filp, char __user *buf, size_t len, l
 	size_t ret = 0;
 
 	ret = connsys_log_read_to_user(CONNLOG_TYPE_BT, buf, len);
-	BT_LOG_PR_DBG("BT F/W log from connsys len %zd\n", ret);
+	BT_LOG_PRT_DBG("BT F/W log from connsys len %zd\n", ret);
 	return ret;
 }
 
 static int fw_log_bt_open(struct inode *inode, struct file *file)
 {
-	BT_LOG_PR_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
+	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 	return 0;
 }
 
 static int fw_log_bt_close(struct inode *inode, struct file *file)
 {
-	BT_LOG_PR_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
+	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 	return 0;
 }
 
@@ -286,7 +286,7 @@ struct file_operations log_fops = {
 int fw_log_bt_init(void)
 {
 	INT32 alloc_ret = 0;
-	INT32 cdev_err = 0;
+	INT32 cdv_err = 0;
 
 	connsys_log_init(CONNLOG_TYPE_BT);
 
@@ -297,15 +297,15 @@ int fw_log_bt_init(void)
 	/* Allocate char device */
 	alloc_ret = alloc_chrdev_region(&devno, 0, 1, BT_LOG_NODE_NAME);
 	if (alloc_ret) {
-		BT_LOG_PR_ERR("Failed to register device numbers\n");
+		BT_LOG_PRT_ERR("Failed to register device numbers\n");
 		return alloc_ret;
 	}
 
 	cdev_init(&log_cdev, &log_fops);
 	log_cdev.owner = THIS_MODULE;
 
-	cdev_err = cdev_add(&log_cdev, devno, 1);
-	if (cdev_err)
+	cdv_err = cdev_add(&log_cdev, devno, 1);
+	if (cdv_err)
 		goto error;
 
 #if CREATE_NODE_DYNAMIC /* mknod replace */
@@ -318,7 +318,7 @@ int fw_log_bt_init(void)
 		goto error;
 #endif
 
-	BT_LOG_PR_INFO("%s driver(major %d, minor %d) installed\n", BT_LOG_NODE_NAME, MAJOR(devno), MINOR(devno));
+	BT_LOG_PRT_INFO("%s driver(major %d, minor %d) installed\n", BT_LOG_NODE_NAME, MAJOR(devno), MINOR(devno));
 	return 0;
 
 error:
@@ -333,7 +333,7 @@ error:
 		log_class = NULL;
 	}
 #endif
-	if (cdev_err == 0)
+	if (cdv_err == 0)
 		cdev_del(&log_cdev);
 
 	if (alloc_ret == 0)
@@ -359,6 +359,6 @@ void fw_log_bt_exit(void)
 		log_class = NULL;
 	}
 #endif
-	BT_LOG_PR_INFO("%s driver removed\n", BT_LOG_NODE_NAME);
+	BT_LOG_PRT_INFO("%s driver removed\n", BT_LOG_NODE_NAME);
 }
 #endif
