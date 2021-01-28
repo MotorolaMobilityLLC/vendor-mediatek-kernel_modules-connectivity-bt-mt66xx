@@ -37,9 +37,6 @@
 #include "stp_exp.h"
 
 
-#ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
-#include "connsys_debug_utility.h"
-
 #define TRUE   1
 #define FALSE  0
 
@@ -114,4 +111,4 @@ extern void bt_state_notify(UINT32 on_off);
 extern ssize_t send_hci_frame(const PUINT8 buf, size_t count);
 
 #endif
-#endif
+

@@ -14,6 +14,7 @@
 
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
 #include "bt.h"
+#include "connsys_debug_utility.h"
 
 MODULE_LICENSE("Dual BSD/GPL");
 
