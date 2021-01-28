@@ -355,6 +355,27 @@ static void inline bt_dump_memory8(uint8_t *buf, uint32_t len)
 
 }
 
+static inline u_int8_t bt_is_bgf_bus_timeout(void)
+{
+	int32_t mailbox_status = 0;
+
+	/*
+	 * Conn-infra bus timeout : 160ms
+	 * Bgf bus timeout : 80ms
+	 *
+	 * There's still a case that we pass conninfra check but still get
+	 * bus hang, so we have to check mail box for sure
+	 */
+	mailbox_status = REG_READL(CON_REG_SPM_BASE_ADDR + 0x268);
+	if (mailbox_status != 0 &&
+		(mailbox_status & 0xFF000000) != 0x87000000) {
+		BTMTK_INFO("mailbox_status = 0x%08x", mailbox_status);
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 static void inline bt_dump_bgfsys_host_csr(void)
 {
 	uint32_t value = 0;
@@ -430,6 +451,7 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	int32_t ret = 0;
 	uint16_t switch_flag = 0x2A;
 
+
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
@@ -438,7 +460,7 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	value |= (switch_flag << 2);
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
-	if (conninfra_reg_readable()) {
+	if (conninfra_reg_readable() && !bt_is_bgf_bus_timeout()) {
 		value = bt_read_cr(0x1881E000);
 		value &= 0xFFFFFFEF;
 		value |= (1 << 4);
@@ -613,7 +635,7 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 		BTMTK_INFO("[0x%08x] = [0x%08x]", i, value);
 	}
 
-	if (conninfra_reg_readable()) {
+	if (conninfra_reg_readable() && !bt_is_bgf_bus_timeout()) {
 		BTMTK_INFO("[BGF Bus hang debug CR (18800410~18000444)] Count = (14)");
 
 		memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
