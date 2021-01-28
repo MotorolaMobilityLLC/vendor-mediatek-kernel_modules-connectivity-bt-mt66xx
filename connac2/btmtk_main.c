@@ -713,7 +713,7 @@ int btmtk_allocate_hci_device(struct btmtk_dev *bdev, int hci_bus_type)
 	set_bit(HCI_QUIRK_RAW_DEVICE, &hdev->quirks);*/
 #if BLUEDROID
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0))
-	test_and_clear_bit(HCI_SETUP, &hdev->dev_flags);
+	clear_bit(HCI_SETUP, &hdev->dev_flags);
 #else
 	hci_dev_test_and_clear_flag(hdev, HCI_SETUP);
 #endif

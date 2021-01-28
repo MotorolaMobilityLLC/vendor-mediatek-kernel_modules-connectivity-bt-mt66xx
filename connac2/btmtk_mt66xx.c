@@ -1031,3 +1031,14 @@ int32_t btmtk_set_wakeup(struct hci_dev *hdev)
 {
 	return 0;
 }
+
+int32_t btmtk_send_thermal_query_cmd(struct hci_dev *hdev)
+{
+	uint8_t cmd[] = { 0x01, 0x91, 0xFD, 0x00 };
+	/* To-Do, for event check */
+	/* u8 event[] = { 0x04, 0x0E, 0x08, 0x01, 0x91, 0xFD, 0x00, 0x00, 0x00, 0x00, 0x00 }; */
+	btmtk_main_send_cmd(hdev, cmd, sizeof(cmd), BTMTKUART_TX_WAIT_VND_EVT);
+
+	BTMTK_INFO("%s done", __func__);
+	return 0;
+}
