@@ -1616,7 +1616,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		up(&bdev->halt_sem);
 		return -EIO;
 	}
-	BTMTK_INFO("%s: bdev[0x%p], bt_state[%d]!", __func__, bdev, bdev->bt_state);
+	BTMTK_INFO("%s: CONNAC20_CHIPID[%d], bdev[0x%p], bt_state[%d]!",
+		__func__, CONNAC20_CHIPID, bdev, bdev->bt_state);
 
 	bdev->bt_state = TURNING_ON;
 
