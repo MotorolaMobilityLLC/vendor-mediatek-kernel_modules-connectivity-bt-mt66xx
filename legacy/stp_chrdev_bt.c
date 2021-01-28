@@ -66,6 +66,7 @@ static DECLARE_WAIT_QUEUE_HEAD(BT_wq);
 static INT32 flag;
 static INT32 bt_ftrace_flag;
 static bool btonflag = 0;
+UINT32 gDbgLevel = BT_LOG_INFO;
 struct bt_dbg_st g_bt_dbg_st;
 #if (PM_QOS_CONTROL == 1)
 static struct pm_qos_request qos_req;
@@ -301,7 +302,7 @@ ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	ftrace_print("%s get called, count %zu", __func__, count);
 	down(&wr_mtx);
 
-	BT_LOG_PRT_DBG("count %zd", count);
+	BT_LOG_PRT_DBG("count %zd\n", count);
 
 	if (rstflag) {
 		BT_LOG_PRT_ERR("whole chip reset occurs! rstflag=%d\n", rstflag);
@@ -321,6 +322,7 @@ ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
 			goto OUT;
 		}
 
+		BT_LOG_PRT_DBG_RAW(o_buf, count, "%s: len[%d], TX: ", __func__, count);
 		retval = __bt_write(o_buf, count);
 	}
 
@@ -356,6 +358,7 @@ ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t
 			goto OUT;
 		}
 
+		BT_LOG_PRT_DBG_RAW(o_buf, count, "%s: len[%d], TX: ", __func__, count);
 		retval = __bt_write(o_buf, count);
 	}
 
@@ -434,9 +437,10 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 		} else {	/* Got something from STP driver */
 			// for bt_dbg user trx function
 			if (g_bt_dbg_st.trx_enable) {
-				g_bt_dbg_st.trx_cb(i_buf, count);
+				g_bt_dbg_st.trx_cb(i_buf, retval);
 			}
-			BT_LOG_PRT_DBG("Read bytes %d\n", retval);
+			//BT_LOG_PRT_DBG("Read bytes %d\n", retval);
+			BT_LOG_PRT_DBG_RAW(i_buf, retval, "%s: len[%d], RX: ", __func__, retval);
 			break;
 		}
 	} while (!mtk_wcn_stp_is_rxqueue_empty(BT_TASK_INDX) && rstflag == 0);

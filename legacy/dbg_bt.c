@@ -37,13 +37,14 @@ typedef struct {
 ********************************************************************************
 */
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
-
+static int bt_dbg_setlog_level(int par1, int par2, int par3);
 
 /*******************************************************************************
 *			     P R I V A T E   D A T A
 ********************************************************************************
 */
 extern struct bt_dbg_st g_bt_dbg_st;
+extern UINT32 gDbgLevel;
 static struct proc_dir_entry *g_bt_dbg_entry;
 static struct mutex g_bt_lock;
 static char g_bt_dump_buf[BT_DBG_DUMP_BUF_SIZE];
@@ -53,6 +54,7 @@ static bool g_bt_turn_on = FALSE;
 static bool g_bt_dbg_enable = FALSE;
 
 static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
+	[0xb] = {bt_dbg_setlog_level,		TRUE},
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
 };
 
@@ -76,6 +78,17 @@ int bt_dbg_get_bt_state(int par1, int par2, int par3)
 	g_bt_dump_buf[0] = g_bt_turn_on;
 	g_bt_dump_buf[1] = '\0';
 	g_bt_dump_buf_len = 2;
+	return 0;
+}
+
+int bt_dbg_setlog_level(int par1, int par2, int par3)
+{
+	if (par2 < BT_LOG_ERR || par2 > BT_LOG_DBG) {
+		gDbgLevel = BT_LOG_INFO;
+	} else {
+		gDbgLevel = par2;
+	}
+	BT_LOG_PRT_INFO("gDbgLevel = %d\n", gDbgLevel);
 	return 0;
 }
 
@@ -196,7 +209,7 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 
 	// Send command and wait for command_complete event
 	g_bt_dbg_st.trx_enable = TRUE;
-	mtk_wcn_stp_send_data(hci_cmd, len, BT_TASK_INDX);
+	send_hci_frame(hci_cmd, len);
 	if (!wait_for_completion_timeout(&g_bt_dbg_st.trx_comp, msecs_to_jiffies(2000)))
 		BT_LOG_PRT_ERR("%s: wait event timeout!", __func__);
 	g_bt_dbg_st.trx_enable = FALSE;
