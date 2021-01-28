@@ -194,14 +194,16 @@ static VOID BT_event_cb(VOID)
 	 *   If next packet is receiving before 500ms, this work will be cancel & re-schedule.
 	 *   (500ms: better power performance after experiment)
 	 */
-	cancel_delayed_work(&qos_ctrl.work);
 	down(&qos_ctrl.sem);
-	if(qos_ctrl.is_hold == FALSE) {
-		pm_qos_update_request(&qos_req, 1000);
-		qos_ctrl.is_hold = TRUE;
-		BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
+	if(qos_ctrl.task != NULL ) {
+		cancel_delayed_work(&qos_ctrl.work);
+		if(qos_ctrl.is_hold == FALSE) {
+			pm_qos_update_request(&qos_req, 1000);
+			qos_ctrl.is_hold = TRUE;
+			BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
+		}
+		queue_delayed_work(qos_ctrl.task, &qos_ctrl.work, (500 * HZ) >> 10);
 	}
-	queue_delayed_work(qos_ctrl.task, &qos_ctrl.work, (500 * HZ) >> 10);
 	up(&qos_ctrl.sem);
 #endif
 
@@ -575,6 +577,7 @@ static int BT_open(struct inode *inode, struct file *file)
 	bt_dev_dbg_set_state(TRUE);
 
 #if (PM_QOS_CONTROL == 1)
+	down(&qos_ctrl.sem);
 	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
 	qos_ctrl.is_hold = FALSE;
 	qos_ctrl.task = create_singlethread_workqueue("pm_qos_task");
@@ -583,6 +586,7 @@ static int BT_open(struct inode *inode, struct file *file)
 		return -EIO;
 	}
 	INIT_DELAYED_WORK(&qos_ctrl.work, pm_qos_release);
+	up(&qos_ctrl.sem);
 #endif
 
 	return 0;
@@ -591,16 +595,6 @@ static int BT_open(struct inode *inode, struct file *file)
 static int BT_close(struct inode *inode, struct file *file)
 {
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
-
-#if (PM_QOS_CONTROL == 1)
-	if(qos_ctrl.task != NULL) {
-		cancel_delayed_work(&qos_ctrl.work);
-		flush_workqueue(qos_ctrl.task);
-		destroy_workqueue(qos_ctrl.task);
-		qos_ctrl.task = NULL;
-	}
-	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#endif
 
 	bt_dev_dbg_set_state(FALSE);
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
@@ -613,6 +607,20 @@ static int BT_close(struct inode *inode, struct file *file)
 
 	mtk_wcn_wmt_msgcb_unreg(WMTDRV_TYPE_BT);
 	mtk_wcn_stp_register_event_cb(BT_TASK_INDX, NULL);
+
+#if (PM_QOS_CONTROL == 1)
+	down(&qos_ctrl.sem);
+	if(qos_ctrl.task != NULL) {
+		BT_LOG_PRT_INFO("[qos] cancel delayed work\n");
+		cancel_delayed_work(&qos_ctrl.work);
+		//flush_workqueue(qos_ctrl.task);
+		destroy_workqueue(qos_ctrl.task);
+		qos_ctrl.task = NULL;
+	}
+	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+	qos_ctrl.is_hold = FALSE;
+	up(&qos_ctrl.sem);
+#endif
 
 	if (mtk_wcn_wmt_func_off(WMTDRV_TYPE_BT) == MTK_WCN_BOOL_FALSE) {
 		BT_LOG_PRT_ERR("WMT turn off BT fail!\n");
