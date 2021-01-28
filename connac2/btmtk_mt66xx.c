@@ -900,6 +900,7 @@ static int32_t bgfsys_power_off(void)
 	/* clear bt_emi_req */
 	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
 	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
+	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT1);
 
 	if (ret)
 		bgfsys_power_on_dump_cr();
