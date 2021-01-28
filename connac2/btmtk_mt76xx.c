@@ -48,7 +48,7 @@ int32_t btmtk_load_rom_patch_766x(struct hci_dev *hdev)
 
 	btmtk_load_code_from_bin(&rom_patch,
 			rom_patch_bin_file_name, NULL,
-			&rom_patch_len);
+			&rom_patch_len, 10);
 
 	tmp_str = rom_patch;
 
@@ -198,7 +198,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev)
 	return 0;
 }
 
-int32_t btmtk_set_sleep(struct hci_dev *hdev)
+int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait)
 {
 	return btmtk_send_hci_tci_set_sleep_cmd_766x(hdev);
 }
