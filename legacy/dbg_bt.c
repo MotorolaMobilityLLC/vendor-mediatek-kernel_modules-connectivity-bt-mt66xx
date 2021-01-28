@@ -44,7 +44,7 @@ static int bt_dbg_setlog_level(int par1, int par2, int par3);
 ********************************************************************************
 */
 extern struct bt_dbg_st g_bt_dbg_st;
-extern UINT32 gDbgLevel;
+extern UINT32 gBtDbgLevel;
 static struct proc_dir_entry *g_bt_dbg_entry;
 static struct mutex g_bt_lock;
 static char g_bt_dump_buf[BT_DBG_DUMP_BUF_SIZE];
@@ -84,11 +84,11 @@ int bt_dbg_get_bt_state(int par1, int par2, int par3)
 int bt_dbg_setlog_level(int par1, int par2, int par3)
 {
 	if (par2 < BT_LOG_ERR || par2 > BT_LOG_DBG) {
-		gDbgLevel = BT_LOG_INFO;
+		gBtDbgLevel = BT_LOG_INFO;
 	} else {
-		gDbgLevel = par2;
+		gBtDbgLevel = par2;
 	}
-	BT_LOG_PRT_INFO("gDbgLevel = %d\n", gDbgLevel);
+	BT_LOG_PRT_INFO("gBtDbgLevel = %d\n", gBtDbgLevel);
 	return 0;
 }
 
