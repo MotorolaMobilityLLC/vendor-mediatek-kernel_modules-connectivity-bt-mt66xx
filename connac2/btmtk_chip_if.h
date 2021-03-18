@@ -24,6 +24,9 @@
 #include "btmtk_uart.h"
 #elif defined(CHIP_IF_BTIF)
 #include "btmtk_btif.h"
+#if (CONNAC20_CHIPID == 6877)
+	#include "platform_mt6877.h"
+#endif
 #endif
 
 int btmtk_cif_register(void);
