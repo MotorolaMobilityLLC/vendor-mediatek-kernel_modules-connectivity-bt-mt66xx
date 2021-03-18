@@ -3,8 +3,8 @@
  * Copyright (c) 2019 MediaTek Inc.
  */
 
-#ifndef _PLATFORM_6877_H
-#define _PLATFORM_6877_H
+#ifndef _PLATFORM_6885_H
+#define _PLATFORM_6885_H
 
 #include "btmtk_define.h"
 #include "platform_base.h"
@@ -56,21 +56,21 @@
  */
 #define CONN_INFRA_RGU_START						CON_REG_INFRA_RGU_ADDR
 
-#define CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL  		(CONN_INFRA_RGU_START + 0x0020)
+#define CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL  		(CONN_INFRA_RGU_START + 0x0008)
 #define BGF_PWR_CTL_B                         		BIT(7)
 
-#define CONN_INFRA_RGU_BGFSYS_CPU_SW_RST     		(CONN_INFRA_RGU_START + 0x0124)
+#define CONN_INFRA_RGU_BGFSYS_CPU_SW_RST     		(CONN_INFRA_RGU_START + 0x0014)
 #define BGF_CPU_SW_RST_B                     		BIT(0)
 
-#define CONN_INFRA_RGU_BGFSYS_SW_RST_B				(CONN_INFRA_RGU_START + 0x0144)
+#define CONN_INFRA_RGU_BGFSYS_SW_RST_B				(CONN_INFRA_RGU_START + 0x001C)
 #define BGF_SW_RST_B								BIT(0)
 
-#define CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_ACK_ST		(CONN_INFRA_RGU_START + 0x0414)
+#define CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_ACK_ST		(CONN_INFRA_RGU_START + 0x0114)
 #define BGF_ON_PWR_ACK_B							BITS(24, 25)
 
-#define CONN_INFRA_RGU_BGFSYS_OFF_TOP_PWR_ACK_ST	(CONN_INFRA_RGU_START + 0x0424)
+#define CONN_INFRA_RGU_BGFSYS_OFF_TOP_PWR_ACK_ST	(CONN_INFRA_RGU_START + 0x0124)
 #define BGF_OFF_PWR_ACK_B							BIT(24)
-#define BGF_OFF_PWR_ACK_S							BIT(0)
+#define BGF_OFF_PWR_ACK_S							BITS(0, 1)
 
 /*
  * ConnInfra CFG Region
@@ -79,30 +79,24 @@
 
 #define CONN_INFRA_CFG_VERSION						(CONN_INFRA_CFG_START)
 
-#define CONN_INFRA_CONN2BT_GALS_SLP_CTL				(CONN_INFRA_CFG_START + 0x0550)
-#define CONN_INFRA_CONN2BT_GALS_SLP_STATUS			(CONN_INFRA_CFG_START + 0x0554)
+#define CONN_INFRA_CONN2BT_GALS_SLP_CTL				(CONN_INFRA_CFG_START + 0x0610)
 #define CONN2BT_SLP_PROT_TX_EN_B					BIT(0)
-#define CONN2BT_SLP_PROT_TX_ACK_B					BIT(23)
+#define CONN2BT_SLP_PROT_TX_ACK_B					BIT(3)
 #define CONN2BT_SLP_PROT_RX_EN_B					BIT(4)
-#define CONN2BT_SLP_PROT_RX_ACK_B					BIT(22)
+#define CONN2BT_SLP_PROT_RX_ACK_B					BIT(7)
 
-#define CONN_INFRA_BT2CONN_GALS_SLP_CTL				(CONN_INFRA_CFG_START + 0x0560)
-#define CONN_INFRA_BT2CONN_GALS_SLP_STATUS			(CONN_INFRA_CFG_START + 0x0564)
+#define CONN_INFRA_BT2CONN_GALS_SLP_CTL				(CONN_INFRA_CFG_START + 0x0614)
 #define BT2CONN_SLP_PROT_TX_EN_B					BIT(0)
-#define BT2CONN_SLP_PROT_TX_ACK_B					BIT(23)
+#define BT2CONN_SLP_PROT_TX_ACK_B					BIT(3)
 #define BT2CONN_SLP_PROT_RX_EN_B					BIT(4)
-#define BT2CONN_SLP_PROT_RX_ACK_B					BIT(22)
+#define BT2CONN_SLP_PROT_RX_ACK_B					BIT(7)
 
-#define CONN_INFRA_CFG_BT_PWRCTLCR0					(CONN_INFRA_CFG_START + 0x0208)
+#define CONN_INFRA_CFG_BT_PWRCTLCR0					(CONN_INFRA_CFG_START + 0x0874)
 #define BT_FUNC_EN_B								BIT(0)
 
-#define CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT		(CONN_INFRA_CFG_START + 0x0418)
+#define CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT		(CONN_INFRA_CFG_START + 0x0C18)
 #define BT_EMI_CTRL_BIT								BIT(0)
 #define BT_EMI_CTRL_BIT1							BIT(1)
-#define BT_INFRA_CTRL_BIT							BIT(5)
-
-#define CONN_INFRA_CFG_BT_MANUAL_CTRL				(CONN_INFRA_CFG_START + 0x0108)
-#define BT_MTCMOS_FSM_PWR_ACK						BIT(27)
 
 /*
  * Connsys Host CSR Top Region
@@ -145,11 +139,11 @@
 #define BGF_MCCR_SET							(BGF_REG_BASE_ADDR + 0x0104)
 #define BGF_CON_CR_AHB_STOP						BIT(2)
 
-#define BGF_SW_IRQ_RESET_ADDR					(0x1803F014)
-#define BGF_SW_IRQ_STATUS						(0x1803F010)
-#define BGF_WHOLE_CHIP_RESET					BIT(2)
-#define BGF_SUBSYS_CHIP_RESET					BIT(1)
-#define BGF_FW_LOG_NOTIFY						BIT(0)
+#define BGF_SW_IRQ_RESET_ADDR					(BGF_REG_BASE_ADDR + 0x014C)
+#define BGF_SW_IRQ_STATUS						(BGF_REG_BASE_ADDR + 0x0150)
+#define BGF_WHOLE_CHIP_RESET					BIT(26)
+#define BGF_SUBSYS_CHIP_RESET					BIT(25)
+#define BGF_FW_LOG_NOTIFY						BIT(24)
 
 #define BGF_MCU_CFG_SW_DBG_CTL					(BGF_REG_BASE_ADDR + 0x016C)
 
@@ -163,7 +157,7 @@
 #define BGF_HW_CODE_ID							0x00000000
 
 #define BGF_IP_VERSION							(BGF_REG_INFO_BASE_ADDR + 0x10)
-#define BGF_IP_VER_ID							0x02040200
+#define BGF_IP_VER_ID							0x20010000
 
 /*********************************************************************
 *
@@ -174,10 +168,20 @@
 #define _BIN_NAME_POSTFIX 			".bin"
 #define _BIN_NAME_UPDATE_POSTFIX 	"-u.bin"
 
-#define _BIN_NAME_MCU			"soc5_0_ram_mcu_1_1_hdr"
-#define _BIN_NAME_BT			"soc5_0_ram_bt_1_1_hdr"
-#define CONN_INFRA_CFG_ID		(0x02060002) 
-
+#if (CONNAC20_CHIPID == 6885)
+#ifdef BT_CUS_FEATURE
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1b_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1b_1_hdr"
+#else
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1_1_hdr"
+#endif
+	#define CONN_INFRA_CFG_ID		(0x20010000)
+#elif (CONNAC20_CHIPID == 6893)
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1a_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1a_1_hdr"
+	#define CONN_INFRA_CFG_ID		(0x20010101)
+#endif
 
 #define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
 #define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
@@ -207,15 +211,17 @@
  */
 static inline void bgfsys_ccif_on(void)
 {
-	uint8_t *ccif_base = ioremap(0x10003200, 0x100);
+	uint8_t *ccif_base = ioremap(0x10003300, 0x100);
 
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
 	}
 
-	/* CONSYS_BGF_PWR_ON, 0x10003204[31:0] = 32'b0 */
-	*(ccif_base + 0x04) = 0x0;
+	/* CONSYS_BGF_PWR_ON, 0x10003318[0] = 1'b1 */
+	SET_BIT(ccif_base + 0x18, BIT(0));
+	/* CONSYS_BGF_READY, 0x10003318[1] = 1'b0 */
+	CLR_BIT(ccif_base + 0x18, BIT(1));
 	iounmap(ccif_base);
 }
 
@@ -237,15 +243,18 @@ static inline void bgfsys_ccif_off(void)
 {
 	uint8_t *ccif_base = NULL, *bgf2md_base = NULL;
 
-	ccif_base = ioremap(0x10003200, 0x100);
+	ccif_base = ioremap(0x10003300, 0x100);
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
 	}
 
-	/* CONSYS_BGF_PWR_ON, 0x10003204[31:0] = 32'b0 */
-	*(ccif_base + 0x04) = 0x0;
+	/* CONSYS_BGF_PWR_ON, 0x10003318[0] = 1'b0 */
+	CLR_BIT(ccif_base + 0x18, BIT(0));
+	/* CONSYS_BGF_READY, 0x10003318[1] = 1'b0 */
+	CLR_BIT(ccif_base + 0x18, BIT(1));
 	iounmap(ccif_base);
+
 
 	bgf2md_base = ioremap(0x1025C000, 0x100);
 	if (bgf2md_base == NULL) {
@@ -277,6 +286,19 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	/* wake up conn_infra off */
 	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
+	/* check ap2conn slpprot_rdy */
+	retry = POS_POLLING_RTY_LMT;
+	do {
+		value = CONN_INFRA_ON2OFF_SLP_PROT_ACK &
+			REG_READL(CONN_HOST_CSR_TOP_CONN_SLP_PROT_CTRL);
+		BTMTK_DBG("ap2conn slpprot_rdy = 0x%08x", value);
+		usleep_range(1000, 1100);
+		retry--;
+	} while (value != 0 && retry > 0);
+
+	if (retry == 0)
+		return -1;
+
 	if (conninfra_reg_readable()) {
 		/* check conn_infra off ID */
 		value = REG_READL(CONN_INFRA_CFG_VERSION);
@@ -284,7 +306,6 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		if (value != CONN_INFRA_CFG_ID)
 			return -1;
 	} else  {
-		conninfra_is_bus_hang();
 		BTMTK_ERR("Conninfra is not readable");
 		return -1;
 	}
@@ -338,7 +359,6 @@ static void inline bt_dump_cpupcr(uint32_t times, uint32_t sleep_ms)
 	}
 }
 
-/* DE Defined: dump all BGF host csr */
 static void inline bt_dump_bgfsys_host_csr(void)
 {
 	uint32_t value = 0;
@@ -358,7 +378,6 @@ static void inline bt_dump_bgfsys_host_csr(void)
 			break;
 		pos += ret;
 	}
-	// note: CR[0x18060240]: DE don't care in this project
 
 	for (i = 0x264; i <= 0x270; i+=4) {
 		value = REG_READL(CON_REG_SPM_BASE_ADDR + i);
@@ -371,7 +390,6 @@ static void inline bt_dump_bgfsys_host_csr(void)
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
 
-/* DE Defined: dump all BGF MCUSYS debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_mcusys_flag(void)
 {
@@ -385,7 +403,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
-	value &= 0xFFFE0003; /* ignore [16:2] */
+	value &= 0xFFFFFF03; /* ignore [7:2] */
 	value |= (switch_flag << 2);
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
@@ -407,7 +425,6 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	}
 }
 
-/* DE Defined: dump all BGF BUS debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_bus_flag(void)
 {
@@ -422,9 +439,17 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
-	value &= 0xFFFE0003; /* ignore [16:2] */
+	value &= 0xFFFFFF03; /* ignore [7:2] */
 	value |= (switch_flag << 2);
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
+
+	if (conninfra_reg_readable() && !bt_is_bgf_bus_timeout()) {
+		value = bt_read_cr(0x1881E000);
+		value &= 0xFFFFFFEF;
+		value |= (1 << 4);
+		bt_write_cr(0x1881E000, value, FALSE);
+	} else
+		BTMTK_ERR("conninfra is not readable");
 
 	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
 	for (i = 0x104A4901; i <= 0xA04A4901; i += 0x10000000) {
@@ -447,34 +472,20 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	}
 }
 
-/* DE Defined: dump all BGF TOP common/bt part debug flag */
 static void inline bt_dump_bgfsys_top_common_flag(void)
 {
 	uint32_t value = 0;
 	uint32_t i = 0, count = 1, cr_count = 20;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	int32_t retry = 20;
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
-	// polling semaphore until accessible
-	do {
-		value = bt_read_cr(0x18074000);
-		usleep_range(500, 550);
-		retry--;
-	} while (value != 0x01 && retry > 0);
-	if (0 == retry) {
-		BTMTK_INFO("%s: polling fail!", __func__);
-		return;
-	}
-
-	// dump CR values
 	BTMTK_INFO("[BGF TOP common/bt part debug flag] Count = (%d)", cr_count);
 	for (i = 0x80; i <= 0x93; i++, count++) {
-		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xAC, i); // todo: need?
+		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xAC, i);
 		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x23C);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1))
@@ -488,12 +499,8 @@ static void inline bt_dump_bgfsys_top_common_flag(void)
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
 	}
-
-	// release semaphore
-	bt_write_cr(0x18074200, 0x01, FALSE);
 }
 
-/* DE Defined: dump all BGF MCU core debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_mcu_core_flag(void)
 {
@@ -507,7 +514,7 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
-	value &= 0xFFFE0003; /* ignore [16:2] */
+	value &= 0xFFFFFF03; /* ignore [7:2] */
 	value |= (switch_flag << 2);
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
@@ -531,11 +538,10 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	}
 }
 
-/* DE Defined: dump all BGF MCU PC log */
-static inline void bt_dump_bgfsys_mcu_pc_log(uint8_t first_val, uint8_t last_val)
+static inline void bt_dump_bgfsys_mcu_pc_log(void)
 {
 	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = (last_val - first_val + 1);
+	uint32_t i = 0, count = 1, cr_count = 45;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
 
@@ -545,9 +551,9 @@ static inline void bt_dump_bgfsys_mcu_pc_log(uint8_t first_val, uint8_t last_val
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
 	BTMTK_INFO("[BGF MCU PC log] Count = (%d)", cr_count);
-	for (i = first_val; i <= last_val; i++, count++) {
+	for (i = 0x00; i <= 0x2C; i++, count++) {
 		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
-		value &= 0xFFFE0003; /* ignore [16:2] */
+		value &= 0xFFFFFF03; /* ignore [7:2] */
 		value |= (i << 2);
 		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
@@ -595,8 +601,7 @@ static void bt_dump_bgfsys_all(void)
 	/* these dump all belongs to host_csr */
 	bt_dump_cpupcr(10, 0);
 	bt_dump_bgfsys_host_csr();
-	bt_dump_bgfsys_mcu_pc_log(0, 44);
-	bt_dump_bgfsys_mcu_pc_log(64, 97);
+	bt_dump_bgfsys_mcu_pc_log();
 	bt_dump_bgfsys_mcu_core_flag();
 	bt_dump_bgfsys_mcusys_flag();
 	bt_dump_bgfsys_bus_flag();
@@ -638,7 +643,7 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 	}
 
 	if (conninfra_reg_readable() && !bt_is_bgf_bus_timeout()) {
-		BTMTK_INFO("[BGF Bus hang debug CR (18800410~18000444, 18802214~18802220)] Count = (18)");
+		BTMTK_INFO("[BGF Bus hang debug CR (18800410~18000444)] Count = (14)");
 
 		memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 		pos = &g_dump_cr_buffer[0];
@@ -646,13 +651,6 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 		for (offset = 0x410; offset <= 0x0444; offset += 4) {
 			ret = snprintf(pos, (end - pos + 1), "%08x ",
 					 REG_READL(BGF_REG_BASE_ADDR + offset));
-			if (ret < 0 || ret >= (end - pos + 1))
-				break;
-			pos += ret;
-		}
-		for (offset = 0x18802214; offset <= 0x18802220; offset += 4) {
-			ret = snprintf(pos, (end - pos + 1), "%08x ",
-					 bt_read_cr(offset));
 			if (ret < 0 || ret >= (end - pos + 1))
 				break;
 			pos += ret;
@@ -767,20 +765,9 @@ host_csr_only:
 
 static inline int32_t bgfsys_get_sw_irq_status(void)
 {
-	int32_t ret = 0, value = 0, i = 0;
+	int32_t ret = 0;
 
-	/* wake up conn_infra off */
-	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
-	/* polling conninfra version id */
-	for (i = 0; i < 5; i++) {
-		value = REG_READL(CONN_INFRA_CFG_VERSION);
-		if (value == CONN_INFRA_CFG_ID)
-			break;
-		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
-	}
-
-	/* Check conninfra bus */
+	/* 1. Check conninfra bus before accessing BGF's CR */
 	if (!conninfra_reg_readable()) {
 		ret = conninfra_is_bus_hang();
 		if (ret > 0) {
@@ -791,28 +778,23 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
 	}
 
-	/* Check bgf bus status */
+	/* 2. Check bgf bus status */
 	if (bt_is_bgf_bus_timeout()) {
 		bt_dump_bgfsys_all();
 		return RET_SWIRQ_ST_FAIL;
 	}
 
-	/* read sw irq status*/
-	value = bt_read_cr(BGF_SW_IRQ_STATUS);
-
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-	return value;
+	return REG_READL(BGF_SW_IRQ_STATUS);
 }
 
 static inline void bgfsys_ack_sw_irq_fwlog(void)
 {
-	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
+	SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY);
 }
 
 static inline void bgfsys_ack_sw_irq_reset(void)
 {
-	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
+	SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET);
 }
 
 /* bgfsys_power_on_dump_cr
@@ -866,7 +848,7 @@ static inline void bgfsys_power_on_dump_cr(void)
 	//REG_WRITEL(CONN_INFRA_CFG_START + 0x0610, BIT(1));
 	//val_r = REG_READL(CONN_INFRA_CFG_START + 0x0610);
 	//BTMTK_INFO("%s: REG[0x18001610] write[0x%08x], REG[0x18001610] read[0x%08x]", __func__, BIT(1), val_r);
-	//	bt_write_cr(0x1800F000, 0x32C8001C, FALSE);
+		bt_write_cr(0x1800F000, 0x32C8001C, FALSE);
 	}
 
 host_csr_only:
@@ -910,7 +892,7 @@ host_csr_only:
 
 static inline void bgfsys_dump_uart_pta_pready_status(void)
 {
-	//uint8_t *base = NULL;
+	uint8_t *base = NULL;
 
 	if (!conninfra_reg_readable()) {
 		BTMTK_ERR("%s: conninfra bus is not readable, discard", __func__);
@@ -924,7 +906,6 @@ static inline void bgfsys_dump_uart_pta_pready_status(void)
 	BTMTK_INFO("0x18001A00 = [0x%08x]",
 		REG_READL(CON_REG_INFRA_CFG_ADDR + 0xA00));
 
-	/*
 	base = ioremap(0x1800C00C, 4);
 	if (base == NULL) {
 		BTMTK_ERR("%s: remapping 0x18001A00 fail", __func__);
@@ -932,7 +913,27 @@ static inline void bgfsys_dump_uart_pta_pready_status(void)
 	}
 	BTMTK_INFO("0x1800C00C = [0x%08x]", *base);
 	iounmap(base);
-	*/
+}
+
+static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
+{
+	void __iomem *vir_addr = NULL;
+	unsigned int val1 = 0, val2 = 0;
+
+	vir_addr = ioremap(0x18005008, 0x10);
+	if (vir_addr) {
+		val1 = (unsigned int)REG_READL(vir_addr);
+		iounmap(vir_addr);
+	} else
+		BTMTK_WARN("ioremap fail");
+
+	vir_addr = ioremap(0x180050A8, 0x10);
+	if (vir_addr) {
+		val2 = (unsigned int)REG_READL(vir_addr);
+		iounmap(vir_addr);
+	} else
+		BTMTK_WARN("ioremap fail");
+	BTMTK_INFO("[%s] 0x18005008=[%x] 0x180050A8=[%x]", __func__, val1, val2);
 }
 
 /*********************************************************************
@@ -969,15 +970,18 @@ static inline int32_t bgfsys_power_on(void)
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
 
-	/* reset bfgsys semaphore, 20201105_POS remove */
-	//CLR_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
-	/* release reset bfgsys semaphore, 20201105_POS remove */
-	//SET_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
+	/* bus clock ctrl */
+	conninfra_bus_clock_ctrl(CONNDRV_TYPE_BT, CONNINFRA_BUS_CLOCK_WPLL | CONNINFRA_BUS_CLOCK_BPLL, 1);
 
-	/* power on bgfsys on */
-	value = 0x42540080 |
-		(REG_READL(CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL) & ~(BITS(16, 31) | BIT(7)));
-	REG_WRITEL(CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL, value);
+	/* enable bt function en */
+	SET_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
+
+	if (!conninfra_reg_readable()) {
+		if (conninfra_is_bus_hang() > 0) {
+			BTMTK_ERR("%s: check conninfra status fail after set CONN_INFRA_CFG_BT_PWRCTLCR0!", __func__);
+			goto error;
+		}
+	}
 
 	/* polling bgfsys top on power ack bits until they are asserted */
 	do {
@@ -990,16 +994,6 @@ static inline int32_t bgfsys_power_on(void)
 
 	if (0 == retry)
 		goto error;
-
-	/* enable bt function en */
-	SET_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
-
-	if (!conninfra_reg_readable()) {
-		if (conninfra_is_bus_hang() > 0) {
-			BTMTK_ERR("%s: check conninfra status fail after set CONN_INFRA_CFG_BT_PWRCTLCR0!", __func__);
-			goto error;
-		}
-	}
 
 	/* polling bgfsys top off power ack bits until they are asserted */
 	retry = POS_POLLING_RTY_LMT;
@@ -1028,11 +1022,12 @@ static inline int32_t bgfsys_power_on(void)
 
 	/* disable conn2bt slp_prot rx en */
 	CLR_BIT(CONN_INFRA_CONN2BT_GALS_SLP_CTL, CONN2BT_SLP_PROT_RX_EN_B);
+
 	/* polling conn2bt slp_prot rx ack until it is cleared */
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = CONN2BT_SLP_PROT_RX_ACK_B &
-			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_CTL);
 		BTMTK_INFO("conn2bt slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
@@ -1047,7 +1042,7 @@ static inline int32_t bgfsys_power_on(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = CONN2BT_SLP_PROT_TX_ACK_B &
-			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_CTL);
 		BTMTK_INFO("conn2bt slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
@@ -1062,7 +1057,7 @@ static inline int32_t bgfsys_power_on(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = BT2CONN_SLP_PROT_RX_ACK_B &
-			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_CTL);
 		BTMTK_INFO("bt2conn slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
@@ -1077,7 +1072,7 @@ static inline int32_t bgfsys_power_on(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = BT2CONN_SLP_PROT_TX_ACK_B &
-			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_CTL);
 		BTMTK_INFO("bt2conn slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
@@ -1087,6 +1082,30 @@ static inline int32_t bgfsys_power_on(void)
 		goto error;
 
 	usleep_range(400, 440);
+
+	/* read bgfsys hw_version */
+	retry = 10;
+	do {
+		value = REG_READL(BGF_HW_VERSION);
+		BTMTK_INFO("bgfsys hw version id = 0x%08x", value);
+		usleep_range(500, 550);
+		retry--;
+	} while (value != BGF_HW_VER_ID && retry > 0);
+
+	if (0 == retry)
+		goto error;
+
+	/* read bgfsys fw_version */
+	value = REG_READL(BGF_FW_VERSION);
+	BTMTK_INFO("bgfsys fw version id = 0x%08x", value);
+	if (value != BGF_FW_VER_ID)
+		goto error;
+
+	/* read bgfsys hw_code */
+	value = REG_READL(BGF_HW_CODE);
+	BTMTK_INFO("bgfsys hw code = 0x%08x", value);
+	if (value != BGF_HW_CODE_ID)
+		goto error;
 
 	/* read and check bgfsys version id */
 	value = REG_READL(BGF_IP_VERSION);
@@ -1100,13 +1119,25 @@ static inline int32_t bgfsys_power_on(void)
 	/* set con_cr_ahb_stop */
 	REG_WRITEL(BGF_MCCR_SET, BGF_CON_CR_AHB_STOP);
 
-	/* mask mtcmos fsm pwr_ack & ack_s status, 20201105_POS remove */
-	//SET_BIT(CONN_INFRA_CFG_BT_MANUAL_CTRL, BT_MTCMOS_FSM_PWR_ACK);
+	/* reset bfgsys semaphore */
+	CLR_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
 
 	/* release n10 cpu core */
 	SET_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
 
+	/* trun off BPLL & WPLL (use common API) */
+	conninfra_bus_clock_ctrl(CONNDRV_TYPE_BT, CONNINFRA_BUS_CLOCK_WPLL | CONNINFRA_BUS_CLOCK_BPLL, 0);
+
+	/*
+	 * enable conn_infra bus hang detect function &
+	 * bus timeout value(use common API)
+	 */
+	conninfra_config_setup();
+
 	bgfsys_dump_uart_pta_pready_status();
+
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
 	/*
 	 * polling BGFSYS MCU sw_dbg_ctl cr to wait it becomes 0x1D1E,
@@ -1135,12 +1166,12 @@ static inline int32_t bgfsys_power_on(void)
 		return -1;
 	}
 
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
 	return 0;
 
 error:
+	/* turn off clock ctrl */
+	conninfra_bus_clock_ctrl(CONNDRV_TYPE_BT, CONNINFRA_BUS_CLOCK_WPLL | CONNINFRA_BUS_CLOCK_BPLL, 0);
+
 	bgfsys_power_on_dump_cr();
 
 	/* release conn_infra force on */
@@ -1166,8 +1197,6 @@ static inline int32_t bgfsys_power_off(void)
 	uint32_t value = 0;
 	int32_t retry = POS_POLLING_RTY_LMT;
 	int32_t ret = 0;
-	uint32_t addr = 0;
-	uint32_t *remap_addr = NULL;
 
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
@@ -1181,7 +1210,7 @@ static inline int32_t bgfsys_power_off(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = BT2CONN_SLP_PROT_TX_ACK_B &
-			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_CTL);
 		BTMTK_DBG("bt2conn slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
@@ -1196,7 +1225,7 @@ static inline int32_t bgfsys_power_off(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = BT2CONN_SLP_PROT_RX_ACK_B &
-			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_CTL);
 		BTMTK_DBG("bt2conn slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry --;
@@ -1211,7 +1240,7 @@ static inline int32_t bgfsys_power_off(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = CONN2BT_SLP_PROT_TX_ACK_B &
-			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_CTL);
 		BTMTK_DBG("conn2bt slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry --;
@@ -1226,7 +1255,7 @@ static inline int32_t bgfsys_power_off(void)
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = CONN2BT_SLP_PROT_RX_ACK_B &
-			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
+			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_CTL);
 		BTMTK_DBG("conn2bt slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry --;
@@ -1238,64 +1267,34 @@ static inline int32_t bgfsys_power_off(void)
 	if (ret == -2)
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "Power off fail");
 
+	/* trun off BPLL & WPLL (use common API) */
+	conninfra_bus_clock_ctrl(CONNDRV_TYPE_BT, CONNINFRA_BUS_CLOCK_WPLL | CONNINFRA_BUS_CLOCK_BPLL, 0);
+
 	/* disable bt function en */
 	CLR_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
-
-	/* power off bgfsys on */
-	value = 0x42540000 |
-		(REG_READL(CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL) & ~(BITS(16, 31) | BIT(7)));
-	REG_WRITEL(CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_CTL, value);
 
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
 
-	/* Disable A-die top_ck_en_2 */
-	// 0x18005128	WR	0x18005128[0] == 1'b1/1'b0
-	// 0x18005128	POLLING 0x18005128[1] == 1'b0
-	addr = 0x18005128;
-	remap_addr = ioremap(addr, 4);
-	if (remap_addr) {
-		CLR_BIT(remap_addr, BIT(0));
-		retry = POS_POLLING_RTY_LMT;
-		do {
-			value = BIT(1) & REG_READL(remap_addr);
-			BTMTK_DBG("CONN_WT_SLP_CTL_REG_WB_SLP_TOP_CK_2_WB_SLP_TOP_CK_2 = 0x%08x", value);
-			usleep_range(500, 550);
-			retry --;
-		} while (value != 0 && retry > 0);
-
-		if (retry == 0)
-			ret = -1;
-		iounmap(remap_addr);
-	} else {
-		BTMTK_ERR("ioremap [0x%08x] fail", addr);
-		ret = -1;
-	}
+	/* Disable A-die top_ck_en (use common API) */
+	conninfra_adie_top_ck_en_off(CONNSYS_ADIE_CTL_FW_BT);
 
 	/* reset bfgsys semaphore */
-	//CLR_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
-	/* release reset bfgsys semaphore */
-	//SET_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
-	/* reset semaphore, 20210308 update */
-	for (addr = 0x18071200; addr <= 0x18071260; addr += 4)
-		bt_write_cr(addr, 0x1, FALSE);
- 
+	CLR_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
+
 	/* clear bt_emi_req */
 	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
 	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
-
-	/* clear bt_sw_conn_srcclkena */
-	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT1);
 	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT1);
-
-	/* clear bt_infra_req */
-	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_INFRA_CTRL_BIT);
-	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_INFRA_CTRL_BIT);
 
 	if (ret)
 		bgfsys_power_on_dump_cr();
 
 	bgfsys_dump_uart_pta_pready_status();
+
+	/* when bt turn off, a-die may still closing and OC happened, add dump to debug */
+	//udelay(50);
+	bgfsys_dump_conn_wt_slp_ctrl_reg();
 
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));

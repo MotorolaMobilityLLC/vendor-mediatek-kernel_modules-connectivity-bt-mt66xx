@@ -10,7 +10,6 @@
 #include <linux/of.h>
 #include <linux/of_gpio.h>
 #include "btmtk_define.h"
-#include "btmtk_mt66xx_reg.h"
 #include "btmtk_chip_if.h"
 #include "conninfra.h"
 
@@ -315,13 +314,21 @@ int bt_dbg_is_adie_work(int par1, int par2, int par3)
 {
 	int ret = 0, adie_state = 0;
 
+	if(g_bt_turn_on) {
+		adie_state = 0; // power on a-die pass
+		goto end;
+	}
+
 	ret = conninfra_pwr_on(CONNDRV_TYPE_BT);
 	//if ((ret == CONNINFRA_POWER_ON_A_DIE_FAIL) || (ret == CONNINFRA_POWER_ON_D_DIE_FAIL))
 	if (ret != 0)
 		adie_state = 1; // power on a-die fail, may be evb without DTB
-	else
+	else {
 		adie_state = 0; // power on a-die pass
+		conninfra_pwr_off(CONNDRV_TYPE_BT);
+	}
 
+end:
 	BTMTK_INFO("%s: ret[%d], adie_state[%d]", __func__, ret, adie_state);
 	_bt_dbg_reset_dump_buf();
 	g_bt_dump_buf[0] = (adie_state == 0 ? '0' : '1'); // '0': adie pass, '1': adie fail

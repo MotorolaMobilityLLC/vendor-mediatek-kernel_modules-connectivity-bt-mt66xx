@@ -108,7 +108,7 @@ int32_t rx_skb_enqueue(struct sk_buff *skb)
 	if(g_bt_dbg_st.rx_buf_ctrl == TRUE) {
 		for(i = 0; i < WAIT_TIMES; i++) {
 			if (!is_rx_queue_res_available(skb->len + 1)) {
-				msleep(5);
+				usleep_range(USLEEP_5MS_L, USLEEP_5MS_H);
 			} else
 				break;
 		}
@@ -331,6 +331,7 @@ void command_response_timeout(struct work_struct *pwork)
 {
 	struct bt_cmd_queue *p_queue = &g_bdev->cmd_queue;
 
+	down(&g_bdev->cmd_tout_sem);
 	if (p_queue->size != 0) {
 		g_bdev->cmd_timeout_count++;
 
@@ -348,6 +349,7 @@ void command_response_timeout(struct work_struct *pwork)
 		} else
 			queue_delayed_work(workqueue_task, &work, HZ>>1);
 	}
+	up(&g_bdev->cmd_tout_sem);
 }
 
 bool cmd_workqueue_init(void)
@@ -378,13 +380,15 @@ void update_command_response_workqueue(void) {
 
 void cmd_workqueue_exit(void)
 {
+	down(&g_bdev->cmd_tout_sem);
 	BTMTK_INFO("exit workqueue");
-	if(workqueue_task == NULL)
-		return;
-	cancel_delayed_work(&work);
-	flush_workqueue(workqueue_task);
-	destroy_workqueue(workqueue_task);
-	workqueue_task = NULL;
+	if(workqueue_task != NULL) {
+		cancel_delayed_work(&work);
+		flush_workqueue(workqueue_task);
+		destroy_workqueue(workqueue_task);
+		workqueue_task = NULL;
+	}
+	up(&g_bdev->cmd_tout_sem);
 }
 
 #endif // (DRIVER_CMD_CHECK == 1)

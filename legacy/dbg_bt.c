@@ -5,6 +5,9 @@
 #include <linux/io.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
+#include <linux/gpio.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
 #include "bt.h"
 
 /*******************************************************************************
@@ -38,6 +41,7 @@ typedef struct {
 */
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
 static int bt_dbg_setlog_level(int par1, int par2, int par3);
+static int bt_dbg_is_adie_work(int par1, int par2, int par3);
 
 /*******************************************************************************
 *			     P R I V A T E   D A T A
@@ -56,6 +60,7 @@ static bool g_bt_dbg_enable = FALSE;
 static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0xb] = {bt_dbg_setlog_level,		TRUE},
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
+	[0x12] = {bt_dbg_is_adie_work,		TRUE},
 };
 
 /*******************************************************************************
@@ -81,6 +86,25 @@ int bt_dbg_get_bt_state(int par1, int par2, int par3)
 	return 0;
 }
 
+int bt_dbg_is_adie_work(int par1, int par2, int par3)
+{
+	int ret = 1, adie_state = 0;
+
+	// 20210114/todo: unmask when wmt porting done on next project
+	//ret = mtk_wcn_wmt_adie_workable();
+	if (ret == 0)
+		adie_state = 1; // power on a-die fail, may be evb without DTB
+	else
+		adie_state = 0; // power on a-die pass
+
+	BT_LOG_PRT_INFO("ret[%d], adie_state[%d]", ret, adie_state);
+	_bt_dbg_reset_dump_buf();
+	g_bt_dump_buf[0] = (adie_state == 0 ? '0' : '1'); // '0': adie pass, '1': adie fail
+	g_bt_dump_buf[1] = '\0';
+	g_bt_dump_buf_len = 2;
+	return 0;
+}
+
 int bt_dbg_setlog_level(int par1, int par2, int par3)
 {
 	if (par2 < BT_LOG_ERR || par2 > BT_LOG_DBG) {
@@ -97,6 +121,7 @@ ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 	int ret = 0;
 	int dump_len;
 
+	BT_LOG_PRT_INFO("%s: count[%zd]\n", __func__, count);
 	ret = mutex_lock_killable(&g_bt_lock);
 	if (ret) {
 		BT_LOG_PRT_ERR("dump_lock fail!!\n");
@@ -120,7 +145,7 @@ ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 	*f_pos += dump_len;
 	g_bt_dump_buf_len -= dump_len;
 	g_bt_dump_buf_ptr += dump_len;
-	BT_LOG_PRT_INFO("after read, wmt for dump info buffer len(%d)\n", g_bt_dump_buf_len);
+	BT_LOG_PRT_INFO("%s: after read, wmt for dump info buffer len(%d)\n", __func__, g_bt_dump_buf_len);
 
 	ret = dump_len;
 exit:
