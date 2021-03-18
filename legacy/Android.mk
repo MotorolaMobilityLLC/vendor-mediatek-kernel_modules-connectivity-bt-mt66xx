@@ -1,7 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
 ifeq ($(MTK_BT_SUPPORT),yes)
-ifneq ($(MTK_BT_CHIP), $(filter $(MTK_BT_CHIP), MTK_CONSYS_MT6885 MTK_CONSYS_MT6893))
+ifneq ($(MTK_BT_CHIP), $(filter $(MTK_BT_CHIP), MTK_CONSYS_MT6885 MTK_CONSYS_MT6893 MTK_CONSYS_MT6877))
 
 include $(CLEAR_VARS)
 LOCAL_MODULE := bt_drv.ko
