@@ -135,7 +135,7 @@ static size_t bt_report_hw_error(char *buf, size_t count, loff_t *f_pos)
 static uint32_t inline bt_read_cr(unsigned char *cr_name, uint32_t addr)
 {
 	uint32_t value = 0;
-	uint8_t *base = ioremap_nocache(addr, 0x10);
+	uint8_t *base = ioremap(addr, 0x10);
 
 	if (base == NULL) {
 		BT_LOG_PRT_WARN("remapping 0x%08x fail\n", addr);
@@ -310,7 +310,11 @@ static VOID BT_event_cb(VOID)
 	if(qos_ctrl.task != NULL ) {
 		cancel_delayed_work(&qos_ctrl.work);
 		if(qos_ctrl.is_hold == FALSE) {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 			pm_qos_update_request(&qos_req, 1000);
+#else
+			cpu_latency_qos_update_request(&qos_req, 1000);
+#endif
 			qos_ctrl.is_hold = TRUE;
 			BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
 		}
@@ -637,7 +641,11 @@ long BT_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #if (PM_QOS_CONTROL == 1)
 static void pm_qos_release(struct work_struct *pwork)
 {
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#else
+	cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 	qos_ctrl.is_hold = FALSE;
 	BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
 }
@@ -691,7 +699,11 @@ static int BT_open(struct inode *inode, struct file *file)
 
 #if (PM_QOS_CONTROL == 1)
 	down(&qos_ctrl.sem);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#else
+	cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 	qos_ctrl.is_hold = FALSE;
 	qos_ctrl.task = create_singlethread_workqueue("pm_qos_task");
 	if (!qos_ctrl.task){
@@ -732,7 +744,11 @@ static int BT_close(struct inode *inode, struct file *file)
 		destroy_workqueue(qos_ctrl.task);
 		qos_ctrl.task = NULL;
 	}
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#else
+	cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 	qos_ctrl.is_hold = FALSE;
 	up(&qos_ctrl.sem);
 #endif
@@ -809,7 +825,11 @@ static int BT_init(void)
 	bt_dev_dbg_init();
 
 #if (PM_QOS_CONTROL == 1)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	pm_qos_add_request(&qos_req, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
+#else
+	cpu_latency_qos_add_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 	sema_init(&qos_ctrl.sem, 1);
 #endif
 
@@ -840,7 +860,11 @@ static void BT_exit(void)
 	dev_t dev;
 
 #if (PM_QOS_CONTROL == 1)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	pm_qos_remove_request(&qos_req);
+#else
+	cpu_latency_qos_remove_request(&qos_req);
+#endif
 #endif
 
 	bt_dev_dbg_deinit();
