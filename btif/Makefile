@@ -55,6 +55,7 @@ ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
 ccflags-y += -I$(srctree)/drivers/gpu/drm/mediatek/mediatek_v2/
 ccflags-y += -I$(CONN_INFRA_SRC)/include
 ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/include
+ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/metlog
 ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/
 ccflags-y += -I$(WMT_SRC)/debug_utility
 ccflags-y += -I$(BTIF_SRC)/common/inc

@@ -176,8 +176,7 @@
 
 #define _BIN_NAME_MCU			"soc5_0_ram_mcu_1_1_hdr"
 #define _BIN_NAME_BT			"soc5_0_ram_bt_1_1_hdr"
-#define CONN_INFRA_CFG_ID		(0x02060002) 
-
+#define CONN_INFRA_CFG_ID		(0x02060002)
 
 #define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
 #define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
@@ -271,25 +270,25 @@ static inline void bgfsys_ccif_off(void)
  */
 static int32_t bgfsys_check_conninfra_ready(void)
 {
-	//int32_t retry = POS_POLLING_RTY_LMT;
+	int32_t i = 0, retry = 10, hang_ret = 0;
 	uint32_t value = 0;
 
 	/* wake up conn_infra off */
 	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
-	if (conninfra_reg_readable()) {
-		/* check conn_infra off ID */
+	/* polling conninfra version id */
+	for (i = 0; i < retry; i++) {
 		value = REG_READL(CONN_INFRA_CFG_VERSION);
+		if (value == CONN_INFRA_CFG_ID)
+			return 0; // success
+
 		BTMTK_DBG("connifra cfg version = 0x%08x", value);
-		if (value != CONN_INFRA_CFG_ID)
-			return -1;
-	} else  {
-		conninfra_is_bus_hang();
-		BTMTK_ERR("Conninfra is not readable");
-		return -1;
+		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 	}
 
-	return 0;
+	hang_ret = conninfra_is_bus_hang();
+	BTMTK_ERR("Conninfra is not readable, hang ret=%d", hang_ret);
+	return -1;
 }
 
 static inline u_int8_t bt_is_bgf_bus_timeout(void)
@@ -935,6 +934,27 @@ static inline void bgfsys_dump_uart_pta_pready_status(void)
 	*/
 }
 
+static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
+{
+	uint8_t *base = NULL;
+	uint32_t i = 0;
+
+	base = ioremap(0x18005100, 0x100);
+	if (base) {
+		for(i = 0x20; i <= 0x34; i+=4)
+			BTMTK_INFO("%s: 0x%08x = [0x%08x]", __func__, 0x18005100 + i, REG_READL(base + i));
+		iounmap(base);
+	} else
+		BTMTK_ERR("%s: remapping 0x18005100 fail", __func__);
+
+	base = ioremap(0x180050A8, 0x10);
+	if (base) {
+		BTMTK_INFO("%s: 0x180050A8 = [0x%08x]", __func__, REG_READL(base));
+		iounmap(base);
+	} else
+		BTMTK_ERR("%s: remapping 0x180050A8 fail", __func__);
+}
+
 /*********************************************************************
 *
 * Power On Sequence
@@ -1296,6 +1316,10 @@ static inline int32_t bgfsys_power_off(void)
 		bgfsys_power_on_dump_cr();
 
 	bgfsys_dump_uart_pta_pready_status();
+
+	/* when bt turn off, a-die may still closing and OC happened, add dump to debug */
+	udelay(50);
+	bgfsys_dump_conn_wt_slp_ctrl_reg();
 
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));

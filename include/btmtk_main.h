@@ -516,6 +516,8 @@ typedef void (*cif_log_register_cb_ptr)(void (*func)(void));
 typedef ssize_t (*cif_log_read_to_user_ptr)(char __user *buf, size_t count);
 typedef unsigned int (*cif_log_get_buf_size_ptr)(void);
 typedef void (*cif_log_deinit_ptr)(void);
+typedef void (*cif_log_hold_sem_ptr)(void);
+typedef void (*cif_log_release_sem_ptr)(void);
 typedef void (*cif_open_done_ptr)(struct btmtk_dev *bdev);
 typedef int (*cif_dl_dma_ptr)(struct btmtk_dev *bdev, u8 *image,
 		u8 *fwbuf, int section_dl_size, int section_offset);
@@ -541,6 +543,8 @@ struct hif_hook_ptr {
 	cif_log_read_to_user_ptr	log_read_to_user;
 	cif_log_get_buf_size_ptr	log_get_buf_size;
 	cif_log_deinit_ptr			log_deinit;
+	cif_log_hold_sem_ptr		log_hold_sem;
+	cif_log_release_sem_ptr		log_release_sem;
 	cif_open_done_ptr		open_done;
 	cif_dl_dma_ptr			dl_dma;
 };
