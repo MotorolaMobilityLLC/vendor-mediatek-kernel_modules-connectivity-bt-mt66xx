@@ -187,6 +187,7 @@
 #define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
 #define BIN_NAME_MCU_U 	(_BIN_NAME_MCU _BIN_NAME_UPDATE_POSTFIX)
 #define BIN_NAME_BT_U 	(_BIN_NAME_BT _BIN_NAME_UPDATE_POSTFIX)
+#define MET_EMI_ADDR	(0x27000)
 
 /*********************************************************************
 *
