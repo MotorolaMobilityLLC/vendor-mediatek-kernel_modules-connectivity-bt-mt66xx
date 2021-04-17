@@ -12,6 +12,7 @@
 #include <linux/fb.h>
 #include <linux/timer.h>
 #include <linux/suspend.h>
+#include <linux/module.h>
 
 #include "btmtk_define.h"
 #include "btmtk_chip_if.h"
@@ -19,6 +20,9 @@
 #include "mtk_btif_exp.h"
 #include "connectivity_build_in_adapter.h"
 #include "connsys_debug_utility.h"
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+#include "mtk_disp_notify.h"
+#endif
 
 /*******************************************************************************
 *                              C O N S T A N T S
@@ -144,33 +148,83 @@ int32_t bt_reg_deinit(void)
 	return 0;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v)
+{
+	int *data = (int *)v;
+	int32_t new_state = 0;
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	/*
+		MTK_DISP_EARLY_EVENT_BLANK: This event will happen before lcm suspend/resume
+		MTK_DISP_EVENT_BLANK: This event will happen after lcm suspend/resume
+		MTK_DISP_BLANK_UNBLANK: which means display resume (power on), 0x0
+		MTK_DISP_BLANK_POWERDOWN: which mean display suspend (power off), 0x1
+	*/
+
+	BTMTK_INFO("%s: value[%ld], data[%d]", __func__, value, *data);
+	if (value == MTK_DISP_EARLY_EVENT_BLANK) {
+		switch (*data) {
+			case MTK_DISP_BLANK_UNBLANK:
+				new_state = WMT_PARA_SCREEN_ON;
+				break;
+			case MTK_DISP_BLANK_POWERDOWN:
+				new_state = WMT_PARA_SCREEN_OFF;
+				break;
+			default:
+				goto end;
+		}
+
+		if(cif_dev->bt_state == FUNC_ON) {
+			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, new_state);
+			cif_dev->blank_state = new_state;
+			btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, cif_dev->blank_state);
+		} else {
+			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, cif_dev->blank_state, new_state);
+			cif_dev->blank_state = new_state;
+		}
+	}
+end:
+	BTMTK_INFO("%s: end", __func__);
+	return 0;
+}
+
+struct notifier_block btmtk_disp_notifier = {
+	.notifier_call = btmtk_disp_notify_cb,
+};
+
+#else
 static struct notifier_block bt_fb_notifier;
 static int btmtk_fb_notifier_callback(struct notifier_block
 				*self, unsigned long event, void *data)
 {
 	struct fb_event *evdata = data;
 	int32_t blank = *(int32_t *)evdata->data;
+	int32_t new_state = 0;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	if ((event != FB_EVENT_BLANK))
 		return 0;
 
 	switch (blank) {
-	case FB_BLANK_UNBLANK:
-	case FB_BLANK_POWERDOWN:
-		if(cif_dev->bt_state == FUNC_ON) {
-			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, blank);
-			cif_dev->blank_state = blank;
-			btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, blank);
-		} else {
-			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, cif_dev->blank_state, blank);
-			cif_dev->blank_state = blank;
-		}
-		break;
-	default:
-		break;
+		case FB_BLANK_UNBLANK:
+			new_state = WMT_PARA_SCREEN_ON;
+			break;
+		case FB_BLANK_POWERDOWN:
+			new_state = WMT_PARA_SCREEN_OFF;
+			break;
+		default:
+			goto end;
 	}
 
+	if(cif_dev->bt_state == FUNC_ON) {
+		BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, new_state);
+		cif_dev->blank_state = new_state;
+		btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, cif_dev->blank_state);
+	} else {
+		BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, cif_dev->blank_state, new_state);
+		cif_dev->blank_state = new_state;
+	}
+end:
 	return 0;
 }
 
@@ -193,6 +247,7 @@ static void btmtk_fb_notify_unregister(void)
 {
 	fb_unregister_client(&bt_fb_notifier);
 }
+#endif
 
 static struct notifier_block bt_pm_notifier;
 static int btmtk_pm_notifier_callback(struct notifier_block *nb,
@@ -1368,8 +1423,12 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 #endif
 
 	/* 8. Register screen on/off & suspend/wakup notify callback */
-	cif_dev->blank_state = FB_BLANK_UNBLANK;
+	cif_dev->blank_state = WMT_PARA_SCREEN_ON;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+	mtk_disp_notifier_register("btmtk_disp_notifier", &btmtk_disp_notifier);
+#else
 	btmtk_fb_notify_register();
+#endif
 	btmtk_pm_notify_register();
 
 	/* 9. Init debug interface */
@@ -1405,7 +1464,12 @@ static int btmtk_cif_remove(struct platform_device *pdev)
 	bt_dev_dbg_deinit();
 
 	/* Unregister screen on/off & suspend/wakup notify callback */
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+	mtk_disp_notifier_unregister(&btmtk_disp_notifier);
+#else
 	btmtk_fb_notify_unregister();
+#endif
 	btmtk_pm_notify_unregister();
 
 	bt_psm_deinit(&cif_dev->psm);
@@ -1444,18 +1508,14 @@ int btmtk_cif_register(void)
 	mtkbt_btif_driver.probe = btmtk_cif_probe;
 	mtkbt_btif_driver.remove = btmtk_cif_remove;
 
+	memset(&hook, 0, sizeof(struct hif_hook_ptr));
 	hook.init = BT_init;
 	hook.exit = BT_exit;
 	hook.open = btmtk_btif_open;
 	hook.close = btmtk_btif_close;
-	hook.reg_read = NULL;
-	hook.reg_write = NULL;
 	hook.send_cmd = btmtk_btif_send_cmd_if;
 	hook.send_and_recv = btmtk_btif_send_and_recv;
 	hook.event_filter = btmtk_btif_event_filter;
-	hook.subsys_reset = NULL;
-	hook.whole_reset = NULL;
-	hook.chip_reset_notify = NULL;
 	hook.flush = btmtk_btif_flush;
 	hook.log_init = btmtk_connsys_log_init;
 	hook.log_register_cb = btmtk_connsys_log_register_event_cb;

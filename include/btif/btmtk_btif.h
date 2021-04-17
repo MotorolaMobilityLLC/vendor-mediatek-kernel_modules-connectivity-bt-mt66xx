@@ -103,6 +103,12 @@ typedef enum wmt_opcode {
 	WMT_OPCODE_MAX
 } WMT_OPCODE_T;
 
+enum wmt_blank_state {
+	// wmt parameter: 0(screen off) / 1(screen on)
+	WMT_PARA_SCREEN_OFF = 0,
+	WMT_PARA_SCREEN_ON = 1
+};
+
 enum bt_irq_type {
 	BGF2AP_BTIF_WAKEUP_IRQ,
 	BGF2AP_SW_IRQ,
