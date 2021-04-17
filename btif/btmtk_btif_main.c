@@ -1522,6 +1522,8 @@ int btmtk_cif_register(void)
 	hook.log_read_to_user = btmtk_connsys_log_read_to_user;
 	hook.log_get_buf_size = btmtk_connsys_log_get_buf_size;
 	hook.log_deinit = btmtk_connsys_log_deinit;
+	hook.log_hold_sem = btmtk_connsys_log_hold_sem;
+	hook.log_release_sem = btmtk_connsys_log_release_sem;
 	btmtk_reg_hif_hook(&hook);
 
 #if (USE_DEVICE_NODE == 1)
@@ -1776,6 +1778,11 @@ int32_t btmtk_tx_thread(void * arg)
 					if (ii == 4)
 						BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
 				}
+				// re-run while loop
+				if (ii == 4) {
+					BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
+					break;
+				}
 
 				sleep_ret = btmtk_cif_fw_own_set();
 				if (sleep_ret) {
@@ -1831,5 +1838,17 @@ ssize_t btmtk_connsys_log_read_to_user(char __user *buf, size_t count)
 unsigned int btmtk_connsys_log_get_buf_size(void)
 {
 	return connsys_log_get_buf_size(CONN_DEBUG_TYPE_BT);
+}
+
+void btmtk_connsys_log_hold_sem(void)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	down(&cif_dev->halt_sem);
+}
+
+void btmtk_connsys_log_release_sem(void)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	up(&cif_dev->halt_sem);
 }
 
