@@ -471,6 +471,7 @@ int32_t btmtk_intcmd_set_fw_log(uint8_t flag);
 int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count);
 int bt_dev_dbg_init(void);
 int bt_dev_dbg_deinit(void);
+void bthost_debug_print(void);
 void btmtk_connsys_log_init(void);
 void btmtk_connsys_log_register_event_cb(void (*func)(void));
 void btmtk_connsys_log_deinit(void);

@@ -27,6 +27,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define COMBO_IOCTL_BT_SET_PSM      _IOW(COMBO_IOC_MAGIC, 1, bool)
 #define COMBO_IOCTL_BT_IC_HW_VER    _IOR(COMBO_IOC_MAGIC, 2, void*)
 #define COMBO_IOCTL_BT_IC_FW_VER    _IOR(COMBO_IOC_MAGIC, 3, void*)
+#define COMBO_IOCTL_BT_HOST_DEBUG	_IOW(COMBO_IOC_MAGIC, 4, void*)
 
 #define BT_BUFFER_SIZE              2048
 #define FTRACE_STR_LOG_SIZE         256
@@ -79,13 +80,78 @@ static UINT32 rstflag;
 static UINT8 HCI_EVT_HW_ERROR[] = {0x04, 0x10, 0x01, 0x00};
 static loff_t rd_offset;
 
+extern int bt_dev_dbg_init(void);
+extern int bt_dev_dbg_deinit(void);
+extern int bt_dev_dbg_set_state(bool turn_on);
+
+/*******************************************************************************
+*                           bt host debug information for low power
+********************************************************************************
+*/
+#define BTHOST_INFO_MAX	16
+#define BTHOST_DESC_LEN 16
+
+struct bthost_info{
+	uint32_t		id; //0 for not used
+	char 		desc[BTHOST_DESC_LEN];
+	uint32_t		value;
+};
+struct bthost_info bthost_info_table[BTHOST_INFO_MAX];
+
+void bthost_debug_init(void)
+{
+	uint32_t i = 0;
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		bthost_info_table[i].id = 0;
+		bthost_info_table[i].desc[0] = '\0';
+		bthost_info_table[i].value = 0;
+	}
+}
+
+void bthost_debug_print(void)
+{
+	uint32_t i = 0;
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		if (bthost_info_table[i].id == 0){
+			BT_LOG_PRT_WARN("[bt host info][%d-%d] not set", i, BTHOST_INFO_MAX);
+			break;
+		}
+		else {
+			BT_LOG_PRT_WARN("[bt host info][%d][%s : 0x%08x]", i,
+			bthost_info_table[i].desc,
+			bthost_info_table[i].value);
+		}
+	}
+}
+
+void bthost_debug_save(uint32_t id, uint32_t value, char* desc)
+{
+	uint32_t i = 0;
+	if (id == 0) {
+		BT_LOG_PRT_WARN("id (%d) must > 0\n", id);
+		return;
+	}
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		// if the id is existed, save to the same column
+		if (bthost_info_table[i].id == id){
+			bthost_info_table[i].value = value;
+			return;
+		}
+		// save to the new column
+		if (bthost_info_table[i].id == 0){
+			bthost_info_table[i].id = id;
+			strncpy(bthost_info_table[i].desc, desc, BTHOST_DESC_LEN - 1);
+			bthost_info_table[i].value = value;
+			return;
+		}
+	}
+	BT_LOG_PRT_WARN("no space for %d\n", id);
+}
+
 /*******************************************************************************
 *                              F U N C T I O N S
 ********************************************************************************
 */
-extern int bt_dev_dbg_init(void);
-extern int bt_dev_dbg_deinit(void);
-extern int bt_dev_dbg_set_state(bool turn_on);
 
 static INT32 ftrace_print(const PINT8 str, ...)
 {
@@ -197,6 +263,8 @@ static int bt_pm_notifier_callback(struct notifier_block *nb,
 			if(btonflag == 1 && rstflag == 0) {
 				// for fw debug power issue
 				bt_read_cr("HOST_MAILBOX_BT_ADDR", 0x18007124);
+
+				bthost_debug_print();
 			}
 			break;
 		default:
@@ -577,7 +645,7 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	INT32 retval = 0;
 	UINT32 reason;
 	UINT32 ver = 0;
-
+	uint8_t host_dbg_buff[32]; //arg: id[0:3], value[4:7], desc[8:31]
 	BT_LOG_PRT_DBG("cmd: 0x%08x\n", cmd);
 
 	switch (cmd) {
@@ -614,6 +682,15 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 		BT_LOG_PRT_INFO("FW ver: 0x%x\n", ver);
 		if (copy_to_user((UINT32 __user *)arg, &ver, sizeof(ver)))
 			retval = -EFAULT;
+		break;
+	case COMBO_IOCTL_BT_HOST_DEBUG:
+		if (copy_from_user(host_dbg_buff, (uint8_t __user*)arg, 32))
+			retval = -EFAULT;
+		else {
+			uint32_t* pint32 = (uint32_t*)&host_dbg_buff[0];
+			BT_LOG_PRT_INFO("id[%x], value[0x%08x], desc[%s]", pint32[0], pint32[1], &host_dbg_buff[8]);
+			bthost_debug_save(pint32[0], pint32[1], (char*)&host_dbg_buff[8]);
+		}
 		break;
 	default:
 		BT_LOG_PRT_ERR("Unknown cmd: 0x%08x\n", cmd);
@@ -722,6 +799,7 @@ static int BT_open(struct inode *inode, struct file *file)
 	}
 
 	bt_pm_notify_register();
+	bthost_debug_init();
 
 	return 0;
 }
@@ -730,6 +808,7 @@ static int BT_close(struct inode *inode, struct file *file)
 {
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 
+	bthost_debug_init();
 	bt_pm_notify_unregister();
 	bt_dev_dbg_set_state(FALSE);
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
