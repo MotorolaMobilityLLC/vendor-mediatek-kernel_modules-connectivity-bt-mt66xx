@@ -128,7 +128,7 @@ int32_t rx_skb_enqueue(struct sk_buff *skb)
 	memcpy(skb_push(skb, 1), &bt_cb(skb)->pkt_type, 1);
 	ret = rx_pkt_enqueue(skb->data, skb->len);
 
-	if (!is_rx_queue_empty())
+	if (!is_rx_queue_empty() && cif_dev->rx_event_cb)
 		cif_dev->rx_event_cb();
 
 end:
