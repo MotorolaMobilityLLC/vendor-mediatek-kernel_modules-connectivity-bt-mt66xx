@@ -264,6 +264,7 @@ static int btmtk_pm_notifier_callback(struct notifier_block *nb,
 			if(cif_dev->bt_state == FUNC_ON) {
 				bt_dump_bgfsys_suspend_wakeup_debug();
 				bt_dump_bgfsys_top_common_flag();
+				bthost_debug_print();
 			}
 			break;
 		default:
