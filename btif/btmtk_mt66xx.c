@@ -343,9 +343,9 @@ void fwp_malloc_patch_names(void)
 
 	if (CONNAC20_CHIPID == 6885) {
 		#ifdef BT_CUS_FEATURE
-		idx = 0;
-		#else
 		idx = 1;
+		#else
+		idx = 0;
 		#endif
 	} else if (CONNAC20_CHIPID == 6893) {
 		idx = 2;
