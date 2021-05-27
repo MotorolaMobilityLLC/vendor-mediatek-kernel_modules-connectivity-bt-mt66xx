@@ -91,8 +91,7 @@ int bt_dbg_is_adie_work(int par1, int par2, int par3)
 {
 	int ret = 1, adie_state = 0;
 
-	// 20210114/todo: unmask when wmt porting done on next project
-	//ret = mtk_wcn_wmt_adie_workable();
+	ret = mtk_wcn_wmt_adie_workable();
 	if (ret == 0)
 		adie_state = 1; // power on a-die fail, may be evb without DTB
 	else
