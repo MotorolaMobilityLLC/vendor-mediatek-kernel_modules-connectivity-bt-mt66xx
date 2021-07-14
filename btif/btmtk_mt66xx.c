@@ -89,9 +89,9 @@ static const uint8_t WMT_OVER_HCI_CMD_HDR[] = { 0x01, 0x6F, 0xFC, 0x00 };
 
 #if (CUSTOMER_FW_UPDATE == 1)
 static bool g_fwp_update_enable = FALSE;
-static uint8_t *g_fwp_names[PATCH_FILE_NUM][2] = {};
+uint8_t g_fwp_names[PATCH_FILE_NUM][2][FW_NAME_LEN] = {};
 #else
-static uint8_t *g_fwp_names[PATCH_FILE_NUM][1] = {};
+uint8_t g_fwp_names[PATCH_FILE_NUM][1][FW_NAME_LEN] = {};
 #endif
 static struct fwp_info g_fwp_info;
 
@@ -307,90 +307,6 @@ int fwp_if_get_bt_patch_path(char *buf, int max_len)
 	return strlen(buf) + 1;
 }
 
-int fwp_is_siso_project(uint8_t *flavor)
-{
-	#define TARGET_KEY "flavor_bin"
- 	int ret = FALSE;
-	const char *str;
-	struct device_node *node = NULL;
-
-	node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
-	if (node) {
-		if (of_property_read_string(node, TARGET_KEY, &str)) {
-			BTMTK_INFO("%s: get %s: fail", __func__, TARGET_KEY);
-		} else {
-			*flavor = *str;
-			BTMTK_INFO("%s: get %s: %c", __func__, TARGET_KEY, *flavor);
-			ret = TRUE;
-		}
-	} else
-		BTMTK_INFO("%s: get dts[mediatek,bt] fail!", __func__);
-
-	return ret;
-}
-
-void fwp_malloc_patch_names(void)
-{
-	#undef VER_STR_LEN
-	#define VER_STR_LEN	50
-	#define FLAVOR_NONE	'0'
-	int idx = 0, i = 0;
-	uint8_t flavor = FLAVOR_NONE;
-	uint8_t *buf = NULL;
-	uint8_t *all_fwp_names[5][PATCH_FILE_NUM] = {
-		{"soc3_0_ram_mcu_1",  "soc3_0_ram_bt_1"},	// 0x00: 0x6885
-		{"soc3_0_ram_mcu_1b", "soc3_0_ram_bt_1b"},	// 0x01: 0x6885, BT_CUS_FEATURE
-		{"soc3_0_ram_mcu_1",  "soc3_0_ram_bt_1"},	// 0x02: 0x6893
-		{"soc5_0_ram_mcu_1",  "soc5_0_ram_bt_1"}, 	// 0x03: 0x6877
-	};
-
-	if (CONNAC20_CHIPID == 6885) {
-		#ifdef BT_CUS_FEATURE
-		idx = 1;
-		#else
-		idx = 0;
-		#endif
-	} else if (CONNAC20_CHIPID == 6893) {
-		fwp_is_siso_project(&flavor);
-		idx = 2;
-	} else if (CONNAC20_CHIPID == 6877) {
-		fwp_is_siso_project(&flavor);
-		idx = 3;
-	}
-	BTMTK_INFO("%s: CONNAC20_CHIPID[%d], idx[%d]", __func__, CONNAC20_CHIPID, idx);
-
-	for (i = 0; i < PATCH_FILE_NUM; i++) {
-		buf = kmalloc(VER_STR_LEN, GFP_KERNEL);
-		if (flavor == FLAVOR_NONE)
-			snprintf(buf, VER_STR_LEN, "%s_1_hdr.bin", all_fwp_names[idx][i]);
-		else
-			snprintf(buf, VER_STR_LEN, "%s%c_1_hdr.bin", all_fwp_names[idx][i], flavor);
-		g_fwp_names[i][0] = buf;
-	}
-#if (CUSTOMER_FW_UPDATE == 1)
-	for (i = 0; i < PATCH_FILE_NUM; i++) {
-		buf = kmalloc(VER_STR_LEN, GFP_KERNEL);
-		if (flavor == FLAVOR_NONE)
-			snprintf(buf, VER_STR_LEN, "%s_1_hdr-u.bin", all_fwp_names[idx][i]);
-		else
-			snprintf(buf, VER_STR_LEN, "%s%c_1_hdr-u.bin", all_fwp_names[idx][i], flavor);
-		g_fwp_names[i][1] = buf;
-	}
-#endif
-}
-
-void fwp_free_patch_names(void)
-{
-	int i = 0;
-
-	for (i = 0; i < PATCH_FILE_NUM; i++)
-		kfree(g_fwp_names[i][0]);
-#if (CUSTOMER_FW_UPDATE == 1)
-	for (i = 0; i < PATCH_FILE_NUM; i++)
-		kfree(g_fwp_names[i][1]);
-#endif
-}
-
 /* bgfsys_cal_data_backup
  *
  *    Backup BT calibration data
@@ -509,13 +425,13 @@ static int32_t __download_patch_to_emi(
 	int32_t ret = 0;
 	struct fw_patch_emi_hdr *p_patch_hdr = NULL;
 	uint8_t *p_buf = NULL, *p_img = NULL;
-	uint32_t patch_size;
+	uint32_t patch_size = 0;
 	uint16_t hw_ver = 0;
 	uint16_t sw_ver = 0;
 	uint32_t subsys_id = 0;
 	uint32_t patch_emi_offset = 0;
 	phys_addr_t emi_ap_phy_base;
-	uint8_t *remap_addr;
+	uint8_t *remap_addr = NULL;
 
 	BTMTK_INFO("%s: load binary [%s]", __func__, patch_name);
 	/*  Read Firmware patch content */
