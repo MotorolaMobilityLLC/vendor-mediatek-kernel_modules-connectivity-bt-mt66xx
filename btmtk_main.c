@@ -3922,6 +3922,7 @@ int btmtk_main_cif_disconnect_notify(struct btmtk_dev *bdev, int hci_bus)
 	return 0;
 }
 
+#if (USE_DEVICE_NODE != 1)
 static int btmtk_reboot_notify(struct notifier_block *nb,
 			unsigned long event, void *unused)
 {
@@ -4004,6 +4005,7 @@ static struct notifier_block btmtk_reboot_notifier = {
 	.next = NULL,
 	.priority = 0,
 };
+#endif // USE_DEVICE_NODE
 
 static int main_init(void)
 {
