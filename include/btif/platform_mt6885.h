@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */  
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
@@ -1312,8 +1312,8 @@ static inline int32_t bgfsys_power_off(void)
 
 static inline void fwp_get_patch_names(void)
 {
-	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", _BIN_NAME_MCU);
-	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", _BIN_NAME_BT);
+	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU);
+	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT);
 
 #if (CUSTOMER_FW_UPDATE == 1)
 	snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s", BIN_NAME_MCU_U);
