@@ -4021,7 +4021,9 @@ static int main_init(void)
 
 	BTMTK_INFO("%s: Register reboot_notifier callback success.", __func__);
 	/* Is it necessary? bt_close will be called by reboot. */
+#if (USE_DEVICE_NODE != 1)
 	register_reboot_notifier(&btmtk_reboot_notifier);
+#endif // USE_DEVICE_NODE
 	g_bdev = kzalloc((sizeof(*g_bdev) * btmtk_intf_num), GFP_KERNEL);
 	if (!g_bdev) {
 		BTMTK_WARN("%s insufficient memory", __func__);
@@ -4062,7 +4064,9 @@ static int main_exit(void)
 
 	BTMTK_INFO("%s: Unregister reboot_notifier callback success.", __func__);
 	/* Is it necessary? bt_close will be called by reboot. */
+#if (USE_DEVICE_NODE != 1)
 	unregister_reboot_notifier(&btmtk_reboot_notifier);
+#endif // USE_DEVICE_NODE
 
 	wakeup_source_unregister(main_info.fwdump_ws);
 	wakeup_source_unregister(main_info.woble_ws);
