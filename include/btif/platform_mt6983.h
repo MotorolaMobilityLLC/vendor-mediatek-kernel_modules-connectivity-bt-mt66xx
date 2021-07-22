@@ -168,17 +168,10 @@
 *
 **********************************************************************
 */
-#define _BIN_NAME_POSTFIX 		".bin"
-#define _BIN_NAME_UPDATE_POSTFIX 	"-u.bin"
-
-#define _BIN_NAME_MCU			"soc7_0_ram_mcu_1_1_hdr"
-#define _BIN_NAME_BT			"soc7_0_ram_bt_1_1_hdr"
+#define BIN_NAME_MCU			"soc7_0_ram_mcu_1"
+#define BIN_NAME_BT			"soc7_0_ram_bt_1"
 #define CONN_INFRA_CFG_ID		(0x02050100)
 
-#define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
-#define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
-#define BIN_NAME_MCU_U 	(_BIN_NAME_MCU _BIN_NAME_UPDATE_POSTFIX)
-#define BIN_NAME_BT_U 	(_BIN_NAME_BT _BIN_NAME_UPDATE_POSTFIX)
 #define MET_EMI_ADDR	(0x2BC00)
 
 /*********************************************************************
@@ -1321,12 +1314,9 @@ static inline int32_t bgfsys_power_off(void)
 
 static inline void fwp_get_patch_names(void)
 {
-	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU);
-	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT);
+	uint8_t flavor = FLAVOR_NONE;
+	u_int8_t has_flavor = fwp_has_flavor_bin(&flavor);
 
-#if (CUSTOMER_FW_UPDATE == 1)
-	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU_U);
-	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT_U);
-#endif
+	compose_fw_name(has_flavor, flavor, BIN_NAME_MCU, BIN_NAME_BT);
 }
 #endif
