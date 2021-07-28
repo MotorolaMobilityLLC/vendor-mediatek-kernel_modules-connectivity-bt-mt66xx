@@ -197,18 +197,17 @@
  */
 static inline void bgfsys_ccif_on(void)
 {
-#if 0
-	uint8_t *ccif_base = ioremap(0x10003200, 0x100);
+
+	uint8_t *ccif_base = ioremap(0x10001BF0, 0x10);
 
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
 	}
 
-	/* CONSYS_BGF_PWR_ON, 0x10003204[31:0] = 32'b0 */
-	*(ccif_base + 0x04) = 0x0;
+	/* CONSYS_BGF_PWR_ON, 0x10001BF0[31:24] = 8'b1 */
+	SET_BIT(ccif_base, BITS(24, 31));
 	iounmap(ccif_base);
-#endif
 }
 
 /* bgfsys_ccif_off
@@ -227,17 +226,16 @@ static inline void bgfsys_ccif_on(void)
  */
 static inline void bgfsys_ccif_off(void)
 {
-#if 0
 	uint8_t *ccif_base = NULL, *bgf2md_base = NULL;
 
-	ccif_base = ioremap(0x10003200, 0x100);
+	ccif_base = ioremap(0x10001BF0, 0x10);
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
 	}
 
-	/* CONSYS_BGF_PWR_ON, 0x10003204[31:0] = 32'b0 */
-	*(ccif_base + 0x04) = 0x0;
+	/* CONSYS_BGF_PWR_ON, 0x10001BF0[31:24] = 8'b1 */
+	SET_BIT(ccif_base, BITS(24, 31));
 	iounmap(ccif_base);
 
 	bgf2md_base = ioremap(0x1025C000, 0x100);
@@ -249,7 +247,6 @@ static inline void bgfsys_ccif_off(void)
 	/* set PCCIF5 RX ACK, 0x1025C014[0:7] = 8'b1 */
 	REG_WRITEL(bgf2md_base + 0x14, 0xFF);
 	iounmap(bgf2md_base);
-#endif
 }
 
 /* bgfsys_check_conninfra_ready
