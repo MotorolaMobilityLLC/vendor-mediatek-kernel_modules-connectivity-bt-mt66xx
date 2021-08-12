@@ -722,7 +722,7 @@ static int32_t bt_do_calibration(void)
 
 	ret = btmtk_cif_send_calibration(g_sbdev);
 	/* return -1 means driver unable to recv calibration event and reseting
-	 * In such case, we don't have to turn off bt, it will be handled by 
+	 * In such case, we don't have to turn off bt, it will be handled by
 	 * reset thread */
 	if (ret != -1 && cif_dev->bt_precal_state == FUNC_OFF)
 		btmtk_set_power_off(g_sbdev->hdev, TRUE);
@@ -818,14 +818,26 @@ bool bt_pwrctrl_support(void)
 	return TRUE;
 }
 
-int bt_pwrctrl_level_change_cb(enum conn_pwr_low_battery_level level)
+int bt_pwrctrl_level_change_cb(enum conn_pwr_event_type type, void *data)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	int8_t set_val = cif_dev->dy_pwr.dy_max_dbm;
 
-	cif_dev->dy_pwr.lp_cur_lv = level;
-	BTMTK_INFO("%s: lp_cur_bat_lv = %d", __func__, cif_dev->dy_pwr.lp_cur_lv);
-	btmtk_inttrx_DynamicAdjustTxPower(HCI_CMD_DY_ADJ_PWR_SET, set_val, NULL);
+	BTMTK_INFO("%s", __func__);
+	switch(type) {
+	case CONN_PWR_EVENT_LEVEL:
+		cif_dev->dy_pwr.lp_cur_lv = *((int *) data);
+		BTMTK_INFO("%s: lp_cur_bat_lv = %d", __func__, cif_dev->dy_pwr.lp_cur_lv);
+		btmtk_inttrx_DynamicAdjustTxPower(HCI_CMD_DY_ADJ_PWR_SET, set_val, NULL);
+		break;
+	case CONN_PWR_EVENT_MAX_TEMP:
+		BTMTK_ERR("Unsupport now");
+		break;
+	default:
+		BTMTK_ERR("Uknown type for power throttling callback");
+		break;
+	}
+
 	return 0;
 }
 
@@ -855,6 +867,7 @@ void bt_pwrctrl_register_evt(void)
 	if (!bt_pwrctrl_support())
 		return;
 
+	BTMTK_INFO("%s", __func__);
 	/* Register callbacks for power throttling feature */
 	conn_pwr_register_event_cb(CONN_PWR_DRV_BT, (CONN_PWR_EVENT_CB)bt_pwrctrl_level_change_cb);
 }
