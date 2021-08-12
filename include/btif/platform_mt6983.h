@@ -61,6 +61,8 @@
 #define CONN_INFRA_CFG_START				CON_REG_INFRA_CFG_ADDR
 
 #define CONN_INFRA_CFG_VERSION				(0x18011000)
+#define CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1	(CONN_INFRA_CFG_START + 0x210)
+#define CONN_INFRA_RDY					BIT(16)
 
 #define CONN_INFRA_CONN2BT_GALS_SLP_CTL			(CONN_INFRA_CFG_START + 0x0450)
 #define CONN_INFRA_CONN2BT_GALS_SLP_STATUS		(CONN_INFRA_CFG_START + 0x0454)
@@ -161,9 +163,6 @@
  *
  */
 #define BGF_MCUSYS_DLY_CHAIN_CTL			(0x18820284)
-
-#define BGF_DRIVER_DUMP_BASE				(0x18023000)
-
 
 /*********************************************************************
 *
@@ -268,6 +267,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	int32_t i = 0, retry = 10, hang_ret = 0;
 	uint32_t value = 0;
 	uint8_t* conninfra_cfg_version_base = NULL;
+	u_int8_t conninfra_cfg_id_rdy = FALSE;
 
 	conninfra_cfg_version_base = ioremap(CONN_INFRA_CFG_VERSION, 0x10);
 	if (conninfra_cfg_version_base == NULL) {
@@ -284,8 +284,8 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	for (i = 0; i < retry; i++) {
 		value = REG_READL(conninfra_cfg_version_base);
 		if (value == CONN_INFRA_CFG_ID) {
-			iounmap(conninfra_cfg_version_base);
-			return 0; // success
+			conninfra_cfg_id_rdy = TRUE;
+			break;
 		}
 
 		BTMTK_DBG("connifra cfg version = 0x%08x", value);
@@ -293,14 +293,26 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	}
 
 	iounmap(conninfra_cfg_version_base);
-	/* Check conninfra bus */
-	if (!conninfra_reg_readable()) {
-		hang_ret = conninfra_is_bus_hang();
-		if (hang_ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+	if (conninfra_cfg_id_rdy) {
+		for (i = 0; i < retry; i++) {
+			value = REG_READL(CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1) &
+				CONN_INFRA_RDY;
+			BTMTK_INFO("connifra cfg power control = 0x%08x", value);
+			if (value == CONN_INFRA_RDY)
+				return 0;
+
+			usleep_range(500, 550);
 		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+	} else {
+		/* Check conninfra bus */
+		if (!conninfra_reg_readable()) {
+			hang_ret = conninfra_is_bus_hang();
+			if (hang_ret > 0) {
+				BTMTK_ERR("conninfra bus is hang, needs reset");
+				conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+			}
+			BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+		}
 	}
 
 	return -1;
@@ -359,36 +371,29 @@ static void inline bt_dump_bgfsys_host_csr(void)
 	uint32_t i = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint8_t *base = NULL;
-	
+
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
-	BTMTK_INFO("[BGF host csr] Count = 4");
-	/* E20 + 4*/
-	base = ioremap(BGF_DRIVER_DUMP_BASE, 0xE24);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE);
-		return;
-	}
-	/* 18023A04 - 18023A08 */
-	for (i = 0xA00; i <= 0xA08; i+=4) {
-		value = REG_READL(base + i);
+	BTMTK_INFO("[BGF host csr] Count = 11");
+	for (i = 0x22C; i <= 0x244; i+=4) {
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + i);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
+		if (ret < 0 || ret >= (end - pos + 1))
 			break;
-		}
 		pos += ret;
 	}
-	/* 18023E20*/
-	value = REG_READL(base + 0xE20);
-	ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-	if (ret < 0 || ret >= (end - pos + 1)){
-		BTMTK_ERR("snprintf [0xE20] fail" );
+	// note: CR[0x18060240]: DE don't care in this project
+
+	for (i = 0x264; i <= 0x270; i+=4) {
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + i);
+		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
+		if (ret < 0 || ret >= (end - pos + 1))
+			break;
+		pos += ret;
 	}
-	iounmap(base);
+
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
 
@@ -397,34 +402,27 @@ static void inline bt_dump_bgfsys_host_csr(void)
 static void inline bt_dump_bgfsys_mcusys_flag(void)
 {
 	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = 43;	/* 47-4, cuz skip 4*/
+	uint32_t i = 0, count = 1, cr_count = 56;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
-
-	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE + 0xA00);
-		return;
-	}
+	uint16_t switch_flag = 0x2A;
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
-	for (i = 0xC0010100; i <= 0xC0015D00; i += 0x200) {
-		if (i == 0xC0010D00 || i == 0xC0011700 || i == 0xC0012500 || i ==0xC0015D00)
-			continue;
-		REG_WRITEL(base + 0x04, i);
-		value = REG_READL(base);
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
+	value &= 0xFFFE0003; /* ignore [16:2] */
+	value |= (switch_flag << 2);
+	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
+
+	BTMTK_INFO("[BGF MCUSYS debug flag] Count = (%d)", cr_count);
+	for (i = 0x00020101; i <= 0x00706F01; i+= 0x20200, count++) {
+		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA8, i);
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x22C);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
+		if (ret < 0 || ret >= (end - pos + 1))
 			break;
-		}
 		pos += ret;
-		count++;
 
 		if ((count & 0xF) == 0 || count == cr_count) {
 			BTMTK_INFO("%s", g_dump_cr_buffer);
@@ -432,52 +430,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
-	iounmap(base);
-}
-
-/* DE Defined: dump all BGF_MCU_DMA debug_flag */
-/* please make sure check bus hang before calling this dump */
-static void inline bt_dump_bgf_mcu_dma_flag(void)
-{
-	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = 8;
-	uint8_t *pos = NULL, *end = NULL;
-	int32_t ret = 0;
-	uint32_t *base = NULL;
-
-	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE + 0xA00);
-		return;
-	}
-
-	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
-	pos = &g_dump_cr_buffer[0];
-	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
-	for (i = 0xC0011700; i <= 0xC0011707; i++) {
-		REG_WRITEL(base + 0x04, i);
-		value = REG_READL(base);
-		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
-			break;
-		}
-		pos += ret;
-		count++;
-
-		if ((count & 0xF) == 0 || count == cr_count) {
-			BTMTK_INFO("%s", g_dump_cr_buffer);
-			memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
-			pos = &g_dump_cr_buffer[0];
-			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-		}
-		
-	}
-	iounmap(base);
 }
 
 /* DE Defined: dump all BGF BUS debug flag */
@@ -485,45 +438,43 @@ static void inline bt_dump_bgf_mcu_dma_flag(void)
 static void inline bt_dump_bgfsys_bus_flag(void)
 {
 	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = 10;
+	uint32_t i = 0, j = 0, count = 1, cr_count = 20;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint16_t switch_flag = 0x2A;
 
-	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE + 0xA00);
-		return;
-	}
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
-	for (i = 0xC0012510; i <= 0xC00125A0; i += 0x10) {
-		REG_WRITEL(base + 0x04, i);
-		value = REG_READL(base);
-		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
-			break;
-		}
-		pos += ret;
-		count++;
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
+	value &= 0xFFFE0003; /* ignore [16:2] */
+	value |= (switch_flag << 2);
+	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
-		if ((count & 0xF) == 0 || count == cr_count) {
-			BTMTK_INFO("%s", g_dump_cr_buffer);
-			memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
-			pos = &g_dump_cr_buffer[0];
-			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
+	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
+	for (i = 0x104A4901; i <= 0xA04A4901; i += 0x10000000) {
+		for (j = i; j <= i + 0x20200; j += 0x20200) {
+			REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA8, j);
+			value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x22C);
+			ret = snprintf(pos, (end - pos + 1), "%08x ", value);
+			if (ret < 0 || ret >= (end - pos + 1))
+				break;
+			pos += ret;
+			count++;
+
+			if ((count & 0xF) == 0 || count == cr_count) {
+				BTMTK_INFO("%s", g_dump_cr_buffer);
+				memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
+				pos = &g_dump_cr_buffer[0];
+				end = pos + BT_CR_DUMP_BUF_SIZE - 1;
+			}
 		}
 	}
-	iounmap(base);
 }
 
 /* DE Defined: dump all BGF TOP common/bt part debug flag */
-/* static void inline bt_dump_bgfsys_top_common_flag(void)
+static void inline bt_dump_bgfsys_top_common_flag(void)
 {
 	uint32_t value = 0;
 	uint32_t i = 0, count = 1, cr_count = 20;
@@ -566,7 +517,7 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 
 	// release semaphore
 	bt_write_cr(0x18074200, 0x01, FALSE);
-} */
+}
 
 /* DE Defined: dump all BGF MCU core debug flag */
 /* please make sure check bus hang before calling this dump */
@@ -576,29 +527,26 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	uint32_t i = 0, count = 1, cr_count = 38;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
-
-	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE + 0xA00);
-		return;
-	}
+	uint16_t switch_flag = 0x2B;
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
-	for (i = 0xC0015D00; i <= 0xC0015D25; i++) {
-		REG_WRITEL(base + 0x04, i);
-		value = REG_READL(base);
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
+	value &= 0xFFFE0003; /* ignore [16:2] */
+	value |= (switch_flag << 2);
+	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
+
+	BTMTK_INFO("[BGF MCU core debug flag] Count = (%d)", cr_count);
+
+	/* gpr0 ~ ipc */
+	for (i = 0x3; i <= 0x25000003; i+= 0x1000000, count++) {
+		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA8, i);
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x22C);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
+		if (ret < 0 || ret >= (end - pos + 1))
 			break;
-		}
 		pos += ret;
-		count++;
 
 		if ((count & 0xF) == 0 || count == cr_count) {
 			BTMTK_INFO("%s", g_dump_cr_buffer);
@@ -606,42 +554,34 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
-	iounmap(base);
 }
 
 /* DE Defined: dump all BGF MCU PC log */
-/* new name: dump all BGF MCU pc/lr log record */
-static inline void bt_dump_bgfsys_mcu_pc_log(void)
+static inline void bt_dump_bgfsys_mcu_pc_log(uint8_t first_val, uint8_t last_val)
 {
 	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = 85;
+	uint32_t i = 0, count = 1, cr_count = (last_val - first_val + 1);
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
 
-	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
-	if (base == NULL) {
-		BTMTK_ERR("ioremap [0x%08x] fail", BGF_DRIVER_DUMP_BASE + 0xA00);
-		return;
-	}
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
-	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
-	for (i = 0xC0010D01; i <= 0xC0010D55; i++) {
-		REG_WRITEL(base + 0x04, i);
-		value = REG_READL(base);
+
+	BTMTK_INFO("[BGF MCU PC log] Count = (%d)", cr_count);
+	for (i = first_val; i <= last_val; i++, count++) {
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xA0);
+		value &= 0xFFFE0003; /* ignore [16:2] */
+		value |= (i << 2);
+		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
+
+		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x22C);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
-		if (ret < 0 || ret >= (end - pos + 1)){
-			BTMTK_ERR("snprintf [0x%03x] fail", i);
+		if (ret < 0 || ret >= (end - pos + 1))
 			break;
-		}
 		pos += ret;
-		count++;
 
 		if ((count & 0xF) == 0 || count == cr_count) {
 			BTMTK_INFO("%s", g_dump_cr_buffer);
@@ -649,9 +589,7 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
-	iounmap(base);
 }
 
 static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
@@ -683,12 +621,12 @@ static void bt_dump_bgfsys_all(void)
 	/* these dump all belongs to host_csr */
 	bt_dump_cpupcr(10, 0);
 	bt_dump_bgfsys_host_csr();
-	bt_dump_bgfsys_mcu_pc_log();
+	bt_dump_bgfsys_mcu_pc_log(0, 44);
+	bt_dump_bgfsys_mcu_pc_log(64, 97);
 	bt_dump_bgfsys_mcu_core_flag();
 	bt_dump_bgfsys_mcusys_flag();
 	bt_dump_bgfsys_bus_flag();
-	/* bt_dump_bgfsys_top_common_flag(); */
-	bt_dump_bgf_mcu_dma_flag();		/* new*/
+	bt_dump_bgfsys_top_common_flag();
 }
 
 /* bt_dump_bgfsys_debug_cr()
