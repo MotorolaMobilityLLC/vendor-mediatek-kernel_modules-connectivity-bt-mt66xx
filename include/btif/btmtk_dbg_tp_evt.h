@@ -17,22 +17,27 @@
 		char buf_str[32] = {""};														\
 		int i = 0;																		\
 		if (data_sz > 0 && data != NULL) {												\
-			snprintf(__entry_data, __entry_data_len, "%s", "");							\
+			if (snprintf(__entry_data, __entry_data_len, "%s", "") < 0)					\
+				pr_info("snprintf error in btmtk_dbg_tp_evt.h");											\
 			for (i = 0; i < data_sz; i++) {												\
 				if (snprintf(buf_str, sizeof(buf_str), "%02x", data[i]) > 0)			\
 					strncat(__entry_data, buf_str, strlen(buf_str));					\
 			}																			\
 		} else {																		\
-			snprintf(__entry_data, __entry_data_len, "%s", "null");						\
+			if (snprintf(__entry_data, __entry_data_len, "%s", "null") < 0)				\
+				pr_info("snprintf error in btmtk_dbg_tp_evt.h");											\
 		}																				\
 	} while (0)
 
 #define __GET_ENTRY_STRING(__entry_data, __entry_data_len, data)					\
 	do {																			\
-		if (strlen(data) == 0 || data == NULL)										\
-			snprintf(__entry_data, __entry_data_len, "%s", "null");					\
-		else																		\
-			snprintf(__entry_data, __entry_data_len, "%s", data);					\
+		if (strlen(data) == 0 || data == NULL){										\
+			if (snprintf(__entry_data, __entry_data_len, "%s", "null") < 0)			\
+				pr_info("snprintf error in btmtk_dbg_tp_evt.h");										\
+		} else {																	\
+			if (snprintf(__entry_data, __entry_data_len, "%s", data) < 0)			\
+				pr_info("snprintf error in btmtk_dbg_tp_evt.h");										\
+		}																			\
 	} while (0)
 
 TRACE_EVENT(bt_evt,
