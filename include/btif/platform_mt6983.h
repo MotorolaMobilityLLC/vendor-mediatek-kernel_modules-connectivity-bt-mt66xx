@@ -375,7 +375,7 @@ static void inline bt_dump_bgfsys_host_csr(void)
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
 	uint8_t *base = NULL;
-	
+
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
@@ -427,7 +427,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
+	BTMTK_INFO("[BGF MCUSYS debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0010100; i <= 0xC0015D00; i += 0x200) {
 		if (i == 0xC0010D00 || i == 0xC0011700 || i == 0xC0012500 || i ==0xC0015D00)
 			continue;
@@ -447,7 +447,6 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
 	iounmap(base);
 }
@@ -472,7 +471,7 @@ static void inline bt_dump_bgf_mcu_dma_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
+	BTMTK_INFO("[BGF MCU DMA debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0011700; i <= 0xC0011707; i++) {
 		REG_WRITEL(base + 0x04, i);
 		value = REG_READL(base);
@@ -490,7 +489,6 @@ static void inline bt_dump_bgf_mcu_dma_flag(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
 	iounmap(base);
 }
@@ -603,7 +601,7 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
+	BTMTK_INFO("[BGF MCU core debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0015D00; i <= 0xC0015D25; i++) {
 		REG_WRITEL(base + 0x04, i);
 		value = REG_READL(base);
@@ -621,7 +619,6 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
 	iounmap(base);
 }
@@ -646,7 +643,7 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
-	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
+	BTMTK_INFO("[BGF MCU PC/LR log] Count = (%d)", cr_count);
 	for (i = 0xC0010D01; i <= 0xC0010D55; i++) {
 		REG_WRITEL(base + 0x04, i);
 		value = REG_READL(base);
@@ -664,7 +661,6 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 			pos = &g_dump_cr_buffer[0];
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
-		
 	}
 	iounmap(base);
 }
