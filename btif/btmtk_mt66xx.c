@@ -1029,9 +1029,9 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint32_t i = 0, len = 0;
+	uint32_t i = 0, len = 0, ret = 0;
 	uint8_t *p_img = NULL;
-	uint8_t *ptr = NULL, *pRaw = NULL, findTag[30] = {0};
+	uint8_t *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
 	uint8_t cmd[32] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
@@ -1045,7 +1045,8 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 
 	/* find tag: [BT_FW_CFG_TAG][CONNAC20_CHIPID] */
 	if (snprintf(findTag, sizeof(findTag), "%s[%d] ", BT_FW_CFG_TAG, CONNAC20_CHIPID) < 0) {
-		BTMTK_INFO("%s: snprintf error", __func__);
+		BTMTK_ERR("%s: snprintf error", __func__);
+		ret = -1;
 		goto done;
 	}
 
@@ -1053,7 +1054,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	ptr = strstr(p_img, findTag);
 	if (ptr == NULL) {
 		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antenna setting", __func__);
-		return 0;
+		goto done;
 	}
 
 	memcpy(cmd, cmd_header, sizeof(cmd_header));
@@ -1094,6 +1095,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	/* check input size and also boundary check */
 	if (cmd[10] != (i - 2) || cmd[10] > 25) {
 		BTMTK_ERR("input antenna parameter length incorrect len = %d", cmd[10]);
+		ret = -1;
 		goto done;
 	}
 
@@ -1121,7 +1123,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 done:
 	if (p_img)
 		vfree(p_img);
-	return -1;
+	return ret;
 }
 
 /* btmtk_intcmd_wmt_power_off
