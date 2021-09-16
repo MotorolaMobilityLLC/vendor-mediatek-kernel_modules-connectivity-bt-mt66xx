@@ -766,9 +766,6 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 {
 	int32_t value = 0;
 
-	/* wake up conn_infra off */
-	bgfsys_check_conninfra_ready();
-
 	/* 2. Check bgf bus status */
 	if (bt_is_bgf_bus_timeout()) {
 		bt_dump_bgfsys_all();
@@ -786,9 +783,6 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET);
 	}
 
-
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 	return value;
 }
 
@@ -1210,9 +1204,14 @@ static inline int32_t bgfsys_power_off(void)
 	int32_t retry = POS_POLLING_RTY_LMT;
 	int32_t ret = 0;
 
+	/* wake up conn_infra */
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		return ret;
+
+	/* ack sw irq and check conninfra ready and force on conninfra*/
+	g_sw_irq_status = bgfsys_get_sw_irq_status();
+	BTMTK_INFO("BGF_SW_IRQ_STATUS = 0x%08x", g_sw_irq_status);
 
 	bgfsys_dump_uart_pta_pready_status();
 

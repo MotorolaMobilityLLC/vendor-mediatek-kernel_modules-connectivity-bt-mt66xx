@@ -257,8 +257,8 @@ static int btmtk_pm_notifier_callback(struct notifier_block *nb,
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	BTMTK_INFO("%s: bt_state[%d], event[%ld], conninfra_reg_readable[%d]",
-			__func__, cif_dev->bt_state, event, conninfra_reg_readable());
+	BTMTK_INFO("%s: bt_state[%d], event[%ld], BGF_SW_IRQ_STATUS[%d]",
+			__func__, cif_dev->bt_state, event, g_sw_irq_status);
 
 	switch (event) {
 		case PM_SUSPEND_PREPARE:
