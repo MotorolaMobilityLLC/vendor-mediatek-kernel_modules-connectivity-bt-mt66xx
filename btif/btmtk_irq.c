@@ -122,14 +122,12 @@ void bt_bgf2ap_irq_handler(void)
 		bt_dump_bgfsys_all();
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
-		bgfsys_ack_sw_irq_reset();
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
 		else
 			schedule_work(&rst_trigger_work);
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
-		bgfsys_ack_sw_irq_fwlog();
 		connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status &  BGF_WHOLE_CHIP_RESET) {

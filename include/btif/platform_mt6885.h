@@ -268,6 +268,7 @@ static inline void bgfsys_ccif_off(void)
  */
 static int32_t bgfsys_check_conninfra_ready(void)
 {
+	int32_t i = 0, hang_ret = 0;
 	int32_t retry = POS_POLLING_RTY_LMT;
 	uint32_t value = 0;
 
@@ -287,18 +288,28 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	if (retry == 0)
 		return -1;
 
-	if (conninfra_reg_readable()) {
-		/* check conn_infra off ID */
+	/* polling conninfra version id */
+	retry = 10;
+	for (i = 0; i < retry; i++) {
 		value = REG_READL(CONN_INFRA_CFG_VERSION);
+		if (value == CONN_INFRA_CFG_ID)
+			return 0; // success
+
 		BTMTK_DBG("connifra cfg version = 0x%08x", value);
-		if (value != CONN_INFRA_CFG_ID)
-			return -1;
-	} else  {
-		BTMTK_ERR("Conninfra is not readable");
-		return -1;
+		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 	}
 
-	return 0;
+	/* Check conninfra bus */
+	if (!conninfra_reg_readable()) {
+		hang_ret = conninfra_is_bus_hang();
+		if (hang_ret > 0) {
+			BTMTK_ERR("conninfra bus is hang, needs reset");
+			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+		}
+		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+	}
+
+	return -1;
 }
 
 static inline u_int8_t bt_is_bgf_bus_timeout(void)
@@ -753,18 +764,10 @@ host_csr_only:
 
 static inline int32_t bgfsys_get_sw_irq_status(void)
 {
-	int32_t ret = 0;
+	int32_t value = 0;
 
-	/* 1. Check conninfra bus before accessing BGF's CR */
-	if (!conninfra_reg_readable()) {
-		ret = conninfra_is_bus_hang();
-		if (ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
-			return RET_SWIRQ_ST_FAIL;
-		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
-	}
+	/* wake up conn_infra off */
+	bgfsys_check_conninfra_ready();
 
 	/* 2. Check bgf bus status */
 	if (bt_is_bgf_bus_timeout()) {
@@ -772,7 +775,21 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 		return RET_SWIRQ_ST_FAIL;
 	}
 
-	return REG_READL(BGF_SW_IRQ_STATUS);
+	/* read sw irq status*/
+	value = REG_READL(BGF_SW_IRQ_STATUS);
+
+	if (value & BGF_SUBSYS_CHIP_RESET){
+		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET);
+	}else if (value & BGF_FW_LOG_NOTIFY){
+		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY);
+	} else if (value &  BGF_WHOLE_CHIP_RESET){
+		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET);
+	}
+
+
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	return value;
 }
 
 static inline void bgfsys_ack_sw_irq_fwlog(void)
