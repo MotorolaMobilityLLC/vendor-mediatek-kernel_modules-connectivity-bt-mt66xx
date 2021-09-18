@@ -257,8 +257,8 @@ static int btmtk_pm_notifier_callback(struct notifier_block *nb,
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	BTMTK_INFO("%s: bt_state[%d], event[%ld], conninfra_reg_readable[%d]",
-			__func__, cif_dev->bt_state, event, conninfra_reg_readable());
+	BTMTK_INFO("%s: bt_state[%d], event[%ld], BGF_SW_IRQ_STATUS[%d]",
+			__func__, cif_dev->bt_state, event, g_sw_irq_status);
 
 	switch (event) {
 		case PM_SUSPEND_PREPARE:
@@ -1043,6 +1043,7 @@ static int32_t _check_wmt_evt_over_hci(
 		status = p_wmt_evt->params.u.rf_cal_evt.status;
 		break;
 	case WMT_OPCODE_0XF0:
+	case WMT_OPCODE_ANT_EFEM:
 		status = 0x00; // todo: need more check?
 		break;
 	default:
@@ -1675,6 +1676,8 @@ int btmtk_cif_register(void)
 
 #if (USE_DEVICE_NODE == 1)
 	ret = btmtk_cif_probe(NULL);
+	if (ret)
+		return -1;
 	rx_queue_initialize();
 #else
 	ret = platform_driver_register(&mtkbt_btif_driver);

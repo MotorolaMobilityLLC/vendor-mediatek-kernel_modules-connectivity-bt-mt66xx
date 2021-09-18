@@ -110,8 +110,16 @@ void bt_bgf2ap_irq_handler(void)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	cif_dev->bgf2ap_ind = FALSE;
 
+	/* wake up conn_infra off */
+	if(bgfsys_check_conninfra_ready())
+		return;
+
 	/* Read IRQ status CR to identify what happens */
 	bgf_status = bgfsys_get_sw_irq_status();
+
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {
@@ -122,14 +130,12 @@ void bt_bgf2ap_irq_handler(void)
 		bt_dump_bgfsys_all();
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
-		bgfsys_ack_sw_irq_reset();
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
 		else
 			schedule_work(&rst_trigger_work);
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
-		bgfsys_ack_sw_irq_fwlog();
 		connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status &  BGF_WHOLE_CHIP_RESET) {
