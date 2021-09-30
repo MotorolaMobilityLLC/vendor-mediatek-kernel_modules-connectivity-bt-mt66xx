@@ -1041,6 +1041,7 @@ static inline int32_t bgfsys_power_on(void)
 	uint32_t delay_ms = 5;
 	uint32_t mcu_idle, mcu_pc;
 	uint32_t remap_addr;
+	uint8_t *base = NULL;
 
 	remap_addr = bt_read_cr(0x1804B354);
 	BTMTK_INFO("remap addr = 0x%08X", remap_addr);
@@ -1212,15 +1213,26 @@ static inline int32_t bgfsys_power_on(void)
 	 * which indicates that the power-on part of ROM is completed.
 	 */
 	retry = IDLE_LOOP_RTY_LMT;
+	base = ioremap(0x18023A00, 0x10);
+	if (!base)
+		BTMTK_WARN("ioremap 0x18023A00 fail");
+	else
+		REG_WRITEL(base + 4, 0xC0010D2A);
+
 	do {
 		if (conninfra_reg_readable()) {
-			mcu_pc = REG_READL(CONN_MCU_PC);
+			if (base) {
+				mcu_pc = REG_READL(base);
+				BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
+			}
 			mcu_idle = REG_READL(BGF_MCU_CFG_SW_DBG_CTL);
 			BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
-			BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
+
 			if (0x1D1E == mcu_idle)
 				break;
 		} else {
+			if (base)
+				iounmap(base);
 			bgfsys_power_on_dump_cr();
 			return -1;
 		}
@@ -1228,6 +1240,9 @@ static inline int32_t bgfsys_power_on(void)
 		msleep(delay_ms);
 		retry--;
 	} while (retry > 0);
+
+	if (base)
+		iounmap(base);
 
 	if (retry == 0) {
 		bt_dump_cif_own_cr();
