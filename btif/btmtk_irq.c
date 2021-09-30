@@ -106,7 +106,7 @@ void bt_trigger_reset(void)
  */
 void bt_bgf2ap_irq_handler(void)
 {
-	int32_t bgf_status = 0;
+	int32_t bgf_status = 0, count = 5;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	cif_dev->bgf2ap_ind = FALSE;
 
@@ -122,6 +122,7 @@ void bt_bgf2ap_irq_handler(void)
 
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
+
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {
 		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
 	}
@@ -137,11 +138,11 @@ void bt_bgf2ap_irq_handler(void)
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
 		connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
+		while(count--){};
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status &  BGF_WHOLE_CHIP_RESET) {
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "FW trigger");
 	} else {
-		BTMTK_WARN("uknown case");
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	}
 }
