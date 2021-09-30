@@ -643,7 +643,7 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF MCU PC/LR log] Count = (%d)", cr_count);
-	for (i = 0xC0010D01; i <= 0xC0010D55; i++) {
+	for (i = 0xC0010D00; i <= 0xC0010D54; i++) {
 		REG_WRITEL(base + 0x04, i);
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
@@ -1040,11 +1040,7 @@ static inline int32_t bgfsys_power_on(void)
 	int32_t retry = POS_POLLING_RTY_LMT;
 	uint32_t delay_ms = 5;
 	uint32_t mcu_idle, mcu_pc;
-	uint32_t remap_addr;
 	uint8_t *base = NULL;
-
-	remap_addr = bt_read_cr(0x1804B354);
-	BTMTK_INFO("remap addr = 0x%08X", remap_addr);
 
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
