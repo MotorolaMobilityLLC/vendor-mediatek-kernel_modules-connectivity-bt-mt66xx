@@ -3,8 +3,8 @@
  * Copyright (c) 2019 MediaTek Inc.
  */
 
-#ifndef _PLATFORM_6983_H
-#define _PLATFORM_6983_H
+#ifndef _PLATFORM_6895_H
+#define _PLATFORM_6895_H
 
 #include "btmtk_define.h"
 #include "platform_base.h"
@@ -643,7 +643,7 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF MCU PC/LR log] Count = (%d)", cr_count);
-	for (i = 0xC0010D01; i <= 0xC0010D55; i++) {
+	for (i = 0xC0010D00; i <= 0xC0010D54; i++) {
 		REG_WRITEL(base + 0x04, i);
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
@@ -666,25 +666,28 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 
 static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 {
-	#define CR_CNT	7
 	uint32_t value = 0;
-	uint32_t i = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	int32_t CR_ADDR[CR_CNT] = {0x22C, 0x268, 0x26C, 0x2E0, 0x2E4, 0x2E8, 0x2EC};
-	uint8_t *CR_NAME[CR_CNT] = {"BGF_MCU_PC_DBG", "N9_MCU_MAILBOX_DBG", "HOST_MAILBOX_BT_ADDR", "CR", "CR", "CR", "CR"};
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
-	for (i = 0; i < CR_CNT; i++) {
-		value = REG_READL(CON_REG_SPM_BASE_ADDR + CR_ADDR[i]);
-		ret = snprintf(pos, (end - pos + 1), "%s[0x%08x] read[0x%08x], ", CR_NAME[i], 0x18060000 + CR_ADDR[i], value);
-		if (ret < 0 || ret >= (end - pos + 1))
-			break;
-		pos += ret;
-	}
+	BTMTK_INFO("[BGF dump suspend/wakeup Count = (3)");
+
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x790);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x790, value);
+	pos += ret;
+
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x794);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x794, value);
+	pos += ret;
+
+	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300508);
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
+
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
 
@@ -887,6 +890,7 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 	return value;
 }
 
+/*
 static inline void bgfsys_ack_sw_irq_fwlog(void)
 {
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
@@ -896,6 +900,7 @@ static inline void bgfsys_ack_sw_irq_reset(void)
 {
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
 }
+*/
 
 /* bgfsys_power_on_dump_cr
  *
@@ -1035,10 +1040,7 @@ static inline int32_t bgfsys_power_on(void)
 	int32_t retry = POS_POLLING_RTY_LMT;
 	uint32_t delay_ms = 5;
 	uint32_t mcu_idle, mcu_pc;
-	uint32_t remap_addr;
-
-	remap_addr = bt_read_cr(0x1804B354);
-	BTMTK_INFO("remap addr = 0x%08X", remap_addr);
+	uint8_t *base = NULL;
 
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
@@ -1207,15 +1209,26 @@ static inline int32_t bgfsys_power_on(void)
 	 * which indicates that the power-on part of ROM is completed.
 	 */
 	retry = IDLE_LOOP_RTY_LMT;
+	base = ioremap(0x18023A00, 0x10);
+	if (!base)
+		BTMTK_WARN("ioremap 0x18023A00 fail");
+	else
+		REG_WRITEL(base + 4, 0xC0010D2A);
+
 	do {
 		if (conninfra_reg_readable()) {
-			mcu_pc = REG_READL(CONN_MCU_PC);
+			if (base) {
+				mcu_pc = REG_READL(base);
+				BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
+			}
 			mcu_idle = REG_READL(BGF_MCU_CFG_SW_DBG_CTL);
 			BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
-			BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
+
 			if (0x1D1E == mcu_idle)
 				break;
 		} else {
+			if (base)
+				iounmap(base);
 			bgfsys_power_on_dump_cr();
 			return -1;
 		}
@@ -1223,6 +1236,9 @@ static inline int32_t bgfsys_power_on(void)
 		msleep(delay_ms);
 		retry--;
 	} while (retry > 0);
+
+	if (base)
+		iounmap(base);
 
 	if (retry == 0) {
 		bt_dump_cif_own_cr();
@@ -1267,10 +1283,6 @@ static inline int32_t bgfsys_power_off(void)
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		return ret;
-
-	/* ack sw irq and check conninfra ready and force on conninfra*/
-	g_sw_irq_status = bgfsys_get_sw_irq_status();
-	BTMTK_INFO("BGF_SW_IRQ_STATUS = 0x%08x", g_sw_irq_status);
 
 	/* enable bt2conn slp_prot tx en */
 	SET_BIT(CONN_INFRA_BT2CONN_GALS_SLP_CTL, BT2CONN_SLP_PROT_TX_EN_B);

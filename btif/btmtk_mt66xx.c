@@ -633,8 +633,8 @@ static int32_t bt_hw_and_mcu_on(void)
 	}
 
 	/*reset sw_irq*/
-	bgfsys_ack_sw_irq_reset();
-	bgfsys_ack_sw_irq_fwlog();
+	//bgfsys_ack_sw_irq_reset();
+	//bgfsys_ack_sw_irq_fwlog();
 
 	/* Register all needed IRQs by MCU */
 	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
@@ -911,7 +911,7 @@ callback:
 	return 0;
 }
 
-int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HANDLER_CB cb)
+int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HANDLER_CB cb, bool is_blocking)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	uint8_t cmd_query[5] = {0x01, 0x2D, 0xFC, 0x01, 0x01};
@@ -954,7 +954,7 @@ int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HA
 								sizeof(cmd_query),
 								btmtk_inttrx_DynamicAdjustTxPower_cb,
 								FALSE,
-								TRUE);
+								is_blocking);
 	} else {
 		// do not send if not support
 		if (cif_dev->dy_pwr.dy_max_dbm <= cif_dev->dy_pwr.dy_min_dbm) {
@@ -987,7 +987,7 @@ int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HA
 								sizeof(cmd_set),
 								btmtk_inttrx_DynamicAdjustTxPower_cb,
 								FALSE,
-								FALSE);
+								is_blocking);
 	}
 
 	return 0;
