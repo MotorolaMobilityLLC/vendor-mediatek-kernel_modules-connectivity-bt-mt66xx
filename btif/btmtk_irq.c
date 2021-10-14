@@ -250,17 +250,22 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 	BTMTK_INFO("pirq = %p, flag = 0x%08x", pirq, irq_flags);
 	pirq->irq_num = irq_num;
 	spin_lock_init(&pirq->lock);
+	pirq->active = TRUE;
 	ret = request_irq(irq_num, btmtk_irq_handler, irq_flags,
 			  pirq->name, pirq);
 	if (ret) {
 		BTMTK_ERR("Request %s (%u) failed! ret(%d)", pirq->name, irq_num, ret);
+		pirq->active = FALSE;
 		return ret;
 	}
 
-	enable_irq_wake(irq_num);
+	ret = enable_irq_wake(irq_num);
+	if (ret) {
+		BTMTK_ERR("enable_irq_wake %s (%u) failed! ret(%d)", pirq->name, irq_num, ret);
+	}
+
 	BTMTK_INFO("Request %s (%u) succeed", pirq->name, irq_num);
 	bt_irq_table[irq_type] = pirq;
-	pirq->active = TRUE;
 
 	return 0;
 }
