@@ -41,6 +41,7 @@ typedef struct {
 *			      P U B L I C   D A T A
 ********************************************************************************
 */
+bool g_bt_trace_pt = FALSE;
 
 /*******************************************************************************
 *                  F U N C T I O N   D E C L A R A T I O N S
@@ -77,6 +78,7 @@ static int bt_dbg_met_start_stop(int par1, int par2, int par3);
 static int bt_dbg_DynamicAdjustTxPower(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
 static int bt_dbg_user_trx_cb(uint8_t *buf, int len);
+static int bt_dbg_trace_pt(int par1, int par2, int par3);
 
 extern int32_t btmtk_set_wakeup(struct hci_dev *hdev, uint8_t need_wait);
 extern int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait);
@@ -121,6 +123,7 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0x12] = {bt_dbg_is_adie_work,		TRUE},
 	[0x13] = {bt_dbg_met_start_stop,	FALSE},
 	[0x14] = {bt_dbg_DynamicAdjustTxPower,		FALSE},
+	[0x15] = {bt_dbg_trace_pt,		FALSE},
 };
 
 /*******************************************************************************
@@ -153,6 +156,14 @@ int bt_dbg_chip_rst(int par1, int par2, int par3)
 	return 0;
 }
 
+int bt_dbg_trace_pt(int par1, int par2, int par3)
+{
+	if(par2 == 0)
+		g_bt_trace_pt = FALSE;
+	else
+		g_bt_trace_pt = TRUE;
+	return 0;
+}
 
 int bt_dbg_read_chipid(int par1, int par2, int par3)
 {
