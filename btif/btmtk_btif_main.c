@@ -1760,14 +1760,16 @@ static u_int8_t bt_tx_wait_for_msg(struct btmtk_dev *bdev)
 	if (cif_dev->bt_state == RESET_START)
 		return kthread_should_stop();
 	else {
-		BTMTK_DBG("skb [%d], rx_ind [%d], bgf2ap_ind [%d], sleep_flag [%d], wakeup_flag [%d], force_on [%d]",
+		BTMTK_DBG("skb [%d], rx_ind [%d], bgf2ap_ind [%d], bt_conn2ap_ind [%d], sleep_flag [%d], wakeup_flag [%d], force_on [%d]",
 				skb_queue_empty(&cif_dev->tx_queue), cif_dev->rx_ind,
-				cif_dev->bgf2ap_ind, cif_dev->psm.sleep_flag,
+				cif_dev->bgf2ap_ind, cif_dev->bt_conn2ap_ind, 
+				cif_dev->psm.sleep_flag,
 				cif_dev->psm.wakeup_flag,
 				cif_dev->psm.force_on);
 		return (!skb_queue_empty(&cif_dev->tx_queue)
 			|| cif_dev->rx_ind
 			|| cif_dev->bgf2ap_ind
+			|| cif_dev->bt_conn2ap_ind
 			|| (!cif_dev->psm.force_on && cif_dev->psm.sleep_flag) // only check sleep_flag if force_on is FALSE
 			|| cif_dev->psm.wakeup_flag
 			|| kthread_should_stop());
@@ -1808,8 +1810,14 @@ int32_t btmtk_tx_thread(void * arg)
 			break;
 		}
 
+		/* handling BUS SW IRQ */
+		if (cif_dev->bt_conn2ap_ind && BT_SSPM_TIMER != 0) {
+			bt_conn2ap_irq_handler();
+			continue;
+		}
+
 		/* handling SW IRQ */
-		if(cif_dev->bgf2ap_ind) {
+		if (cif_dev->bgf2ap_ind) {
 			bt_bgf2ap_irq_handler();
 			/* reset bgf2ap_ind flag move into bt_bgf2ap_irq_handler */
 			continue;

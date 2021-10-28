@@ -650,6 +650,13 @@ static int32_t bt_hw_and_mcu_on(void)
 
 	bt_disable_irq(BGF2AP_SW_IRQ);
 
+	if (BT_SSPM_TIMER) {
+		ret = bt_request_irq(BT_CONN2AP_SW_IRQ);
+		if (ret)
+			goto bus_operate_error;
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+	}
+
 	btmtk_reset_init();
 
 	if (btmtk_wcn_btif_open()) {
@@ -695,6 +702,10 @@ static void bt_hw_and_mcu_off(void)
 	bt_free_irq(BGF2AP_SW_IRQ);
 	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 
+	if (BT_SSPM_TIMER) {
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+		bt_free_irq(BT_CONN2AP_SW_IRQ);
+	}
 	/* BGFSYS hardware power off */
 	bgfsys_power_off();
 }
@@ -1704,6 +1715,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 #endif
 
 	bt_enable_irq(BGF2AP_SW_IRQ);
+	if (BT_SSPM_TIMER)
+		bt_enable_irq(BT_CONN2AP_SW_IRQ);
 
 	/* 8. init cmd queue and workqueue */
 #if (DRIVER_CMD_CHECK == 1)

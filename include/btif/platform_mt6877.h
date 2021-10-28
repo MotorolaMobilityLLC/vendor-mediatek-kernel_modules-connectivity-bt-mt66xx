@@ -176,6 +176,7 @@
 #define CONN_INFRA_CFG_ID		(0x02060002)
 
 #define MET_EMI_ADDR	(0x2BC00)
+#define BT_SSPM_TIMER	(0x10017008)
 
 /*********************************************************************
 *
@@ -377,7 +378,7 @@ static void inline bt_dump_bgfsys_host_csr(void)
 static void inline bt_dump_bgfsys_mcusys_flag(void)
 {
 	uint32_t value = 0;
-	uint32_t i = 0, count = 1, cr_count = 56;
+	uint32_t i = 0, count = 1, cr_count = 88;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
 	uint16_t switch_flag = 0x2A;
@@ -391,7 +392,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA0, value);
 
 	BTMTK_INFO("[BGF MCUSYS debug flag] Count = (%d)", cr_count);
-	for (i = 0x00020101; i <= 0x00706F01; i+= 0x20200, count++) {
+	for (i = 0x00020101; i <= 0x00B0AF01; i+= 0x20200, count++) {
 		REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA8, i);
 		value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x22C);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
