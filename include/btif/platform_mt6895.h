@@ -675,7 +675,8 @@ static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
-	BTMTK_INFO("[BGF dump suspend/wakeup Count = (3)");
+	ret = snprintf(pos, (end - pos + 1), "[BGF dump suspend/wakeup] ");
+	pos += ret;
 
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x790);
 	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x790, value);
