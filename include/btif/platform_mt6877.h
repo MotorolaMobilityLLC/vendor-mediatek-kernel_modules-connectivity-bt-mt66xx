@@ -684,68 +684,57 @@ host_csr_only:
 static inline void bt_dump_cif_own_cr(void)
 {
 	uint32_t value = 0, i = 0;
-	int32_t ret = 0;
-
-	ret = conninfra_is_bus_hang();
-	BTMTK_INFO("%s: conninfra_is_bus_hang ret = %d", __func__, ret);
-
-	if (!CAN_DUMP_HOST_CSR(ret)) {
-		BTMTK_ERR("%s; host csr is not readable", __func__);
-		return;
-	}
 
 	if(bgfsys_check_conninfra_ready())
 		goto host_csr_only;
 
 	/* following CR only accessible while bus is not hang */
-	if (!ret ) {
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x400);
-		BTMTK_INFO("0x18001400 = [0x%08x]", value);
+	value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x400);
+	BTMTK_INFO("0x18001400 = [0x%08x]", value);
 
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x41C);
-		BTMTK_INFO("0x1800141C = [0x%08x]", value);
+	value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x41C);
+	BTMTK_INFO("0x1800141C = [0x%08x]", value);
 
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x420);
-		BTMTK_INFO("0x18001420 = [0x%08x]", value);
+	value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x420);
+	BTMTK_INFO("0x18001420 = [0x%08x]", value);
 
-		value = 0x87654321;
-		REG_WRITEL(CON_REG_INFRA_CFG_ADDR + 0x10, value);
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x10);
-		BTMTK_INFO("0x18001010 = [0x%08x]", value);
+	value = 0x87654321;
+	REG_WRITEL(CON_REG_INFRA_CFG_ADDR + 0x10, value);
+	value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x10);
+	BTMTK_INFO("0x18001010 = [0x%08x]", value);
 
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x160);
-		BTMTK_INFO("0x18001160 = [0x%08x]", value);
+	value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x160);
+	BTMTK_INFO("0x18001160 = [0x%08x]", value);
 
-		value = REG_READL(CONN_INFRA_CFG_START + 0x0168);
-		BTMTK_INFO("0x18001168 = [0x%08x]", value);
+	value = REG_READL(CONN_INFRA_CFG_START + 0x0168);
+	BTMTK_INFO("0x18001168 = [0x%08x]", value);
 
-		value = REG_READL(CONN_INFRA_CFG_START + 0x0170);
-		BTMTK_INFO("0x18001170 = [0x%08x]", value);
+	value = REG_READL(CONN_INFRA_CFG_START + 0x0170);
+	BTMTK_INFO("0x18001170 = [0x%08x]", value);
 
-		value = REG_READL(CONN_INFRA_CFG_BT_PWRCTLCR0);
-		BTMTK_INFO("0x18001874 = [0x%08x]", value);
+	value = REG_READL(CONN_INFRA_CFG_BT_PWRCTLCR0);
+	BTMTK_INFO("0x18001874 = [0x%08x]", value);
 
-		value = REG_READL(CONN_INFRA_CFG_START + 0x0C00);
-		BTMTK_INFO("0x18001C00 = [0x%08x]", value);
+	value = REG_READL(CONN_INFRA_CFG_START + 0x0C00);
+	BTMTK_INFO("0x18001C00 = [0x%08x]", value);
 
-		value = REG_READL(CONN_INFRA_CFG_START + 0x0C04);
-		BTMTK_INFO("0x18001C04 = [0x%08x]", value);
+	value = REG_READL(CONN_INFRA_CFG_START + 0x0C04);
+	BTMTK_INFO("0x18001C04 = [0x%08x]", value);
 
-		BTMTK_INFO("%s: M0 - M3 semaphore status:", __func__);
-		for (i = 0x18070400; i <= 0x18073400; i += 0x1000) {
-			value = bt_read_cr(i);
-			BTMTK_INFO("[0x%08x] = [0x%08x]", i, value);
-		}
-
-		value = bt_read_cr(0x18071400);
-		BTMTK_INFO("0x18070400 = [0x%08x]", value);
-
-		value = bt_read_cr(0x18070400);
-		BTMTK_INFO("0x18070400 = [0x%08x]", value);
-
-		value = bt_read_cr(0x18070400);
-		BTMTK_INFO("0x18070400 = [0x%08x]", value);
+	BTMTK_INFO("%s: M0 - M3 semaphore status:", __func__);
+	for (i = 0x18070400; i <= 0x18073400; i += 0x1000) {
+		value = bt_read_cr(i);
+		BTMTK_INFO("[0x%08x] = [0x%08x]", i, value);
 	}
+
+	value = bt_read_cr(0x18071400);
+	BTMTK_INFO("0x18070400 = [0x%08x]", value);
+
+	value = bt_read_cr(0x18070400);
+	BTMTK_INFO("0x18070400 = [0x%08x]", value);
+
+	value = bt_read_cr(0x18070400);
+	BTMTK_INFO("0x18070400 = [0x%08x]", value);
 
 host_csr_only:
 	value = REG_READL(BGF_LPCTL);
