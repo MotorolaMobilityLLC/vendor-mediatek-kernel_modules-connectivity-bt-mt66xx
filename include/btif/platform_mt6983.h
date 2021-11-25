@@ -993,21 +993,32 @@ static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
 {
 	uint8_t *base = NULL;
 	uint32_t i = 0;
+	uint8_t *pos = NULL, *end = NULL;
+	int32_t ret = 0;
+
+	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
+	pos = &g_dump_cr_buffer[0];
+	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
 	base = ioremap(0x18005100, 0x100);
 	if (base) {
-		for(i = 0x20; i <= 0x34; i+=4)
-			BTMTK_INFO("%s: 0x%08x = [0x%08x]", __func__, 0x18005100 + i, REG_READL(base + i));
+		for(i = 0x20; i <= 0x34; i+=4) {
+			ret = snprintf(pos, (end - pos + 1)," 0x%08x = [0x%08x]", 0x18005100 + i, REG_READL(base + i));
+			pos += ret;
+		}
 		iounmap(base);
 	} else
 		BTMTK_ERR("%s: remapping 0x18005100 fail", __func__);
 
 	base = ioremap(0x180050A8, 0x10);
 	if (base) {
-		BTMTK_INFO("%s: 0x180050A8 = [0x%08x]", __func__, REG_READL(base));
+		ret = snprintf(pos, (end - pos + 1)," 0x180050A8 = [0x%08x]", REG_READL(base));
+		pos += ret;
 		iounmap(base);
 	} else
 		BTMTK_ERR("%s: remapping 0x180050A8 fail", __func__);
+
+	BTMTK_INFO("%s:%s",__func__,  g_dump_cr_buffer);
 }
 
 /*********************************************************************
@@ -1216,10 +1227,11 @@ static inline int32_t bgfsys_power_on(void)
 				BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
 			}
 			mcu_idle = REG_READL(BGF_MCU_CFG_SW_DBG_CTL);
-			BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
 
-			if (0x1D1E == mcu_idle)
+			if (0x1D1E == mcu_idle){
+				BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
 				break;
+			}
 		} else {
 			if (base)
 				iounmap(base);

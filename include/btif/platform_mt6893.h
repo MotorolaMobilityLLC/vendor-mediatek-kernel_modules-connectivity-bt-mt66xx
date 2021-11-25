@@ -1157,10 +1157,12 @@ static inline int32_t bgfsys_power_on(void)
 		if (conninfra_reg_readable()) {
 			mcu_pc = REG_READL(CONN_MCU_PC);
 			mcu_idle = REG_READL(BGF_MCU_CFG_SW_DBG_CTL);
-			BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
 			BTMTK_INFO("MCU pc = 0x%08x", mcu_pc);
-			if (0x1D1E == mcu_idle)
+
+			if (0x1D1E == mcu_idle) {
+				BTMTK_INFO("MCU sw_dbg_ctl = 0x%08x", mcu_idle);
 				break;
+			}
 		} else {
 			bgfsys_power_on_dump_cr();
 			return -1;
