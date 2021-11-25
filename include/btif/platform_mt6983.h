@@ -723,14 +723,6 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
 
-	ret = conninfra_is_bus_hang();
-	BTMTK_INFO("%s: conninfra_is_bus_hang ret = %d", __func__, ret);
-
-	if (!CAN_DUMP_HOST_CSR(ret)) {
-		BTMTK_ERR("%s; host csr is not readable", __func__);
-		return;
-	}
-
 	if(bgfsys_check_conninfra_ready())
 		goto host_csr_only;
 
