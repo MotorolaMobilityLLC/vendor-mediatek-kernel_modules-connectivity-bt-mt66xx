@@ -187,7 +187,7 @@ int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v
 		}
 	}
 end:
-	BTMTK_INFO("%s: end", __func__);
+	BTMTK_DBG("%s: end", __func__);
 	return 0;
 }
 
