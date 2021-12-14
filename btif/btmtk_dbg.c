@@ -357,7 +357,7 @@ int bt_dbg_met_start_stop(int par1, int par2, int par3)
 	uint32_t val = 0, star_addr = 0, end_addr = 0;
 	int res = 0;
 	struct conn_metlog_info info;
-	unsigned int emi_base;
+	phys_addr_t emi_base;
 
 	BTMTK_INFO("%s, par2 = %d", __func__, par2);
 	/* reference parameter:
