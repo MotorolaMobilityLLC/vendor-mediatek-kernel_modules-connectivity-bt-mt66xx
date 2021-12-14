@@ -128,6 +128,8 @@ void bt_bgf2ap_irq_handler(void)
 
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {
 		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
+	}else{
+		BTMTK_DBG("bgf_status = 0x%08x", bgf_status);
 	}
 
 	if (bgf_status == 0xDEADFEED) {
