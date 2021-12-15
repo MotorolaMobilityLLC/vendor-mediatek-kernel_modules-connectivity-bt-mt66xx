@@ -1270,6 +1270,11 @@ static inline int32_t bgfsys_power_off(void)
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
 
+	/* reset IRQ */
+	usleep_range(1000, 1100);
+	value = bgfsys_get_sw_irq_status();
+	BTMTK_INFO("%s: bgf_status[0x%08x]", __func__, value);
+
 	/* Disable A-die top_ck_en_2 */
 	// 0x18005128	WR	0x18005128[0] == 1'b1/1'b0
 	// 0x18005128	POLLING 0x18005128[1] == 1'b0
