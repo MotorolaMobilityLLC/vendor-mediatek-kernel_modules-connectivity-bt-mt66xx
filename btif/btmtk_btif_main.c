@@ -604,8 +604,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 		uint8_t *dump_msg_addr;
 		uint8_t msg[256] = {0};
 
-		conninfra_get_phy_addr((uint32_t*)&emi_ap_phy_base, NULL);
-		emi_ap_phy_base &= 0xFFFFFFFF;
+		conninfra_get_phy_addr(&emi_ap_phy_base, NULL);
 
 		dump_msg_addr = ioremap(emi_ap_phy_base + 0x3B000, 0x100);
 		if (dump_msg_addr) {
