@@ -999,13 +999,15 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = BGF_ON_PWR_ACK_B &
 			REG_READL(CONN_INFRA_RGU_BGFSYS_ON_TOP_PWR_ACK_ST);
-		BTMTK_INFO("bgfsys on power ack = 0x%08x", value);
+		BTMTK_DBG("bgfsys on power ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != BGF_ON_PWR_ACK_B && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("bgfsys on power ack = 0x%08x", value);
 		goto error;
+	}
 
 	/* enable bt function en */
 	SET_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
@@ -1022,25 +1024,29 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = BGF_OFF_PWR_ACK_B &
 			REG_READL(CONN_INFRA_RGU_BGFSYS_OFF_TOP_PWR_ACK_ST);
-		BTMTK_INFO("bgfsys off top power ack_b = 0x%08x", value);
+		BTMTK_DBG("bgfsys off top power ack_b = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != BGF_OFF_PWR_ACK_B && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("bgfsys off top power ack_b = 0x%08x", value);
 		goto error;
+	}
 
 	retry = POS_POLLING_RTY_LMT;
 	do {
 		value = BGF_OFF_PWR_ACK_S &
 			REG_READL(CONN_INFRA_RGU_BGFSYS_OFF_TOP_PWR_ACK_ST);
-		BTMTK_INFO("bgfsys off top power ack_s = 0x%08x", value);
+		BTMTK_DBG("bgfsys off top power ack_s = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != BGF_OFF_PWR_ACK_S && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("bgfsys off top power ack_s = 0x%08x", value);
 		goto error;
+	}
 
 	/* disable conn2bt slp_prot rx en */
 	CLR_BIT(CONN_INFRA_CONN2BT_GALS_SLP_CTL, CONN2BT_SLP_PROT_RX_EN_B);
@@ -1049,13 +1055,15 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = CONN2BT_SLP_PROT_RX_ACK_B &
 			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
-		BTMTK_INFO("conn2bt slp_prot rx ack = 0x%08x", value);
+		BTMTK_DBG("conn2bt slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != 0 && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("conn2bt slp_prot rx ack = 0x%08x", value);
 		goto error;
+	}
 
 	/* disable conn2bt slp_prot tx en */
 	CLR_BIT(CONN_INFRA_CONN2BT_GALS_SLP_CTL, CONN2BT_SLP_PROT_TX_EN_B);
@@ -1064,13 +1072,15 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = CONN2BT_SLP_PROT_TX_ACK_B &
 			REG_READL(CONN_INFRA_CONN2BT_GALS_SLP_STATUS);
-		BTMTK_INFO("conn2bt slp_prot tx ack = 0x%08x", value);
+		BTMTK_DBG("conn2bt slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != 0 && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("conn2bt slp_prot tx ack = 0x%08x", value);
 		goto error;
+	}
 
 	/* disable bt2conn slp_prot rx en */
 	CLR_BIT(CONN_INFRA_BT2CONN_GALS_SLP_CTL, BT2CONN_SLP_PROT_RX_EN_B);
@@ -1079,13 +1089,15 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = BT2CONN_SLP_PROT_RX_ACK_B &
 			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
-		BTMTK_INFO("bt2conn slp_prot rx ack = 0x%08x", value);
+		BTMTK_DBG("bt2conn slp_prot rx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != 0 && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("bt2conn slp_prot rx ack = 0x%08x", value);
 		goto error;
+	}
 
 	/* disable bt2conn slp_prot tx en */
 	CLR_BIT(CONN_INFRA_BT2CONN_GALS_SLP_CTL, BT2CONN_SLP_PROT_TX_EN_B);
@@ -1094,13 +1106,15 @@ static inline int32_t bgfsys_power_on(void)
 	do {
 		value = BT2CONN_SLP_PROT_TX_ACK_B &
 			REG_READL(CONN_INFRA_BT2CONN_GALS_SLP_STATUS);
-		BTMTK_INFO("bt2conn slp_prot tx ack = 0x%08x", value);
+		BTMTK_DBG("bt2conn slp_prot tx ack = 0x%08x", value);
 		usleep_range(500, 550);
 		retry--;
 	} while (value != 0 && retry > 0);
 
-	if (0 == retry)
+	if (0 == retry) {
+		BTMTK_ERR("bt2conn slp_prot tx ack = 0x%08x", value);
 		goto error;
+	}
 
 	usleep_range(400, 440);
 
