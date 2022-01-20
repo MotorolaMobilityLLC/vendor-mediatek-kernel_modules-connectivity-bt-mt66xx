@@ -692,7 +692,12 @@ static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300508);
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
-	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
+	ret = snprintf(pos, (end - pos + 1), "BT[0x%08x]=[0x%08x], ", 0x18060000 + 0xC00, value);
+        pos += ret;
+	
+        REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300507);
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
+	ret = snprintf(pos, (end - pos + 1), "MCU[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
 
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
