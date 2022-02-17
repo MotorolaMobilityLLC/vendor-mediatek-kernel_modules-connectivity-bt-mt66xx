@@ -178,6 +178,7 @@
 #define CONN_INFRA_CFG_ID		(0x02050100)
 
 #define MET_EMI_ADDR	(0x2BC00)
+#define BT_SSPM_TIMER	(0x1c011008)
 
 /*********************************************************************
 *
