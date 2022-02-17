@@ -1573,17 +1573,29 @@ int32_t btmtk_set_sleep(struct hci_dev *hdev, uint8_t need_wait)
  *    N/A
  *
  */
-int32_t btmtk_set_wakeup(struct hci_dev *hdev)
+int32_t btmtk_set_wakeup(struct hci_dev *hdev, uint8_t need_wait)
 {
-	//struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 #if SUPPORT_BT_THREAD
+	cif_dev->psm.wakeup_flag = TRUE;
 	wake_up_interruptible(&cif_dev->tx_waitq);
+
+	if (!need_wait)
+		return 0;
+
+	if (!wait_for_completion_timeout(&cif_dev->psm.comp, msecs_to_jiffies(1000))) {
+		BTMTK_ERR("[PSM] Timeout for BGFSYS to enter wakeup!");
+		cif_dev->psm.wakeup_flag = FALSE;
+		return -1;
+	}
+
+	BTMTK_INFO("[PSM] wakeup return %s, sleep(%d), wakeup(%d)",
+			(cif_dev->psm.result == 0) ? "success" : "failure",
+			cif_dev->psm.sleep_flag, cif_dev->psm.wakeup_flag);
+	return 0;
 #else
 	BTMTK_ERR("%s: [PSM] Doesn't support non-thread mode !", __func__);
 	return -1;
 #endif
-
-	return 0;
 }
