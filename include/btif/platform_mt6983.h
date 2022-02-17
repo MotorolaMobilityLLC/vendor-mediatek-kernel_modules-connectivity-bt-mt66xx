@@ -879,6 +879,14 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 	/* read sw irq status*/
 	value = bt_read_cr(BGF_SW_IRQ_STATUS);
 
+	if (value & BGF_SUBSYS_CHIP_RESET){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
+	} else if (value & BGF_FW_LOG_NOTIFY){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
+	} else if (value &  BGF_WHOLE_CHIP_RESET){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET, TRUE);
+	}
+
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 	return value;
