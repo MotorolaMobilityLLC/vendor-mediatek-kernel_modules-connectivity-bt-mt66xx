@@ -1043,6 +1043,7 @@ static int32_t _check_wmt_evt_over_hci(
 		status = p_wmt_evt->params.u.rf_cal_evt.status;
 		break;
 	case WMT_OPCODE_0XF0:
+	case WMT_OPCODE_ANT_EFEM:
 		status = 0x00; // todo: need more check?
 		break;
 	default:
