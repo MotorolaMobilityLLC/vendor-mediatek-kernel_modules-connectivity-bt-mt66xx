@@ -419,7 +419,7 @@ void add_dump_packet(const uint8_t *buffer,const uint32_t length, enum bt_direct
 	else
 		copysize = length;
 
-	do_gettimeofday(&p_packet->time);
+	ktime_get_real_ts64(&p_packet->time);
 	ktime_get_ts(&p_packet->kerneltime);
 	memcpy(p_packet->data,buffer,copysize);
 	p_packet->data_length = length;
@@ -438,7 +438,7 @@ void print_dump_packet(struct bt_dump_packet *p_packet){
 	struct rtc_time tm;
 
 	sec = p_packet->time.tv_sec;
-	usec = p_packet->time.tv_usec;
+	usec = p_packet->time.tv_nsec/1000;
 
 	ksec = p_packet->kerneltime.tv_sec;
 	knsec = p_packet->kerneltime.tv_nsec;
