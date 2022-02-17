@@ -291,7 +291,7 @@ unsigned char btmtk_fops_get_state(struct btmtk_dev *bdev)
 	return state;
 }
 
-static void btmtk_fops_set_state(struct btmtk_dev *bdev, unsigned char new_state)
+void btmtk_fops_set_state(struct btmtk_dev *bdev, unsigned char new_state)
 {
 	static const char * const fstate_msg[BTMTK_FOPS_STATE_MSG_NUM] = {
 		"UNKNOWN", "INIT", "OPENING", "OPENED", "CLOSING", "CLOSED",
