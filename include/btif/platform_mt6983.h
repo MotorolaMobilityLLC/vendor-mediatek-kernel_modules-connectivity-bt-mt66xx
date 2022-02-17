@@ -279,7 +279,6 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	}
 
 	/* wake up conn_infra off */
-	BTMTK_INFO("CONN_INFRA_WAKEUP_BT = 0x%08x", CONN_INFRA_WAKEUP_BT);
 	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
 
@@ -300,7 +299,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		for (i = 0; i < retry; i++) {
 			value = REG_READL(CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1) &
 				CONN_INFRA_RDY;
-			BTMTK_INFO("connifra cfg power control = 0x%08x", value);
+			BTMTK_DBG("connifra cfg power control = 0x%08x", value);
 			if (value == CONN_INFRA_RDY)
 				return 0;
 
