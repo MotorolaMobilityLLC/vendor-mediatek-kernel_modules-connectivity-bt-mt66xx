@@ -208,6 +208,7 @@ static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
 
 #define CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT	(CONN_INFRA_CFG_START + 0x0C18)
 #define BT_EMI_CTRL_BIT				BIT(0)
+#define BT_EMI_CTRL_BIT1			BIT(1)
 
 /*
  * Connsys Host CSR Top Region
