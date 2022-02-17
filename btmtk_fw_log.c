@@ -477,6 +477,7 @@ long btmtk_fops_unlocked_ioctlfwlog(struct file *filp, unsigned int cmd, unsigne
 {
 	long retval = 0;
 	uint8_t log_tmp = BT_FWLOG_OFF;
+	struct btmtk_main_info *bmain_info = btmtk_get_main_info();
 
 	/* only 66xx will use ioctlfwlog, 76xx not used */
 	/* if (!is_mt66xx(g_sbdev->chip_id)) {
@@ -486,6 +487,9 @@ long btmtk_fops_unlocked_ioctlfwlog(struct file *filp, unsigned int cmd, unsigne
 	 */
 
 	down(&ioctl_mtx);
+	if (bmain_info->hif_hook.log_hold_sem)
+		bmain_info->hif_hook.log_hold_sem();
+
 	switch (cmd) {
 	case BT_FWLOG_IOC_ON_OFF:
 		/* Connsyslogger daemon dynamically enable/disable Picus log */
@@ -528,6 +532,8 @@ long btmtk_fops_unlocked_ioctlfwlog(struct file *filp, unsigned int cmd, unsigne
 		break;
 	}
 
+	if (bmain_info->hif_hook.log_release_sem)
+		bmain_info->hif_hook.log_release_sem();
 	up(&ioctl_mtx);
 	return retval;
 }

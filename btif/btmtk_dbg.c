@@ -14,6 +14,8 @@
 #include "btmtk_chip_if.h"
 #include "btmtk_main.h"
 #include "conninfra.h"
+#include "connsys_debug_utility.h"
+#include "metlog.h"
 
 /*******************************************************************************
 *				 C O N S T A N T S
@@ -71,6 +73,7 @@ static int bt_dbg_rx_buf_control(int par1, int par2, int par3);
 static int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3);
 static int bt_dbg_fpga_test(int par1, int par2, int par3);
 static int bt_dbg_is_adie_work(int par1, int par2, int par3);
+static int bt_dbg_met_start_stop(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
 static void bt_dbg_user_trx_cb(char *buf, int len);
 
@@ -115,6 +118,7 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0x10] = {bt_dbg_set_rt_thread_runtime,		FALSE},
 	[0x11] = {bt_dbg_fpga_test,			TRUE},
 	[0x12] = {bt_dbg_is_adie_work,		TRUE},
+	[0x13] = {bt_dbg_met_start_stop,	FALSE},
 };
 
 /*******************************************************************************
@@ -153,6 +157,7 @@ int bt_dbg_read_chipid(int par1, int par2, int par3)
 	return 0;
 }
 
+/* Read BGF SYS address (controller view) by 0x18001104 & 0x18900000 */
 int bt_dbg_reg_read(int par1, int par2, int par3)
 {
 	uint32_t *dynamic_remap_addr = NULL;
@@ -181,6 +186,7 @@ int bt_dbg_reg_read(int par1, int par2, int par3)
 	return 0;
 }
 
+/* Write BGF SYS address (controller view) by 0x18001104 & 0x18900000 */
 int bt_dbg_reg_write(int par1, int par2, int par3)
 {
 	uint32_t *dynamic_remap_addr = NULL;
@@ -212,6 +218,7 @@ int bt_dbg_reg_write(int par1, int par2, int par3)
 int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 {
 	uint32_t *remap_addr = NULL;
+	int ret_val = 0;
 
 	/* TODO: */
 	remap_addr = ioremap(par2, 4);
@@ -220,9 +227,10 @@ int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 		return -1;
 	}
 
-	BTMTK_INFO("%s: 0x%08x value = [0x%08x]", __func__, par2, *remap_addr);
+	ret_val = *remap_addr;
+	BTMTK_INFO("%s: 0x%08x read value = [0x%08x]", __func__, par2, ret_val);
 	iounmap(remap_addr);
-	return 0;
+	return ret_val;
 }
 
 int bt_dbg_ap_reg_write(int par1, int par2, int par3)
@@ -237,6 +245,7 @@ int bt_dbg_ap_reg_write(int par1, int par2, int par3)
 	}
 
 	*remap_addr = par3;
+	BTMTK_INFO("%s: 0x%08x write value = [0x%08x]", __func__, par2, par3);
 	iounmap(remap_addr);
 	return 0;
 }
@@ -327,6 +336,81 @@ end:
 	g_bt_dump_buf[0] = (adie_state == 0 ? '0' : '1'); // '0': adie pass, '1': adie fail
 	g_bt_dump_buf[1] = '\0';
 	g_bt_dump_buf_len = 2;
+	return 0;
+}
+
+int bt_dbg_met_start_stop(int par1, int par2, int par3)
+{
+	uint32_t val = 0, star_addr = 0, end_addr = 0;
+	int res = 0;
+	struct conn_metlog_info info;
+	unsigned int emi_base;
+
+	BTMTK_INFO("%s, par2 = %d", __func__, par2);
+	/* reference parameter:
+		- start: 0x11 0x01 0x00
+		- stop: 0x11 0x00 0x00
+	*/
+	if (par2 == 0x01) {
+		/*
+		// Set EMI Writing Range
+		bt_dbg_ap_reg_write(0, 0x1882140C, 0xF0027000); // BGF_ON_MET_START_ADDR
+		bt_dbg_ap_reg_write(0, 0x18821410, 0xF002EFFF); // BGF_ON_MET_END_ADDR
+		*/
+
+		// Set Ring Buffer Mode
+		val = bt_dbg_ap_reg_read(0, 0x18821404, 0);
+		bt_dbg_ap_reg_write(0, 0x18821404, val | 0x0001); // BGF_ON_MET_CTL1[0] = 0x01
+
+		// Set Sampling Rate
+		val = bt_dbg_ap_reg_read(0, 0x18821400, 0);
+		bt_dbg_ap_reg_write(0, 0x18821400, (val & 0xFFFF80FF) | 0x00001900); // BGF_ON_MET_CTL0[14:8] = 0x19
+
+		// Set Mask Signal
+		//bt_dbg_ap_reg_write(0, 0x18821400, (val & 0x0000FFFF) | 0x????0000); // BGF_ON_MET_CTL0[31:16] = ?
+
+		// Enable Connsys MET
+		val = bt_dbg_ap_reg_read(0, 0x18821400, 0);
+		bt_dbg_ap_reg_write(0, 0x18821400, (val & 0xFFFFFFFC) | 0x00000003); // BGF_ON_MET_CTL0[1:0] = 0x03
+
+		/* write parameters and start MET test */
+		conninfra_get_phy_addr(&emi_base, NULL);
+		info.type = CONNDRV_TYPE_BT;
+		info.read_cr = 0x18821418;
+		info.write_cr = 0x18821414;
+
+		// FW will write the star_addr & end_addr to cooresponding CRs when bt on
+		star_addr = bt_dbg_ap_reg_read(0, 0x1882140C, 0);
+		end_addr = bt_dbg_ap_reg_read(0, 0x18821410, 0);
+		BTMTK_INFO("%s: star_addr[0x%08x], end_addr[0x%08x]", __func__, star_addr, end_addr);
+
+		if (star_addr >= 0x00400000 && star_addr <= 0x0041FFFF) {
+			// met data on sysram
+			info.met_base_ap = 0x18440000 + star_addr;
+			info.met_base_fw = star_addr;
+		} else if (star_addr >= 0xF0000000 && star_addr <= 0xF3FFFFFF){
+			// met data on emi
+			info.met_base_ap = emi_base + 0x27000;
+			info.met_base_fw = 0xF0000000 + 0x27000;
+		} else {
+			// error case
+			BTMTK_ERR("%s: get unexpected met address!!", __func__);
+			return 0;
+		}
+
+		info.met_size = end_addr - star_addr + 1;
+		info.output_len = 32;
+		res = conn_metlog_start(&info);
+		BTMTK_INFO("%s: conn_metlog_start, result = %d", __func__, res);
+	} else {
+		// stop MET test
+		res = conn_metlog_stop(CONNDRV_TYPE_BT);
+		BTMTK_INFO("%s: conn_metlog_stop, result = %d", __func__, res);
+
+		// Disable Connsys MET
+		val = bt_dbg_ap_reg_read(0, 0x18821400, 0);
+		bt_dbg_ap_reg_write(0, 0x18821400, val & 0xFFFFFFFE); // BGF_ON_MET_CTL0[0] = 0x00
+	}
 	return 0;
 }
 
