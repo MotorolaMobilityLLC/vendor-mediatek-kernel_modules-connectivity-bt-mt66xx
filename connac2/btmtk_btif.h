@@ -68,6 +68,15 @@
 #define MAX_DUMP_DATA_SIZE		(20)
 #define MAX_DUMP_QUEUE_SIZE		(100)
 
+/* sleep parameter */
+#define USLEEP_1MS_L			(1000)
+#define USLEEP_1MS_H			(1100)
+#define USLEEP_5MS_L			(5000)
+#define USLEEP_5MS_H			(5200)
+
+/* function return value*/
+#define RET_PWRON_WHOLE_CHIP_RESET	(99)
+#define RET_SWIRQ_ST_FAIL			(-98)
 
 #undef SUPPORT_BT_THREAD
 #define SUPPORT_BT_THREAD	(1)
@@ -306,6 +315,8 @@ struct btmtk_dev {
 	struct completion 	rst_comp;
 	enum bt_reset_level	rst_level;
 	u_int8_t		rst_count;
+	u_int8_t		rst_flag;
+	wait_queue_head_t	rst_onoff_waitq;
 
 	u_int8_t		do_recal;
 	enum bt_state		bt_precal_state;
@@ -359,6 +370,7 @@ struct btmtk_dev {
 	/* sempaphore to control close */
 	struct semaphore halt_sem;
 	struct semaphore internal_cmd_sem;
+	struct semaphore cmd_tout_sem;
 
 	/* blank status */
 	int32_t		blank_state;
@@ -378,11 +390,7 @@ void bt_trigger_reset(void);
 int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			     enum consys_drv_type drv,
 			     char *reason);
-
-
 void bt_bgf2ap_irq_handler(void);
-int32_t bgfsys_check_conninfra_ready(void);
-
 
 /* external functions */
 int32_t btmtk_btif_open(void);
