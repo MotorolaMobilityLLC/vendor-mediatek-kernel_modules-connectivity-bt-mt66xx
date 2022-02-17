@@ -79,7 +79,8 @@ typedef void (*BT_RX_EVENT_CB) (void);
 enum wmt_evt_result {
 	WMT_EVT_SUCCESS,
 	WMT_EVT_FAIL,
-	WMT_EVT_INVALID
+	WMT_EVT_INVALID,
+	WMT_EVT_SKIP // normal packet, not for wmt cmd
 };
 
 typedef enum wmt_pkt_dir {
