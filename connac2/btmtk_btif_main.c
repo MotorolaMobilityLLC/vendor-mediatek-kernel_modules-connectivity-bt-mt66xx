@@ -18,6 +18,7 @@
 #include <linux/notifier.h>
 #include <linux/fb.h>
 #include <linux/timer.h>
+#include <linux/suspend.h>
 
 #include "conninfra.h"
 #include "mtk_btif_exp.h"
@@ -26,7 +27,6 @@
 #include "btmtk_define.h"
 #include "btmtk_main.h"
 #include "btmtk_btif.h"
-#include "btmtk_mt66xx_reg.h"
 
 #if SUPPORT_COREDUMP
 #include "connsys_debug_utility.h"
@@ -39,9 +39,6 @@
 */
 #define LOG TRUE
 #define MTKBT_BTIF_NAME			"mtkbt_btif"
-
-
-#define BTIF_TX_RTY_DLY			(5) /*ms*/
 #define BTIF_OWNER_NAME 		"CONSYS_BT"
 
 #define LPCR_POLLING_RTY_LMT		4096 /* 16*n */
@@ -163,7 +160,6 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 {
 	struct fb_event *evdata = data;
 	int32_t blank = 0;
-	int32_t val = 0;
 
 	if ((event != FB_EVENT_BLANK))
 		return 0;
@@ -173,11 +169,6 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 	case FB_BLANK_UNBLANK:
 	case FB_BLANK_POWERDOWN:
 		if(g_bdev->bt_state == FUNC_ON) {
-			if (conninfra_reg_readable()) {
-				val = REG_READL(CON_REG_SPM_BASE_ADDR + 0x26C);
-				BTMTK_INFO("%s: HOST_MAILBOX_BT_ADDR[0x1806026C] read[0x%08x]", __func__, val);
-			}
-
 			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, g_bdev->blank_state, blank);
 			g_bdev->blank_state = blank;
 			btmtk_send_blank_status_cmd(g_bdev->hdev, blank);
@@ -211,6 +202,47 @@ static int btmtk_fb_notify_register(void)
 static void btmtk_fb_notify_unregister(void)
 {
 	fb_unregister_client(&bt_fb_notifier);
+}
+
+static struct notifier_block bt_pm_notifier;
+static int btmtk_pm_notifier_callback(struct notifier_block *nb,
+		unsigned long event, void *dummy)
+{
+	BTMTK_INFO("%s: bt_state[%d], event[%ld], conninfra_reg_readable[%d]",
+			__func__, g_bdev->bt_state, event, conninfra_reg_readable());
+
+	switch (event) {
+		case PM_SUSPEND_PREPARE:
+		case PM_POST_SUSPEND:
+			if(g_bdev->bt_state == FUNC_ON) {
+				bt_dump_bgfsys_suspend_wakeup_debug();
+				bt_dump_bgfsys_top_common_flag();
+			}
+			break;
+		default:
+			break;
+	}
+	return 0;
+}
+
+static int btmtk_pm_notify_register(void)
+{
+	int32_t ret;
+
+	bt_pm_notifier.notifier_call = btmtk_pm_notifier_callback;
+
+	ret = register_pm_notifier(&bt_pm_notifier);
+	if (ret)
+		BTMTK_ERR("Register bt_pm_notifier failed:%d\n", ret);
+	else
+		BTMTK_DBG("Register bt_pm_notifier succeed\n");
+
+	return ret;
+}
+
+static void btmtk_pm_notify_unregister(void)
+{
+	unregister_pm_notifier(&bt_pm_notifier);
 }
 
 /* btmtk_cif_dump_fw_no_rsp
@@ -276,6 +308,21 @@ void btmtk_cif_dump_btif_tx_no_rsp(void)
 		mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_BTIF_IRQ);
 	}
 }
+
+/*
+Sample Code to get time diff:
+
+	struct timeval time_cur, time_pre;
+	unsigned long time_ms_val;
+	do_gettimeofday(&time_pre);
+
+	...do the task you want to calculate time diff...
+
+	do_gettimeofday(&time_cur);
+	time_ms_val = (time_cur.tv_sec - time_pre.tv_sec) * 1000;
+	time_ms_val += ((time_cur.tv_usec - time_pre.tv_usec) / 1000);
+	BTMTK_DBG("time_ms_val[%ld]", time_ms_val);
+*/
 
 /* btmtk_cif_fw_own_clr()
  *
@@ -419,6 +466,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	}
 
 	g_bdev->rst_level = rst_level;
+	g_bdev->rst_flag = TRUE;
 
 	if (is_1st_reset) {
 		/*
@@ -442,12 +490,11 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 #if SUPPORT_COREDUMP
 		/* 4. Do coredump, only do this while BT is on */
 		down(&g_bdev->halt_sem);
-		if (g_bdev->bt_state == FUNC_ON) {
+		if (g_bdev->bt_state != RESET_START && g_bdev->bt_state != FUNC_OFF) {
 			bt_dump_bgfsys_debug_cr();
 			connsys_coredump_start(g_bdev->coredump_handle, dump_property, drv, reason);
 		} else
-			BTMTK_WARN("BT is not at on state, skip coredump: [%d]",
-					g_bdev->bt_state);
+			BTMTK_WARN("BT state [%d], skip coredump", g_bdev->bt_state);
 		up(&g_bdev->halt_sem);
 #endif
 	}
@@ -471,6 +518,10 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			BTMTK_ERR("uanble to remap dump msg addr");
 		}
 	}
+
+	/* set flag for reset during bt on/off */
+	g_bdev->rst_flag = FALSE;
+	wake_up_interruptible(&g_bdev->rst_onoff_waitq);
 
 	/* directly return if following cases
 	 * 1. BT is already off
@@ -649,6 +700,12 @@ static int32_t bt_query_thermal(void)
 	return thermal;
 }
 
+void btmtk_time_change_notify(void)
+{
+	if(g_bdev->bt_state == FUNC_ON)
+		btmtk_send_utc_sync_cmd();
+}
+
 /* sub_drv_ops_cb
  *
  *    All callbacks needs by conninfra driver, 3 types of callback functions
@@ -664,6 +721,7 @@ static struct sub_drv_ops_cb bt_drv_cbs =
 	.pre_cal_cb.pwr_on_cb = bt_do_pre_power_on,
 	.pre_cal_cb.do_cal_cb = bt_do_calibration,
 	.thermal_qry = bt_query_thermal,
+	.time_change_notify = btmtk_time_change_notify,
 };
 
 /* bt_receive_data_cb
@@ -712,18 +770,18 @@ static void btmtk_btif_enter_deep_idle(struct work_struct *pwork)
 	struct btif_deepidle_ctrl *idle_ctrl = &g_bdev->btif_dpidle_ctrl;
 
 	down(&idle_ctrl->sem);
-	BTMTK_DBG("%s idle = [%d]", __func__, idle_ctrl->is_dpidle);
+	BTMTK_DBG("[DP_IDLE] idle = %d", idle_ctrl->is_dpidle);
 	if (idle_ctrl->is_dpidle) {
 		ret = mtk_wcn_btif_dpidle_ctrl(g_btif_id, BTIF_DPIDLE_ENABLE);
 		bt_release_wake_lock(&g_bdev->psm.wake_lock);
 		idle_ctrl->is_dpidle = (ret) ? FALSE : TRUE;
 
 		if (ret)
-			BTMTK_ERR("BTIF enter dpidle failed(%d)", ret);
+			BTMTK_ERR("[DP_IDLE] BTIF enter dpidle failed(%d)", ret);
 		else
-			BTMTK_DBG("BTIF enter dpidle succeed");
+			BTMTK_DBG("[DP_IDLE] BTIF enter dpidle success");
 	} else
-		BTMTK_DBG("Deep idle is set to false, skip this time");
+		BTMTK_DBG("[DP_IDLE] idle is set to false, skip this time");
 	up(&idle_ctrl->sem);
 }
 #endif
@@ -846,12 +904,12 @@ static int32_t btmtk_btif_dpidle_ctrl(u_int8_t enable)
 	down(&idle_ctrl->sem);
 
 	if (!g_btif_id) {
-		BTMTK_ERR("NULL BTIF ID reference!");
+		BTMTK_ERR("[DP_IDLE] NULL BTIF ID reference!");
 		return -1;
 	}
 
 	if(idle_ctrl->task != NULL) {
-		BTMTK_DBG("%s enable = %d", __func__, enable);
+		BTMTK_DBG("[DP_IDLE] enable = %d", enable);
 		/* 1. Remove active timer, and remove a unschedule timer does no harm */
 		cancel_delayed_work(&idle_ctrl->work);
 
@@ -863,18 +921,18 @@ static int32_t btmtk_btif_dpidle_ctrl(u_int8_t enable)
 			idle_ctrl->is_dpidle = (ret) ? TRUE : FALSE;
 
 			if (ret)
-				BTMTK_ERR("BTIF exit dpidle failed(%d)", ret);
+				BTMTK_ERR("[DP_IDLE] BTIF exit dpidle failed(%d)", ret);
 			else
-				BTMTK_DBG("BTIF exit dpidle succeed");
+				BTMTK_DBG("[DP_IDLE] BTIF exit dpidle success");
 		} else {
-			BTMTK_DBG("create timer for enable deep idle");
+			BTMTK_DBG("[DP_IDLE] create timer for enable deep idle");
 			idle_ctrl->is_dpidle = TRUE;
 			/* enable deep idle, schedule a timer */
 			queue_delayed_work(idle_ctrl->task, &idle_ctrl->work,
 						(BTIF_IDLE_WAIT_TIME * HZ) >> 10);
 		}
 	} else {
-		BTMTK_INFO("idle_ctrl->task already cancelled!");
+		BTMTK_INFO("[DP_IDLE] idle_ctrl->task already cancelled!");
 	}
 
 	up(&idle_ctrl->sem);
@@ -927,15 +985,17 @@ static int btmtk_btif_probe(struct platform_device *pdev)
 	sema_init(&g_bdev->halt_sem, 1);
 	sema_init(&g_bdev->internal_cmd_sem, 1);
 	sema_init(&g_bdev->btif_dpidle_ctrl.sem, 1);
+	sema_init(&g_bdev->cmd_tout_sem, 1);
 
 #if SUPPORT_COREDUMP
 	/* 7. Init coredump */
 	g_bdev->coredump_handle = connsys_coredump_init(CONN_DEBUG_TYPE_BT, &bt_coredump_cb);
 #endif
 
-	/* 8. Register screen on/off notify callback */
+	/* 8. Register screen on/off & suspend/wakup notify callback */
 	g_bdev->blank_state = FB_BLANK_UNBLANK;
 	btmtk_fb_notify_register();
+	btmtk_pm_notify_register();
 
 	/* Finally register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
@@ -959,7 +1019,9 @@ static int btmtk_btif_remove(struct platform_device *pdev)
 {
 	conninfra_sub_drv_ops_unregister(CONNDRV_TYPE_BT);
 
+	/* Unregister screen on/off & suspend/wakup notify callback */
 	btmtk_fb_notify_unregister();
+	btmtk_pm_notify_unregister();
 
 	fw_log_bt_exit();
 
@@ -1096,7 +1158,7 @@ int32_t btmtk_cif_send_cmd(struct hci_dev *hdev, const uint8_t *cmd,
 
 	while (tx_len > 0 && retry < retry_limit) {
 		if (retry++ > 0)
-			msleep(BTIF_TX_RTY_DLY);
+			usleep_range(USLEEP_5MS_L, USLEEP_5MS_H);
 
 		ret = mtk_wcn_btif_write(g_btif_id, cmd, tx_len);
 		if (ret < 0) {
@@ -1297,17 +1359,21 @@ int32_t btmtk_tx_thread(void * arg)
 {
 	struct btmtk_dev *bdev = (struct btmtk_dev *)arg;
 	struct bt_psm_ctrl *psm = &bdev->psm;
-	int32_t sleep_ret = 0, wakeup_ret = 0, ret;
+	int32_t sleep_ret = 0, wakeup_ret = 0, ret, ii;
 	struct sk_buff *skb;
-	int skb_len, btif_pending_data;
+	int skb_len;
+	char state_tag[20] = "";
 
-	BTMTK_INFO("btmtk_tx_thread start running...");
+	BTMTK_INFO("%s start running...", __func__);
 	do {
-		BTMTK_DBG("entering  wait_event_interruptible");
+		strncpy(state_tag, (psm->state == PSM_ST_SLEEP ? "[ST_SLEEP]" : "[ST_NORMAL]"), 15);
+		BTMTK_DBG("%s -- wait_event_interruptible", state_tag);
+
 		wait_event_interruptible(bdev->tx_waitq, bt_tx_wait_for_msg(bdev));
-		BTMTK_DBG("btmtk_tx_thread wakeup");
+		BTMTK_DBG("%s -- wakeup", state_tag);
+
 		if (kthread_should_stop()) {
-			BTMTK_INFO("btmtk_tx_thread should stop now...");
+			BTMTK_INFO("%s %s should stop now...", state_tag, __func__);
 			if (psm->state == PSM_ST_NORMAL_TR)
 				bt_release_wake_lock(&psm->wake_lock);
 			break;
@@ -1352,10 +1418,10 @@ int32_t btmtk_tx_thread(void * arg)
 				 * resetting b/w subsys reset & whole chip reset
 				 */
 				if (bdev->bt_state == FUNC_ON) {
-					BTMTK_ERR("(PSM_ST_SLEEP) FATAL: btmtk_cif_fw_own_clr error!! going to reset");
+					BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_clr error!! going to reset", state_tag);
 					bt_trigger_reset();
 				} else
-					BTMTK_WARN("(PSM_ST_SLEEP) bt_state [%d] is not FUNC_ON, skip reset", bdev->bt_state);
+					BTMTK_WARN("%s bt_state[%d] is not FUNC_ON, skip reset", state_tag, bdev->bt_state);
 				break;
 			} else {
 				/* BGFSYS is awake and ready for data transmission */
@@ -1371,7 +1437,7 @@ int32_t btmtk_tx_thread(void * arg)
 			}
 
 			if (bdev->rx_ind) {
-				BTMTK_DBG("wakeup by BTIF_WAKEUP_IRQ");
+				BTMTK_DBG("%s wakeup by BTIF_WAKEUP_IRQ", state_tag);
 				/* Just reset the flag, F/W will send data to host after FW own clear */
 				bdev->rx_ind = FALSE;
 			}
@@ -1402,7 +1468,7 @@ int32_t btmtk_tx_thread(void * arg)
 				if (skb_len >= 3 && skb->data[0] == 0x01 && skb->data[1] == 0x1B &&
 					skb->data[2] == 0xFD ) {
 					kfree_skb(skb);
-					BTMTK_INFO("enable check command timeout");
+					BTMTK_INFO("%s enable check command timeout function", state_tag);
 					bdev->cmd_timeout_check = TRUE;
 					continue;
 				}
@@ -1410,12 +1476,12 @@ int32_t btmtk_tx_thread(void * arg)
 				ret = btmtk_cif_send_cmd(bdev->hdev, skb->data, skb->len, 5, 0, 0);
 				kfree_skb(skb);
 				if ((ret < 0) || (ret != skb_len)) {
-					BTMTK_ERR("FATAL: TX packet error!! (%u/%d)", skb_len, ret);
+					BTMTK_ERR("%s FATAL: TX packet error!! (%u/%d)", state_tag, skb_len, ret);
 					break;
 				}
 
 				if (psm->sleep_flag) {
-					BTMTK_DBG("more data to send and wait for event, ignore sleep");
+					BTMTK_DBG("%s more data to send and wait for event, ignore sleep", state_tag);
 					psm->sleep_flag = FALSE;
 				}
 			}
@@ -1435,21 +1501,24 @@ int32_t btmtk_tx_thread(void * arg)
 			 */
 			if (bdev->bt_state == FUNC_ON && cmd_list_isempty() &&
 			   psm->sleep_flag && !psm->force_on) {
+
+				// wait if btif tx is not finish yet
+				for (ii = 0; ii < 5; ii++) {
+					if (mtk_btif_is_tx_complete(g_btif_id) > 0)
+						break;
+					else
+						usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
+					if (ii == 4)
+						BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
+				}
+
 				sleep_ret = btmtk_cif_fw_own_set();
-
-				// todo: analyze btif_pending_data problem and add back to sleep condition check
-				if(g_btif_id)
-					btif_pending_data = mtk_btif_exp_rx_has_pending_data(g_btif_id);
-				else
-					btif_pending_data = FALSE;
-				BTMTK_DBG("%s: btif_pending_data[%d]", __func__, btif_pending_data);
-
 				if (sleep_ret) {
 					if (bdev->bt_state == FUNC_ON) {
-						BTMTK_ERR("(PSM_ST_NORMAL_TR) FATAL: btmtk_cif_fw_own_set error!! going to reset");
+						BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_set error!! going to reset", state_tag);
 						bt_trigger_reset();
 					} else
-						BTMTK_WARN("(PSM_ST_NORMAL_TR) bt_state [%d] is not FUNC_ON, skip reset", bdev->bt_state);
+						BTMTK_WARN("%s bt_state [%d] is not FUNC_ON, skip reset", state_tag, bdev->bt_state);
 					break;
 				} else {
 					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
