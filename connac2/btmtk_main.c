@@ -278,7 +278,7 @@ int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count)
 	struct sk_buff *skb = NULL;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 
-	skb = alloc_skb(count + BT_SKB_RESERVE, GFP_ATOMIC);
+	skb = alloc_skb(count + BT_SKB_RESERVE, GFP_KERNEL);
 	if (skb == NULL) {
 		BTMTK_ERR("%s allocate skb failed!!", __func__);
 		return -1;
