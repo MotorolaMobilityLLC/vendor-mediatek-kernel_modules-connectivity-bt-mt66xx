@@ -38,6 +38,7 @@ unsigned long long irq_timer[12] = {0};
 extern struct btmtk_dev *g_sbdev;
 static struct bt_irq_ctrl bgf2ap_btif_wakeup_irq = {.name = "BTIF_WAKEUP_IRQ"};
 static struct bt_irq_ctrl bgf2ap_sw_irq = {.name = "BGF_SW_IRQ"};
+static struct bt_irq_ctrl bt_conn2ap_sw_irq = {.name = "BUS_SW_IRQ"};
 static struct bt_irq_ctrl *bt_irq_table[BGF2AP_IRQ_MAX];
 static struct work_struct rst_trigger_work;
 
@@ -149,7 +150,30 @@ void bt_bgf2ap_irq_handler(void)
 	}
 }
 
+/* bt_conn2ap_irq_handler
+ *
+ *    Handling BT_CONN2AP_SW_IRQ, include BGF bus hang. And dump SSPM TIMER
+ *    Please be noticed this handler is running in bt thread
+ *    not interrupt thread
+ *
+ * Arguments:
+ *    N/A
+ *
+ * Return Value:
+ *    N/A
+ *
+ */
+void bt_conn2ap_irq_handler(void)
+{
+	uint32_t value = 0;
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	cif_dev->bt_conn2ap_ind = FALSE;
+	value = bt_read_cr(BT_SSPM_TIMER);
+	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
+	bt_trigger_reset();
+	bt_enable_irq(BT_CONN2AP_SW_IRQ);
 
+}
 /* btmtk_reset_init()
  *
  *    Inint work thread for subsys chip reset
@@ -223,6 +247,11 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		}
 #endif
 		return IRQ_HANDLED;
+	} else if (irq == bt_conn2ap_sw_irq.irq_num) {
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+		cif_dev->bt_conn2ap_ind = TRUE;
+		wake_up_interruptible(&cif_dev->tx_waitq);
+		return IRQ_HANDLED;
 	}
 	return IRQ_NONE;
 }
@@ -269,6 +298,17 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 			BTMTK_ERR("WIFI-OF: get bt device node fail");
 		irq_flags = IRQF_TRIGGER_HIGH | IRQF_SHARED;
 		pirq = &bgf2ap_sw_irq;
+		break;
+	case BT_CONN2AP_SW_IRQ:
+		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
+		if (node) {
+			irq_num = irq_of_parse_and_map(node, 2);
+			BTMTK_INFO("irqNum of BT_CONN2AP_SW_IRQ = %d", irq_num);
+		}
+		else
+			BTMTK_ERR("WIFI-OF: get bt device node fail");
+		irq_flags = IRQF_TRIGGER_HIGH | IRQF_SHARED;
+		pirq = &bt_conn2ap_sw_irq;
 		break;
 	default:
 		BTMTK_ERR("Invalid irq_type %d!", irq_type);
