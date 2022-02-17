@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */  
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
@@ -9,7 +9,16 @@
 #include "conninfra.h"
 
 #define BT_CR_DUMP_BUF_SIZE	(1024)
+#define FW_NAME_LEN		(64)
+#define PATCH_FILE_NUM		2
+
 static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
+#if (CUSTOMER_FW_UPDATE == 1)
+extern uint8_t g_fwp_names[PATCH_FILE_NUM][2[FW_NAME_LEN];
+#else
+extern uint8_t g_fwp_names[PATCH_FILE_NUM][1][FW_NAME_LEN];
+#endif
+
 
 /*******************************************************************************
 *                                 M A C R O S
