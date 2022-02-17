@@ -666,25 +666,28 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 
 static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 {
-	#define CR_CNT	7
 	uint32_t value = 0;
-	uint32_t i = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	int32_t CR_ADDR[CR_CNT] = {0x22C, 0x268, 0x26C, 0x2E0, 0x2E4, 0x2E8, 0x2EC};
-	uint8_t *CR_NAME[CR_CNT] = {"BGF_MCU_PC_DBG", "N9_MCU_MAILBOX_DBG", "HOST_MAILBOX_BT_ADDR", "CR", "CR", "CR", "CR"};
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
-	for (i = 0; i < CR_CNT; i++) {
-		value = REG_READL(CON_REG_SPM_BASE_ADDR + CR_ADDR[i]);
-		ret = snprintf(pos, (end - pos + 1), "%s[0x%08x] read[0x%08x], ", CR_NAME[i], 0x18060000 + CR_ADDR[i], value);
-		if (ret < 0 || ret >= (end - pos + 1))
-			break;
-		pos += ret;
-	}
+	BTMTK_INFO("[BGF dump suspend/wakeup Count = (3)");
+
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x790);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x790, value);
+	pos += ret;
+
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x794);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x794, value);
+	pos += ret;
+
+	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300508);
+	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
+	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
+
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
 
