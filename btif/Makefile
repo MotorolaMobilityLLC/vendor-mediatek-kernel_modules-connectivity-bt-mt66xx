@@ -27,6 +27,15 @@ ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
   BT_PLATFORM = $(patsubst MTK_CONSYS_MT%,%,$(strip $(_MTK_BT_CHIP)))
 endif
 
+
+$(info $(LOG_TAG) TARGET_BUILD_VARIANT = $(TARGET_BUILD_VARIANT))
+ifeq ("$(TARGET_BUILD_VARIANT)","user")
+    ccflags-y += -D FW_LOG_DEFAULT_ON=0
+else
+    ccflags-y += -D FW_LOG_DEFAULT_ON=1
+endif
+
+
 ccflags-y += -D CONNAC20_CHIPID=$(BT_PLATFORM)
 $(info $(LOG_TAG) BT_PLATFORM = $(BT_PLATFORM))
 $(info $(LOG_TAG) srctree = $(srctree))
