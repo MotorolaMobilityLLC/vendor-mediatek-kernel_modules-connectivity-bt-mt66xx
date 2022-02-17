@@ -1,11 +1,10 @@
-ifeq ($(MTK_BT_SUPPORT), yes)
-ifeq ($(filter MTK_MT76%, $(MTK_BT_CHIP)),)
-$(info MTK_BT_CHIP=$(MTK_BT_CHIP))
 
-ifeq ($(MTK_BT_CHIP), $(filter $(MTK_BT_CHIP), MTK_CONSYS_MT6885 MTK_CONSYS_MT6893 MTK_CONSYS_MT6877))
-	include $(call all-subdir-makefiles, connac2)
-else
-	include $(call all-subdir-makefiles, legacy)
-endif
-endif
+BT_PLATFORM=$(subst MTK_CONSYS_MT,,$(MTK_BT_CHIP))
+$(info [BT_Drv] MTK_BT_CHIP=$(MTK_BT_CHIP))
+$(info [BT_Drv] BT_PLATFORM=$(BT_PLATFORM))
+
+ifeq ($(BT_PLATFORM), $(filter $(BT_PLATFORM), 6885 6893 6877))
+  include $(call all-named-subdir-makefiles, btif)
+else 
+  include $(call all-named-subdir-makefiles, wmt)
 endif
