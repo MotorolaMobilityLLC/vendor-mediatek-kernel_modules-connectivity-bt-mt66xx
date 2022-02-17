@@ -74,8 +74,9 @@ static int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3);
 static int bt_dbg_fpga_test(int par1, int par2, int par3);
 static int bt_dbg_is_adie_work(int par1, int par2, int par3);
 static int bt_dbg_met_start_stop(int par1, int par2, int par3);
+static int bt_dbg_DynamicAdjustTxPower(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
-static void bt_dbg_user_trx_cb(char *buf, int len);
+static int bt_dbg_user_trx_cb(uint8_t *buf, int len);
 
 extern int32_t btmtk_set_wakeup(struct hci_dev *hdev, uint8_t need_wait);
 extern int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait);
@@ -119,6 +120,7 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0x11] = {bt_dbg_fpga_test,			TRUE},
 	[0x12] = {bt_dbg_is_adie_work,		TRUE},
 	[0x13] = {bt_dbg_met_start_stop,	FALSE},
+	[0x14] = {bt_dbg_DynamicAdjustTxPower,		FALSE},
 };
 
 /*******************************************************************************
@@ -275,7 +277,7 @@ int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3)
 
 	/* reference parameter:
 		- normal: 0x10 0x01(SCHED_FIFO) 0x01
-		- normal: 0x10 0x01(SCHED_FIFO) 0x50(MAX_RT_PRIO - 20)
+		- rt_thd: 0x10 0x01(SCHED_FIFO) 0x50(MAX_RT_PRIO - 20)
 	*/
 	if (par2 > SCHED_DEADLINE || par3 > MAX_RT_PRIO) {
 		BTMTK_INFO("%s: parameter not allow!", __func__);
@@ -292,8 +294,8 @@ int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3)
 int bt_dbg_fpga_test(int par1, int par2, int par3)
 {
 	/* reference parameter:
-		- normal: 0x12 0x01(power on) 0x00
-		- normal: 0x12 0x02(power off) 0x00
+		- 0x12 0x01(power on) 0x00
+		- 0x12 0x02(power off) 0x00
 	*/
 	BTMTK_INFO("%s: par2 = %d", __func__, par2);
 	switch (par2) {
@@ -414,6 +416,27 @@ int bt_dbg_met_start_stop(int par1, int par2, int par3)
 	return 0;
 }
 
+int bt_dbg_DynamicAdjustTxPower_cb(uint8_t *buf, int len)
+{
+	BTMTK_INFO("%s", __func__);
+	bt_dbg_user_trx_cb(buf, len);
+	return 0;
+}
+
+int bt_dbg_DynamicAdjustTxPower(int par1, int par2, int par3)
+{
+	uint8_t mode = (uint8_t)par2;
+	int8_t set_val = (int8_t)par3;
+
+	/* reference parameter:
+		- query: 0x14 0x01(query) 0x00
+		- set:   0x14 0x02(set)   0x??(set_dbm_val)
+	*/
+	BTMTK_INFO("%s", __func__);
+	btmtk_inttrx_DynamicAdjustTxPower(mode, set_val, bt_dbg_DynamicAdjustTxPower_cb);
+	return 0;
+}
+
 /*
 sample code to use gpio
 int bt_dbg_device_is_evb(int par1, int par2, int par3)
@@ -531,7 +554,7 @@ ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 	int ret = 0;
 	int dump_len;
 
-	BTMTK_INFO("%s: count[%zd]\n", __func__, count);
+	BTMTK_INFO("%s: count[%zd]", __func__, count);
 	ret = mutex_lock_killable(&g_bt_lock);
 	if (ret) {
 		BTMTK_ERR("%s: dump_lock fail!!", __func__);
@@ -572,26 +595,16 @@ int bt_osal_strtol(const char *str, unsigned int adecimal, long *res)
 		return kstrtol(str, adecimal, res);
 }
 
-void bt_dbg_user_trx_cb(char *buf, int len)
+int bt_dbg_user_trx_cb(uint8_t *buf, int len)
 {
 	unsigned char *ptr = buf;
 	int i = 0;
-
-	// if this event is not the desire one, skip and reset buffer
-	if((buf[3] + (buf[4] << 8)) != g_bt_dbg_st.trx_opcode)
-		return;
-
-	// desire rx event is received, write to read buffer as string
-	BTMTK_INFO_RAW(buf, len, "%s: len[%d], RxEvt: ", __func__, len);
-	if((len + 1)*5 + 2 > BT_DBG_DUMP_BUF_SIZE)
-		return;
 
 	_bt_dbg_reset_dump_buf();
 	// write event packet type
 	if (snprintf(g_bt_dump_buf, 6, "0x04 ") < 0) {
 		BTMTK_INFO("%s: snprintf error", __func__);
 		goto end;
-
 	}
 	for (i = 0; i < len; i++) {
 		if (snprintf(g_bt_dump_buf + 5*(i+1), 6, "0x%02X ", ptr[i]) < 0) {
@@ -605,8 +618,7 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 	g_bt_dump_buf_len = 5*len + 1;
 
 end:
-	// complete trx process
-	complete(&g_bt_dbg_st.trx_comp);
+	return 0;
 }
 
 void bt_dbg_user_trx_proc(char *cmd_raw)
@@ -632,15 +644,10 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 			hci_cmd[len++] = (unsigned char)tmp;
 		}
 	}
-	BTMTK_INFO_RAW(hci_cmd, len, "%s: len[%d], TxCmd: ", __func__, len);
 
 	// Send command and wait for command_complete event
-	g_bt_dbg_st.trx_opcode = hci_cmd[1] + (hci_cmd[2] << 8);
-	g_bt_dbg_st.trx_enable = TRUE;
-	btmtk_send_data(g_sbdev->hdev, hci_cmd, len);
-	if (!wait_for_completion_timeout(&g_bt_dbg_st.trx_comp, msecs_to_jiffies(2000)))
-		BTMTK_ERR("%s: wait event timeout!", __func__);
-	g_bt_dbg_st.trx_enable = FALSE;
+	btmtk_btif_start_inttrx(hci_cmd, len, bt_dbg_user_trx_cb, TRUE);
+	btmtk_btif_complete_inttrx();
 }
 
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
@@ -766,10 +773,7 @@ int bt_dev_dbg_init(void)
 
 	// initialize debug function struct
 	g_bt_dbg_st.rt_thd_enable = FALSE;
-	g_bt_dbg_st.trx_enable = FALSE;
-	g_bt_dbg_st.trx_cb = bt_dbg_user_trx_cb;
 	g_bt_dbg_st.rx_buf_ctrl = TRUE;
-	init_completion(&g_bt_dbg_st.trx_comp);
 
 	g_bt_dbg_entry = proc_create(BT_DBG_PROCNAME, 0664, NULL, &bt_dbg_fops);
 	if (g_bt_dbg_entry == NULL) {
