@@ -415,7 +415,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	uint32_t i = 0, count = 0, cr_count = 43;	/* 47-4, cuz skip 4*/
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint8_t *base = NULL;
 
 	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
 	if (base == NULL) {
@@ -459,7 +459,7 @@ static void inline bt_dump_bgf_mcu_dma_flag(void)
 	uint32_t i = 0, count = 0, cr_count = 8;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint8_t *base = NULL;
 
 	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
 	if (base == NULL) {
@@ -501,7 +501,7 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	uint32_t i = 0, count = 0, cr_count = 10;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint8_t *base = NULL;
 
 	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
 	if (base == NULL) {
@@ -589,7 +589,7 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	uint32_t i = 0, count = 0, cr_count = 38;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint8_t *base = NULL;
 
 	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
 	if (base == NULL) {
@@ -631,7 +631,7 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 	uint32_t i = 0, count = 0, cr_count = 85;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	uint32_t *base = NULL;
+	uint8_t *base = NULL;
 
 	base = ioremap(BGF_DRIVER_DUMP_BASE + 0xA00, 0x10);
 	if (base == NULL) {
