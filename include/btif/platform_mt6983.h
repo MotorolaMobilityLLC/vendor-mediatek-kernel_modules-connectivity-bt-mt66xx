@@ -204,6 +204,7 @@
  */
 static inline void bgfsys_ccif_on(void)
 {
+#if 0
 	uint8_t *ccif_base = ioremap(0x10003200, 0x100);
 
 	if (ccif_base == NULL) {
@@ -214,6 +215,7 @@ static inline void bgfsys_ccif_on(void)
 	/* CONSYS_BGF_PWR_ON, 0x10003204[31:0] = 32'b0 */
 	*(ccif_base + 0x04) = 0x0;
 	iounmap(ccif_base);
+#endif
 }
 
 /* bgfsys_ccif_off
@@ -232,6 +234,7 @@ static inline void bgfsys_ccif_on(void)
  */
 static inline void bgfsys_ccif_off(void)
 {
+#if 0
 	uint8_t *ccif_base = NULL, *bgf2md_base = NULL;
 
 	ccif_base = ioremap(0x10003200, 0x100);
@@ -253,6 +256,7 @@ static inline void bgfsys_ccif_off(void)
 	/* set PCCIF5 RX ACK, 0x1025C014[0:7] = 8'b1 */
 	REG_WRITEL(bgf2md_base + 0x14, 0xFF);
 	iounmap(bgf2md_base);
+#endif
 }
 
 /* bgfsys_check_conninfra_ready
@@ -296,8 +300,16 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	}
 
 	iounmap(conninfra_cfg_version_base);
-	hang_ret = conninfra_is_bus_hang();
-	BTMTK_ERR("Conninfra is not readable, hang ret=%d", hang_ret);
+	/* Check conninfra bus */
+	if (!conninfra_reg_readable()) {
+		hang_ret = conninfra_is_bus_hang();
+		if (hang_ret > 0) {
+			BTMTK_ERR("conninfra bus is hang, needs reset");
+			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+		}
+		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+	}
+
 	return -1;
 }
 
@@ -776,29 +788,10 @@ host_csr_only:
 
 static inline int32_t bgfsys_get_sw_irq_status(void)
 {
-	int32_t value = 0, i = 0, ret = 0;
+	int32_t value = 0;
 
 	/* wake up conn_infra off */
-	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
-	/* polling conninfra version id */
-	for (i = 0; i < 5; i++) {
-		value = REG_READL(CONN_INFRA_CFG_VERSION);
-		if (value == CONN_INFRA_CFG_ID)
-			break;
-		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
-	}
-
-	/* Check conninfra bus */
-	if (!conninfra_reg_readable()) {
-		ret = conninfra_is_bus_hang();
-		if (ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
-			return RET_SWIRQ_ST_FAIL;
-		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
-	}
+	bgfsys_check_conninfra_ready();
 
 	/* Check bgf bus status */
 	if (bt_is_bgf_bus_timeout()) {
@@ -1328,8 +1321,8 @@ static inline int32_t bgfsys_power_off(void)
 
 static inline void fwp_get_patch_names(void)
 {
-	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", _BIN_NAME_MCU);
-	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", _BIN_NAME_BT);
+	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU);
+	snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT);
 
 #if (CUSTOMER_FW_UPDATE == 1)
 	snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU_U);
