@@ -211,7 +211,7 @@ static inline void bgfsys_ccif_on(void)
 	}
 
 	/* CONSYS_BGF_PWR_ON, 0x10001BF0[31:24] = 8'b1 */
-	SET_BIT(ccif_base, BITS(24, 31));
+	REG_WRITEL(ccif_base, BITS(24, 31));
 	iounmap(ccif_base);
 }
 
@@ -240,7 +240,7 @@ static inline void bgfsys_ccif_off(void)
 	}
 
 	/* CONSYS_BGF_PWR_ON, 0x10001BF0[31:24] = 8'b1 */
-	SET_BIT(ccif_base, BITS(24, 31));
+	REG_WRITEL(ccif_base, BITS(24, 31));
 	iounmap(ccif_base);
 
 	bgf2md_base = ioremap(0x1025C000, 0x100);
