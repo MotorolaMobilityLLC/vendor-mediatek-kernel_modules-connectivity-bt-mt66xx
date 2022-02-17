@@ -282,6 +282,8 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	/* wake up conn_infra off */
 	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
+	/* wait 200 us to avoid fake ready */
+	udelay(200);
 
 	/* polling conninfra version id */
 	for (i = 0; i < retry; i++) {
