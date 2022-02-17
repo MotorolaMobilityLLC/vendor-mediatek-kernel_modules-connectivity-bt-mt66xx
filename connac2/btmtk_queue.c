@@ -393,7 +393,7 @@ void cmd_workqueue_exit(void)
 
 
 const char* direction_tostring (enum bt_direction_type direction_type) {
-	char *type[] = { "NONE", "TX", "RX"};
+	char *type[] = {"NONE", "TX", "RX"};
 	return type[direction_type];
 }
 

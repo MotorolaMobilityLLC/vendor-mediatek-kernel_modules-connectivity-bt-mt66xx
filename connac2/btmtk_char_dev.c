@@ -88,7 +88,8 @@ static int32_t ftrace_print(const uint8_t *str, ...)
 
 	if (bt_ftrace_flag) {
 		va_start(args, str);
-		vsnprintf(temp_string, FTRACE_STR_LOG_SIZE, str, args);
+		if (vsnprintf(temp_string, FTRACE_STR_LOG_SIZE, str, args) < 0)
+			BTMTK_INFO("%s: vsnprintf error", __func__);
 		va_end(args);
 		trace_printk("%s\n", temp_string);
 	}
