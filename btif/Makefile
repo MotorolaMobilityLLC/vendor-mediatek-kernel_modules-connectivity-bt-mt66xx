@@ -71,7 +71,7 @@ ccflags-y += -I$(src)/../include/btif
 MODULE_NAME := bt_drv_$(BT_PLATFORM)
 obj-m += $(MODULE_NAME).o
 
-CORE_OBJS := btmtk_dbg.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
+CORE_OBJS := btmtk_dbg.o btmtk_dbg_tp_evt_if.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
 CHIP_OBJS := btmtk_mt66xx.o
 HIF_OBJS := btmtk_btif_main.o btmtk_queue.o
 
