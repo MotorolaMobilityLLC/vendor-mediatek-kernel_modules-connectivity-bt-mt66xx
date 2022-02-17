@@ -13,5 +13,8 @@ LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(shell find $(LOCAL_PATH) -type
 LOCAL_REQUIRED_MODULES := conninfra.ko
 
 include $(MTK_KERNEL_MODULE)
+
+BT_OPTS += CFG_BT_PM_QOS_CONTROL=y
+$(linked_module): OPTS += $(BT_OPTS)
 endif
 endif
