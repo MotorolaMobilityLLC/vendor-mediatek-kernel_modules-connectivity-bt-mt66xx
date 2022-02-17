@@ -690,7 +690,7 @@ error_reset:
 		g_bdev->rst_count++;
 		schedule_work(&rst_trigger_work);
 	} else
-		trigger_whole_chip_rst(CONNDRV_TYPE_BT, "subsys reset fail");
+		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "subsys reset fail");
 
 }
 
