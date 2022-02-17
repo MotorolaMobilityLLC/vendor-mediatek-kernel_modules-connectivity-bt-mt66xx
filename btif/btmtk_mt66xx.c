@@ -1078,9 +1078,8 @@ int32_t btmtk_intcmd_wmt_blank_status(struct hci_dev *hdev, int32_t blank)
 	down(&cif_dev->internal_cmd_sem);
 	cif_dev->event_intercept = TRUE;
 
-	// fb event: 0(screen on, FB_BLANK_UNBLANK) / 4(screen off, FB_BLANK_POWERDOWN)
-	// wmt parameter: 0(screen off) / 1(screen on)
-	cmd[9] = (blank == 0) ? 1 : 0;
+	// wmt_blank_state: 0(screen off) / 1(screen on)
+	cmd[9] = blank;
 	cif_dev->event_intercept = TRUE;
 	p_inter_cmd->waiting_event = 0xE4;
 	p_inter_cmd->pending_cmd_opcode = 0xFC6F;
