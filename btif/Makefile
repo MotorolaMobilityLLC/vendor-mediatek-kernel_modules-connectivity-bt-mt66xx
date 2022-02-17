@@ -20,6 +20,8 @@ KBUILD_MODPOST_FAIL_ON_WARNINGS := y
 
 # platform
 ccflags-y += -D CONNAC20_CHIPID=$(BT_PLATFORM)
+$(info $(LOG_TAG) BT_PLATFORM = $(BT_PLATFORM))
+$(info $(LOG_TAG) srctree = $(srctree))
 
 # ---------------------------------------------------
 # Compile Options: set feature flag (1: enable, 0: disable)
@@ -64,7 +66,7 @@ ccflags-y += -I$(src)/../include/btif
 # ---------------------------------------------------
 # Objects List
 # ---------------------------------------------------
-MODULE_NAME := bt_drv
+MODULE_NAME := bt_drv_$(BT_PLATFORM)
 obj-m += $(MODULE_NAME).o
 
 CORE_OBJS := btmtk_dbg.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
