@@ -63,10 +63,10 @@ static INT32 bt_ftrace_flag;
 static bool btonflag = 0;
 UINT32 gBtDbgLevel = BT_LOG_INFO;
 struct bt_dbg_st g_bt_dbg_st;
-#if (PM_QOS_CONTROL == 1)
+/* PM QOS feature*/
+unsigned int pm_qos_support = 0;
 static struct pm_qos_request qos_req;
 static struct pm_qos_ctrl qos_ctrl;
-#endif
 
 /*
  * Reset flag for whole chip reset scenario, to indicate reset status:
@@ -290,30 +290,30 @@ static VOID BT_event_cb(VOID)
 	 */
 	__pm_wakeup_event(bt_wakelock, 100);
 
-#if (PM_QOS_CONTROL == 1)
-	/* pm qos control:
-	 *   Set pm_qos to higher level for mass data transfer.
-	 *   When rx packet reveived, schedule a work to restore pm_qos setting after 500ms.
-	 *   If next packet is receiving before 500ms, this work will be cancel & re-schedule.
-	 *   (500ms: better power performance after experiment)
-	 */
-	down(&qos_ctrl.sem);
-	if(qos_ctrl.task != NULL ) {
-		cancel_delayed_work(&qos_ctrl.work);
-		if(qos_ctrl.is_hold == FALSE) {
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
-			pm_qos_update_request(&qos_req, 1000);
-#else
-			cpu_latency_qos_update_request(&qos_req, 1000);
-#endif
-			qos_ctrl.is_hold = TRUE;
-			BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
-		}
-		queue_delayed_work(qos_ctrl.task, &qos_ctrl.work, (500 * HZ) >> 10);
-	}
-	up(&qos_ctrl.sem);
-#endif
+	if(pm_qos_support) {
+		/* pm qos control:
+		 *   Set pm_qos to higher level for mass data transfer.
+		 *   When rx packet reveived, schedule a work to restore pm_qos setting after 500ms.
+		 *   If next packet is receiving before 500ms, this work will be cancel & re-schedule.
+		 *   (500ms: better power performance after experiment)
+		 */
+		down(&qos_ctrl.sem);
+		if(qos_ctrl.task != NULL ) {
+			cancel_delayed_work(&qos_ctrl.work);
 
+			if(qos_ctrl.is_hold == FALSE) {
+				#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+				pm_qos_update_request(&qos_req, 1000);
+				#else
+				cpu_latency_qos_update_request(&qos_req, 1000);
+				#endif
+				qos_ctrl.is_hold = TRUE;
+				BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
+			}
+			queue_delayed_work(qos_ctrl.task, &qos_ctrl.work, (500 * HZ) >> 10);
+		}
+		up(&qos_ctrl.sem);
+	}
 	/*
 	 * Finally, wake up any reader blocked in poll or read
 	 */
@@ -629,7 +629,23 @@ long BT_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	return BT_unlocked_ioctl(filp, cmd, arg);
 }
 
-#if (PM_QOS_CONTROL == 1)
+static void pm_qos_set_feature(void)
+{
+	#define DTS_QOS_KEY "pm_qos_support"
+ 	int rc = 0;
+	struct device_node *node = NULL;
+
+	node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
+	if (node) {
+		rc = of_property_read_u32(node, DTS_QOS_KEY, &pm_qos_support);
+		if (!rc)
+			BT_LOG_PRT_ERR("get property[%s] fail!\n", DTS_QOS_KEY);
+	} else 
+		BT_LOG_PRT_ERR("get dts[mediatek,bt] fail!\n");
+
+	BT_LOG_PRT_INFO("property[%s] = %d\n", DTS_QOS_KEY, pm_qos_support);
+}
+
 static void pm_qos_release(struct work_struct *pwork)
 {
 #if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
@@ -640,7 +656,6 @@ static void pm_qos_release(struct work_struct *pwork)
 	qos_ctrl.is_hold = FALSE;
 	BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
 }
-#endif
 
 static int BT_open(struct inode *inode, struct file *file)
 {
@@ -688,22 +703,24 @@ static int BT_open(struct inode *inode, struct file *file)
 #endif
 	bt_dev_dbg_set_state(TRUE);
 
-#if (PM_QOS_CONTROL == 1)
-	down(&qos_ctrl.sem);
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
-	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#else
-	cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#endif
-	qos_ctrl.is_hold = FALSE;
-	qos_ctrl.task = create_singlethread_workqueue("pm_qos_task");
-	if (!qos_ctrl.task){
-		BT_LOG_PRT_ERR("fail to create pm_qos_task");
-		return -EIO;
+	if(pm_qos_support) {
+		down(&qos_ctrl.sem);
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+		pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+		#else
+		cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+		#endif
+
+		qos_ctrl.is_hold = FALSE;
+		qos_ctrl.task = create_singlethread_workqueue("pm_qos_task");
+		if (!qos_ctrl.task){
+			BT_LOG_PRT_ERR("fail to create pm_qos_task");
+			return -EIO;
+		}
+		INIT_DELAYED_WORK(&qos_ctrl.work, pm_qos_release);
+		up(&qos_ctrl.sem);
 	}
-	INIT_DELAYED_WORK(&qos_ctrl.work, pm_qos_release);
-	up(&qos_ctrl.sem);
-#endif
+
 	bt_pm_notify_register();
 
 	return 0;
@@ -726,23 +743,24 @@ static int BT_close(struct inode *inode, struct file *file)
 	mtk_wcn_wmt_msgcb_unreg(WMTDRV_TYPE_BT);
 	mtk_wcn_stp_register_event_cb(BT_TASK_INDX, NULL);
 
-#if (PM_QOS_CONTROL == 1)
-	down(&qos_ctrl.sem);
-	if(qos_ctrl.task != NULL) {
-		BT_LOG_PRT_INFO("[qos] cancel delayed work\n");
-		cancel_delayed_work(&qos_ctrl.work);
-		flush_workqueue(qos_ctrl.task);
-		destroy_workqueue(qos_ctrl.task);
-		qos_ctrl.task = NULL;
+	if(pm_qos_support) {
+		down(&qos_ctrl.sem);
+		if(qos_ctrl.task != NULL) {
+			BT_LOG_PRT_INFO("[qos] cancel delayed work\n");
+			cancel_delayed_work(&qos_ctrl.work);
+			flush_workqueue(qos_ctrl.task);
+			destroy_workqueue(qos_ctrl.task);
+			qos_ctrl.task = NULL;
+		}
+
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+		pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+		#else
+		cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+		#endif
+		qos_ctrl.is_hold = FALSE;
+		up(&qos_ctrl.sem);
 	}
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
-	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#else
-	cpu_latency_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#endif
-	qos_ctrl.is_hold = FALSE;
-	up(&qos_ctrl.sem);
-#endif
 
 	if (mtk_wcn_wmt_func_off(WMTDRV_TYPE_BT) == MTK_WCN_BOOL_FALSE) {
 		BT_LOG_PRT_ERR("WMT turn off BT fail!\n");
@@ -815,14 +833,15 @@ static int BT_init(void)
 #endif
 	bt_dev_dbg_init();
 
-#if (PM_QOS_CONTROL == 1)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
-	pm_qos_add_request(&qos_req, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
-#else
-	cpu_latency_qos_add_request(&qos_req, PM_QOS_DEFAULT_VALUE);
-#endif
-	sema_init(&qos_ctrl.sem, 1);
-#endif
+	pm_qos_set_feature();
+	if(pm_qos_support) {
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+		pm_qos_add_request(&qos_req, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
+		#else
+		cpu_latency_qos_add_request(&qos_req, PM_QOS_DEFAULT_VALUE);
+		#endif
+		sema_init(&qos_ctrl.sem, 1);
+	}
 
 	return 0;
 
@@ -850,13 +869,13 @@ static void BT_exit(void)
 {
 	dev_t dev;
 
-#if (PM_QOS_CONTROL == 1)
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
-	pm_qos_remove_request(&qos_req);
-#else
-	cpu_latency_qos_remove_request(&qos_req);
-#endif
-#endif
+	if(pm_qos_support) {
+		#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
+		pm_qos_remove_request(&qos_req);
+		#else
+		cpu_latency_qos_remove_request(&qos_req);
+		#endif
+	}
 
 	bt_dev_dbg_deinit();
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
