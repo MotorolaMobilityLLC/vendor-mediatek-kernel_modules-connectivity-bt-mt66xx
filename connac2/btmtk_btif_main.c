@@ -461,7 +461,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 		conninfra_get_phy_addr((uint32_t*)&emi_ap_phy_base, NULL);
 		emi_ap_phy_base &= 0xFFFFFFFF;
 
-		dump_msg_addr = ioremap_nocache(emi_ap_phy_base + 0x3B000, 0x100);
+		dump_msg_addr = ioremap(emi_ap_phy_base + 0x3B000, 0x100);
 		if (dump_msg_addr) {
 			memcpy(msg, dump_msg_addr, 0xFF);
 			iounmap(dump_msg_addr);
@@ -804,7 +804,7 @@ int32_t btmtk_btif_close()
 	}
 
 #if SUPPORT_BT_THREAD
-	if(&g_bdev->btif_dpidle_ctrl.task != NULL) {
+	if(g_bdev->btif_dpidle_ctrl.task != NULL) {
 		cancel_delayed_work(&g_bdev->btif_dpidle_ctrl.work);
 		flush_workqueue(g_bdev->btif_dpidle_ctrl.task);
 		down(&g_bdev->btif_dpidle_ctrl.sem);

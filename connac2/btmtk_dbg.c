@@ -6,6 +6,9 @@
 #include <linux/io.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
+#include <linux/gpio.h>
+#include <linux/of.h>
+#include <linux/of_gpio.h>
 #include "btmtk_define.h"
 #include "btmtk_mt66xx_reg.h"
 #include "btmtk_chip_if.h"
@@ -65,6 +68,8 @@ static int bt_dbg_set_rt_thread(int par1, int par2, int par3);
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
 static int bt_dbg_rx_buf_control(int par1, int par2, int par3);
 static int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3);
+static int bt_dbg_fpga_test(int par1, int par2, int par3);
+static int bt_dbg_is_adie_work(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
 static void bt_dbg_user_trx_cb(char *buf, int len);
 
@@ -72,7 +77,8 @@ extern int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t coun
 extern int32_t btmtk_set_wakeup(struct hci_dev *hdev);
 extern int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait);
 extern void bt_trigger_reset(void);
-
+extern int32_t btmtk_set_power_on(struct hci_dev*, u_int8_t for_precal);
+extern int32_t btmtk_set_power_off(struct hci_dev*, u_int8_t for_precal);
 
 
 /*******************************************************************************
@@ -109,6 +115,8 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
 	[0xf] = {bt_dbg_rx_buf_control,		TRUE},
 	[0x10] = {bt_dbg_set_rt_thread_runtime,		FALSE},
+	[0x11] = {bt_dbg_fpga_test,			TRUE},
+	[0x12] = {bt_dbg_is_adie_work,		TRUE},
 };
 
 /*******************************************************************************
@@ -123,6 +131,12 @@ void _bt_dbg_reset_dump_buf(void)
 	memset(g_bt_dump_buf, '\0', BT_DBG_DUMP_BUF_SIZE);
 	g_bt_dump_buf_ptr = g_bt_dump_buf;
 	g_bt_dump_buf_len = 0;
+}
+
+int bt_dev_dbg_set_state(bool turn_on)
+{
+	g_bt_turn_on = turn_on;
+	return 0;
 }
 
 int bt_dbg_hwver_get(int par1, int par2, int par3)
@@ -153,7 +167,7 @@ int bt_dbg_reg_read(int par1, int par2, int par3)
 	uint32_t *dynamic_remap_value = NULL;
 
 	/* TODO: */
-	dynamic_remap_addr = ioremap_nocache(0x18001104, 4);
+	dynamic_remap_addr = ioremap(0x18001104, 4);
 	if (dynamic_remap_addr) {
 		*dynamic_remap_addr = par2;
 		BTMTK_DBG("read address = [0x%08x]", par2);
@@ -163,7 +177,7 @@ int bt_dbg_reg_read(int par1, int par2, int par3)
 	}
 	iounmap(dynamic_remap_addr);
 
-	dynamic_remap_value = ioremap_nocache(0x18900000, 4);
+	dynamic_remap_value = ioremap(0x18900000, 4);
 	if (dynamic_remap_value)
 		BTMTK_INFO("%s: 0x%08x value = [0x%08x]", __func__, par2,
 							*dynamic_remap_value);
@@ -181,7 +195,7 @@ int bt_dbg_reg_write(int par1, int par2, int par3)
 	uint32_t *dynamic_remap_value = NULL;
 
 	/* TODO: */
-	dynamic_remap_addr = ioremap_nocache(0x18001104, 4);
+	dynamic_remap_addr = ioremap(0x18001104, 4);
 	if (dynamic_remap_addr) {
 		*dynamic_remap_addr = par2;
 		BTMTK_DBG("write address = [0x%08x]", par2);
@@ -191,7 +205,7 @@ int bt_dbg_reg_write(int par1, int par2, int par3)
 	}
 	iounmap(dynamic_remap_addr);
 
-	dynamic_remap_value = ioremap_nocache(0x18900000, 4);
+	dynamic_remap_value = ioremap(0x18900000, 4);
 	if (dynamic_remap_value)
 		*dynamic_remap_value = par3;
 	else {
@@ -208,7 +222,7 @@ int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 	uint32_t *remap_addr = NULL;
 
 	/* TODO: */
-	remap_addr = ioremap_nocache(par2, 4);
+	remap_addr = ioremap(par2, 4);
 	if (!remap_addr) {
 		BTMTK_ERR("ioremap [0x%08x] fail", par2);
 		return -1;
@@ -224,7 +238,7 @@ int bt_dbg_ap_reg_write(int par1, int par2, int par3)
 	uint32_t *remap_addr = NULL;
 
 	/* TODO: */
-	remap_addr = ioremap_nocache(par2, 4);
+	remap_addr = ioremap(par2, 4);
 	if (!remap_addr) {
 		BTMTK_ERR("ioremap [0x%08x] fail", par2);
 		return -1;
@@ -272,6 +286,76 @@ int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3)
 
 	return 0;
 }
+
+int bt_dbg_fpga_test(int par1, int par2, int par3)
+{
+	/* reference parameter:
+		- normal: 0x12 0x01(power on) 0x00
+		- normal: 0x12 0x02(power off) 0x00
+	*/
+	BTMTK_INFO("%s: par2 = %d", __func__, par2);
+	switch (par2) {
+		case 1:
+			if (btmtk_set_power_on(g_bdev->hdev, FALSE) == 0)
+				bt_dev_dbg_set_state(TRUE);
+			break;
+		case 2:
+			if (btmtk_set_power_off(g_bdev->hdev, FALSE) == 0)
+				bt_dev_dbg_set_state(FALSE);
+			break;
+		default:
+			break;
+	}
+	BTMTK_INFO("%s: done", __func__);
+
+	return 0;
+}
+
+int bt_dbg_is_adie_work(int par1, int par2, int par3)
+{
+	int ret = 0, adie_state = 0;
+
+	ret = conninfra_pwr_on(CONNDRV_TYPE_BT);
+	//if ((ret == CONNINFRA_POWER_ON_A_DIE_FAIL) || (ret == CONNINFRA_POWER_ON_D_DIE_FAIL))
+	if (ret != 0)
+		adie_state = 1; // power on a-die fail, may be evb without DTB
+	else
+		adie_state = 0; // power on a-die pass
+
+	BTMTK_INFO("%s: ret[%d], adie_state[%d]", __func__, ret, adie_state);
+	_bt_dbg_reset_dump_buf();
+	g_bt_dump_buf[0] = (adie_state == 0 ? '0' : '1'); // '0': adie pass, '1': adie fail
+	g_bt_dump_buf[1] = '\0';
+	g_bt_dump_buf_len = 2;
+	return 0;
+}
+
+/*
+sample code to use gpio
+int bt_dbg_device_is_evb(int par1, int par2, int par3)
+{
+	struct device_node *node = NULL;
+	int gpio_addr = 0, gpio_val = 0;
+
+	node = of_find_compatible_node(NULL, NULL, "mediatek,evb_gpio");
+	gpio_addr = of_get_named_gpio(node, "evb_gpio", 0);
+	if (gpio_addr > 0)
+		gpio_val = gpio_get_value(gpio_addr); // 0x00: phone, 0x01: evb
+
+	BTMTK_INFO("%s: gpio_addr[%d], gpio_val[%d]", __func__, gpio_addr, gpio_val);
+	_bt_dbg_reset_dump_buf();
+	g_bt_dump_buf[0] = (gpio_val == 0 ? '0' : '1'); // 0x00: phone, 0x01: evb
+	g_bt_dump_buf[1] = '\0';
+	g_bt_dump_buf_len = 2;
+
+	return 0;
+}
+dts setting
+	evb_gpio: evb_gpio@1100c000 {
+		compatible = "mediatek,evb_gpio";
+		evb_gpio = <&pio 57 0x0>;
+	};
+*/
 
 int bt_dbg_get_bt_state(int par1, int par2, int par3)
 {
@@ -357,6 +441,7 @@ ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f
 	int ret = 0;
 	int dump_len;
 
+	BTMTK_INFO("%s: count[%zd]\n", __func__, count);
 	ret = mutex_lock_killable(&g_bt_lock);
 	if (ret) {
 		BTMTK_ERR("%s: dump_lock fail!!", __func__);
@@ -571,11 +656,18 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 int bt_dev_dbg_init(void)
 {
 	int i_ret = 0;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
+	static const struct proc_ops bt_dbg_fops = {
+		.proc_read = bt_dbg_read,
+		.proc_write = bt_dbg_write,
+	};
+#else
 	static const struct file_operations bt_dbg_fops = {
 		.owner = THIS_MODULE,
 		.read = bt_dbg_read,
 		.write = bt_dbg_write,
 	};
+#endif
 
 	// initialize debug function struct
 	g_bt_dbg_st.rt_thd_enable = FALSE;
@@ -607,9 +699,3 @@ int bt_dev_dbg_deinit(void)
 	return 0;
 }
 
-
-int bt_dev_dbg_set_state(bool turn_on)
-{
-	g_bt_turn_on = turn_on;
-	return 0;
-}

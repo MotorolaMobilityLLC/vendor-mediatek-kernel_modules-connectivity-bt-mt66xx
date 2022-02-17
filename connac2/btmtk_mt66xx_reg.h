@@ -334,7 +334,7 @@ static void inline bt_dump_cpupcr(uint32_t times, uint32_t sleep_ms)
 static uint32_t inline bt_read_cr(uint32_t addr)
 {
 	uint32_t value = 0;
-	uint8_t *base = ioremap_nocache(addr, 0x10);
+	uint8_t *base = ioremap(addr, 0x10);
 
 	if (base == NULL) {
 		BTMTK_ERR("%s: remapping 0x%08x fail", addr);
@@ -347,7 +347,7 @@ static uint32_t inline bt_read_cr(uint32_t addr)
 
 static void inline bt_write_cr(uint32_t addr, uint32_t value)
 {
-	uint32_t *base = ioremap_nocache(addr, 0x10);
+	uint32_t *base = ioremap(addr, 0x10);
 
 	if (base == NULL) {
 		BTMTK_ERR("%s: remapping 0x%08x fail", addr);
