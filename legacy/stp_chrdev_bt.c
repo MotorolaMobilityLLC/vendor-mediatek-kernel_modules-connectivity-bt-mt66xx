@@ -448,7 +448,7 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 			 */
 			if (filp->f_flags & O_NONBLOCK) {
 				BT_LOG_PRT_ERR("Non-blocking read, whole chip reset occurs! rstflag=%d\n", rstflag);
-				retval = -EIO;
+				retval = -EAGAIN;
 				goto OUT;
 			}
 
