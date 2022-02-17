@@ -508,7 +508,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal);
 int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal);
 int btmtk_btif_internal_trx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_stack, bool is_blocking);
 int btmtk_inttrx_DynamicAdjustTxPower_cb(uint8_t *buf, int len);
-int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t set_val, BT_RX_EVT_HANDLER_CB cb);
+int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t set_val, BT_RX_EVT_HANDLER_CB cb, bool is_blocking);
 int32_t btmtk_intcmd_wmt_calibration(struct hci_dev *hdev);
 int32_t btmtk_intcmd_wmt_blank_status(struct hci_dev *hdev, int32_t blank);
 int32_t btmtk_intcmd_wmt_utc_sync(void);
