@@ -533,6 +533,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	uint8_t retry = 15;
 	int32_t dump_property = 0; /* default = 0 */
 	int32_t ret = 0;
+	struct btmtk_dev *bdev = hci_get_drvdata(g_sbdev->hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_START, 0, NULL);
@@ -626,6 +627,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 
 	/* 5. Turn off BT */
 	bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_OFF, 0, NULL);
+	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_OPENED); // to comform to the common part state
 	ret = g_sbdev->hdev->close(g_sbdev->hdev);
 #if (USE_DEVICE_NODE == 0)
 	bt_report_hw_error();
