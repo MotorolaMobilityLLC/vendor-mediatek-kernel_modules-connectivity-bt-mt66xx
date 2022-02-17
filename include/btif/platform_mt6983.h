@@ -61,6 +61,8 @@
 #define CONN_INFRA_CFG_START				CON_REG_INFRA_CFG_ADDR
 
 #define CONN_INFRA_CFG_VERSION				(0x18011000)
+#define CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1	(CONN_INFRA_CFG_START + 0x210)
+#define CONN_INFRA_RDY					BIT(16)
 
 #define CONN_INFRA_CONN2BT_GALS_SLP_CTL			(CONN_INFRA_CFG_START + 0x0450)
 #define CONN_INFRA_CONN2BT_GALS_SLP_STATUS		(CONN_INFRA_CFG_START + 0x0454)
@@ -268,6 +270,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	int32_t i = 0, retry = 10, hang_ret = 0;
 	uint32_t value = 0;
 	uint8_t* conninfra_cfg_version_base = NULL;
+	u_int8_t conninfra_cfg_id_rdy = FALSE;
 
 	conninfra_cfg_version_base = ioremap(CONN_INFRA_CFG_VERSION, 0x10);
 	if (conninfra_cfg_version_base == NULL) {
@@ -284,8 +287,8 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	for (i = 0; i < retry; i++) {
 		value = REG_READL(conninfra_cfg_version_base);
 		if (value == CONN_INFRA_CFG_ID) {
-			iounmap(conninfra_cfg_version_base);
-			return 0; // success
+			conninfra_cfg_id_rdy = TRUE;
+			break;
 		}
 
 		BTMTK_DBG("connifra cfg version = 0x%08x", value);
@@ -293,14 +296,26 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	}
 
 	iounmap(conninfra_cfg_version_base);
-	/* Check conninfra bus */
-	if (!conninfra_reg_readable()) {
-		hang_ret = conninfra_is_bus_hang();
-		if (hang_ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+	if (conninfra_cfg_id_rdy) {
+		for (i = 0; i < retry; i++) {
+			value = REG_READL(CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1) &
+				CONN_INFRA_RDY;
+			BTMTK_INFO("connifra cfg power control = 0x%08x", value);
+			if (value == CONN_INFRA_RDY)
+				return 0;
+
+			usleep_range(500, 550);
 		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+	} else {
+		/* Check conninfra bus */
+		if (!conninfra_reg_readable()) {
+			hang_ret = conninfra_is_bus_hang();
+			if (hang_ret > 0) {
+				BTMTK_ERR("conninfra bus is hang, needs reset");
+				conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+			}
+			BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+		}
 	}
 
 	return -1;
