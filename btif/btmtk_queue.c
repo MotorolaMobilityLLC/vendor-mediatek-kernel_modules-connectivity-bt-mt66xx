@@ -395,7 +395,6 @@ void command_response_timeout(struct work_struct *pwork)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_cmd_queue *p_queue = NULL;
 
-	down(&cif_dev->cmd_tout_sem);
 	p_queue = &cif_dev->cmd_queue;
 	if (p_queue->size != 0) {
 		cif_dev->cmd_timeout_count++;
@@ -411,10 +410,14 @@ void command_response_timeout(struct work_struct *pwork)
 			// To-do : Need to consider if it has any condition to check
 			cif_dev->cmd_timeout_count = 0;
 			bt_trigger_reset();
-		} else
-			queue_delayed_work(workqueue_task, &work, HZ>>1);
+		} else {
+			down(&cif_dev->cmd_tout_sem);
+			if(workqueue_task != NULL) {
+				queue_delayed_work(workqueue_task, &work, HZ>>1);
+			}
+			up(&cif_dev->cmd_tout_sem);
+		}
 	}
-	up(&cif_dev->cmd_tout_sem);
 }
 
 bool cmd_workqueue_init(void)
@@ -445,7 +448,11 @@ void update_command_response_workqueue(void)
 		BTMTK_DBG("update new command queue : %4X" , p_queue->head->opcode);
 		cif_dev->cmd_timeout_count = 0;
 		cancel_delayed_work(&work);
-		queue_delayed_work(workqueue_task, &work, HZ>>1);
+		down(&cif_dev->cmd_tout_sem);
+		if(workqueue_task != NULL) {
+			queue_delayed_work(workqueue_task, &work, HZ>>1);
+		}
+		up(&cif_dev->cmd_tout_sem);
 	}
 }
 
@@ -453,15 +460,15 @@ void cmd_workqueue_exit(void)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	down(&cif_dev->cmd_tout_sem);
 	BTMTK_INFO("exit workqueue");
 	if(workqueue_task != NULL) {
 		cancel_delayed_work(&work);
 		flush_workqueue(workqueue_task);
+		down(&cif_dev->cmd_tout_sem);
 		destroy_workqueue(workqueue_task);
 		workqueue_task = NULL;
+		up(&cif_dev->cmd_tout_sem);
 	}
-	up(&cif_dev->cmd_tout_sem);
 }
 
 #endif // (DRIVER_CMD_CHECK == 1)
