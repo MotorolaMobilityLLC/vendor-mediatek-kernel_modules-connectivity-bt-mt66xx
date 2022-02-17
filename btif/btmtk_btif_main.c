@@ -1434,8 +1434,11 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 9. Init debug interface */
 	bt_dev_dbg_init();
 
-	/* Finally register callbacks to conninfra driver */
+	/* Register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
+
+	/* Runtime malloc patch names */
+	fwp_malloc_patch_names();
 
 	/* Set ICB cif state */
 	btmtk_set_chip_state((void *)g_sbdev, BTMTK_STATE_WORKING);
@@ -1462,6 +1465,7 @@ static int btmtk_cif_remove(struct platform_device *pdev)
 	conninfra_sub_drv_ops_unregister(CONNDRV_TYPE_BT);
 
 	bt_dev_dbg_deinit();
+	fwp_free_patch_names();
 
 	/* Unregister screen on/off & suspend/wakup notify callback */
 
