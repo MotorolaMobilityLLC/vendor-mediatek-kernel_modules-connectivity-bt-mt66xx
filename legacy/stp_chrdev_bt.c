@@ -76,7 +76,7 @@ static UINT8 i_buf[BT_BUFFER_SIZE]; /* Input buffer for read */
 static UINT8 o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
 
 static struct semaphore wr_mtx, rd_mtx;
-static struct wakeup_source bt_wakelock;
+static struct wakeup_source *bt_wakelock;
 /* Wait queue for poll and read */
 static wait_queue_head_t inq;
 static DECLARE_WAIT_QUEUE_HEAD(BT_wq);
@@ -194,7 +194,7 @@ static VOID BT_event_cb(VOID)
 	 *   handler is executed and meanwhile the event is received.
 	 *   This will false trigger FW assert and should never happen.
 	 */
-	__pm_wakeup_event(&bt_wakelock, 100);
+	__pm_wakeup_event(bt_wakelock, 100);
 
 	/*
 	 * Finally, wake up any reader blocked in poll or read
@@ -598,7 +598,10 @@ static int BT_init(void)
 	/* Initialize wait queue */
 	init_waitqueue_head(&(inq));
 	/* Initialize wake lock */
-	wakeup_source_init(&bt_wakelock, "bt_drv");
+	bt_wakelock = wakeup_source_register("bt_drv");
+	if(!bt_wakelock) {
+		BT_LOG_PRT_ERR("%s: init bt_wakelock failed!\n", __func__);
+	}
 
 	/* Allocate char device */
 	alloc_ret = register_chrdev_region(dev, BT_devs, BT_DRIVER_NAME);
@@ -661,7 +664,7 @@ static void BT_exit(void)
 
 	dev = MKDEV(BT_major, 0);
 	/* Destroy wake lock*/
-	wakeup_source_trash(&bt_wakelock);
+	wakeup_source_unregister(bt_wakelock);
 
 #if CREATE_NODE_DYNAMIC
 	if (stpbt_dev && !IS_ERR(stpbt_dev)) {
