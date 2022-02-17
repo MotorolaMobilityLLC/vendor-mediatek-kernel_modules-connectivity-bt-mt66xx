@@ -1059,7 +1059,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
 
-	BTMTK_INFO("%s: load config [%s]", __func__, BT_FW_CFG_FILE);
+	BTMTK_DBG("%s: load config [%s]", __func__, BT_FW_CFG_FILE);
 	btmtk_load_code_from_bin(&p_img, BT_FW_CFG_FILE, NULL, &len, 10);
 	if (p_img == NULL) {
 		BTMTK_WARN("%s: get config file fail!", __func__);
@@ -1127,7 +1127,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	cmd[6] = cmd[10] + 3;
 	cmd[3] = cmd[6] + 4;
 
-	BTMTK_INFO_RAW(cmd, len, "%s: Send: ", __func__);
+	BTMTK_DBG_RAW(cmd, len, "%s: Send: ", __func__);
 
 	down(&cif_dev->internal_cmd_sem);
 	cif_dev->event_intercept = TRUE;
@@ -1173,7 +1173,7 @@ int32_t btmtk_intcmd_wmt_power_off(struct hci_dev *hdev)
 	} else if (cif_dev->bt_state != RESET_START)
 		ret = _send_wmt_power_cmd(hdev, FALSE);
 
-	BTMTK_INFO("%s: Done", __func__);
+	BTMTK_DBG("%s: Done", __func__);
 	return ret;
 }
 
