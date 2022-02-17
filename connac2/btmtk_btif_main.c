@@ -660,8 +660,7 @@ static struct sub_drv_ops_cb bt_drv_cbs =
  *     0 if success, otherwise error code
  *
  */
-static uint32_t bt_receive_data_cb(const uint8_t *buf,
-						uint32_t count)
+static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
 {
 	BTMTK_DBG_RAW(buf, count, "%s, len = %d rx data: ", __func__, count);
 	add_dump_packet(buf, count, RX);
