@@ -1451,7 +1451,6 @@ static int32_t btmtk_get_cal_data_ref(
 	if (ret <= 0) {
 		BTMTK_ERR("Unable to get calibration event in time, start dump and reset!");
 		// TODO: FW request dump & reset, need apply to all internal cmdå
-		btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_ALL);
 		bt_trigger_reset();
 		return -1;
 	}
@@ -1722,6 +1721,10 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		BTMTK_ERR("btmtk_send_wmt_power_on_cmd fail");
 		goto wmt_power_on_error;
 	}
+
+	/* Set utc_sync & blank_state cmd */
+	btmtk_send_utc_sync_cmd();
+	btmtk_send_blank_status_cmd(hdev, bdev->blank_state);
 
 	/* clear reset count if power on success */
 	bdev->rst_level = RESET_LEVEL_NONE;

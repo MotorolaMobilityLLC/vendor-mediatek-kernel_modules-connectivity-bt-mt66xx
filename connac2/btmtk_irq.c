@@ -103,7 +103,7 @@ void bt_trigger_reset(void)
 	int32_t ret = conninfra_is_bus_hang();
 
 	BTMTK_INFO("%s: conninfra_is_bus_hang ret = %d", __func__, ret);
-	show_all_dump_packet();
+
 	if (ret > 0)
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
 	else if (ret == CONNINFRA_ERR_RST_ONGOING)
