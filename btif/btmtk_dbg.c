@@ -77,7 +77,7 @@ static int bt_dbg_met_start_stop(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
 static void bt_dbg_user_trx_cb(char *buf, int len);
 
-extern int32_t btmtk_set_wakeup(struct hci_dev *hdev);
+extern int32_t btmtk_set_wakeup(struct hci_dev *hdev, uint8_t need_wait);
 extern int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait);
 extern void bt_trigger_reset(void);
 extern int32_t btmtk_set_power_on(struct hci_dev*, u_int8_t for_precal);
@@ -390,8 +390,8 @@ int bt_dbg_met_start_stop(int par1, int par2, int par3)
 			info.met_base_fw = star_addr;
 		} else if (star_addr >= 0xF0000000 && star_addr <= 0xF3FFFFFF){
 			// met data on emi
-			info.met_base_ap = emi_base + 0x27000;
-			info.met_base_fw = 0xF0000000 + 0x27000;
+			info.met_base_ap = emi_base + MET_EMI_ADDR;
+			info.met_base_fw = 0xF0000000 + MET_EMI_ADDR;
 		} else {
 			// error case
 			BTMTK_ERR("%s: get unexpected met address!!", __func__);
@@ -472,7 +472,7 @@ int bt_dbg_force_bt_wakeup(int par1, int par2, int par3)
 
 	case 1:
 		cif_dev->psm.force_on = TRUE;
-		ret = btmtk_set_wakeup(g_sbdev->hdev);
+		ret = btmtk_set_wakeup(g_sbdev->hdev, TRUE);
 		break;
 	default:
 		BTMTK_ERR("Not support");
