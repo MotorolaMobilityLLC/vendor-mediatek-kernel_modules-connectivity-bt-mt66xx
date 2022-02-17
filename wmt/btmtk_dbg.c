@@ -181,20 +181,24 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 	int ret = 0;
 
 	/* 1. bluedroid use partial read, this callback will enter several times
-	   2. this function read and parse the command_complete event */
-	memcpy(&g_bt_dbg_st.rx_buf[g_bt_dbg_st.rx_len], buf, len);
-	g_bt_dbg_st.rx_len += len;
-
-	// check the complete packet is read out by bluedroid
-	if(g_bt_dbg_st.rx_len != (g_bt_dbg_st.rx_buf[2] + 3))
-		return;
+	   2. this function read and parse the command_complete event
+	   3. check rx_buf size preventing overflow */
+	if(g_bt_dbg_st.rx_len + len < 64) {  
+	        memcpy(&g_bt_dbg_st.rx_buf[g_bt_dbg_st.rx_len], buf, len);
+	        g_bt_dbg_st.rx_len += len;
+        }
 
 	// if this event is not the desire one, skip and reset buffer
-	if((g_bt_dbg_st.rx_buf[4] + (g_bt_dbg_st.rx_buf[5] << 8)) != g_bt_dbg_st.trx_opcode) {
+	if(g_bt_dbg_st.rx_len > 6 && ((g_bt_dbg_st.rx_buf[4] + (g_bt_dbg_st.rx_buf[5] << 8)) != g_bt_dbg_st.trx_opcode)) {
+	        BT_LOG_PRT_INFO_RAW(g_bt_dbg_st.rx_buf, g_bt_dbg_st.rx_len, "%s: len[%ud], ErrorEvt: ", __func__, g_bt_dbg_st.rx_len);
 		g_bt_dbg_st.rx_len = 0;
 		memset(g_bt_dbg_st.rx_buf, 0, sizeof(g_bt_dbg_st.rx_buf));
 		return;
 	}
+
+	// check the complete packet is read out by bluedroid
+	if(g_bt_dbg_st.rx_len != (g_bt_dbg_st.rx_buf[2] + 3))
+		return;
 
 	// desire rx event is received, write to read buffer as string
 	evt_len = g_bt_dbg_st.rx_len;
