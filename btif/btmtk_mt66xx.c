@@ -1579,6 +1579,7 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
+	bool skip_up_sem = FALSE;
 	int sch_ret = -1;
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
@@ -1595,6 +1596,10 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	 *    - call BT/Wi-Fi registered pwr_on_cb and do_cal_cb
 	 *  then return from this API after 2.4G calibration done.
 	 */
+	BTMTK_DBG("%s: wait halt_sem...", __func__);
+	down(&cif_dev->halt_sem);
+	BTMTK_DBG("%s: wait halt_sem finish...", __func__);
+
 	bt_pwrctrl_pre_on();
 	if (!for_precal)
 	{
@@ -1605,9 +1610,6 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		}
 	}
 
-	BTMTK_DBG("%s: wait halt_sem...", __func__);
-	down(&cif_dev->halt_sem);
-	BTMTK_DBG("%s: wait halt_sem finish...", __func__);
 
 	/* record current bt state for restoring orginal state after pre-cal */
 	cif_dev->bt_precal_state = cif_dev->bt_state;
@@ -1763,6 +1765,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		return -EIO;
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
+		skip_up_sem = TRUE;
 		goto wmt_power_on_error;
 	}
 
@@ -1794,10 +1797,11 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-	up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;
+	if (!skip_up_sem)
+		up(&cif_dev->halt_sem);
 	return ret;
 }
 
