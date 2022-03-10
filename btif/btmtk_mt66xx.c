@@ -1596,10 +1596,6 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	 *    - call BT/Wi-Fi registered pwr_on_cb and do_cal_cb
 	 *  then return from this API after 2.4G calibration done.
 	 */
-	BTMTK_DBG("%s: wait halt_sem...", __func__);
-	down(&cif_dev->halt_sem);
-	BTMTK_DBG("%s: wait halt_sem finish...", __func__);
-
 	bt_pwrctrl_pre_on();
 	if (!for_precal)
 	{
@@ -1610,6 +1606,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		}
 	}
 
+	BTMTK_DBG("%s: wait halt_sem...", __func__);
+	down(&cif_dev->halt_sem);
+	BTMTK_DBG("%s: wait halt_sem finish...", __func__);
 
 	/* record current bt state for restoring orginal state after pre-cal */
 	cif_dev->bt_precal_state = cif_dev->bt_state;
