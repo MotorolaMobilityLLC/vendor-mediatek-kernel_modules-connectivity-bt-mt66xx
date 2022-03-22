@@ -802,11 +802,14 @@ static inline void bt_dump_cif_own_cr(void)
 		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x400);
 		BTMTK_INFO("0x18001400 = [0x%08x]", value);
 
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x41C);
-		BTMTK_INFO("0x1800141C = [0x%08x]", value);
+		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x640);
+		BTMTK_INFO("0x18001640 = [0x%08x]", value);
 
-		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x420);
-		BTMTK_INFO("0x18001420 = [0x%08x]", value);
+		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x644);
+		BTMTK_INFO("0x18001644 = [0x%08x]", value);
+
+		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x604);
+		BTMTK_INFO("0x18001604 = [0x%08x]", value);
 
 		value = 0x87654321;
 		REG_WRITEL(CON_REG_INFRA_CFG_ADDR + 0x10, value);
@@ -838,7 +841,7 @@ static inline void bt_dump_cif_own_cr(void)
 		}
 
 		value = bt_read_cr(0x18071400);
-		BTMTK_INFO("0x18070400 = [0x%08x]", value);
+		BTMTK_INFO("0x18071400 = [0x%08x]", value);
 
 		value = bt_read_cr(0x18070400);
 		BTMTK_INFO("0x18070400 = [0x%08x]", value);
@@ -850,6 +853,9 @@ static inline void bt_dump_cif_own_cr(void)
 host_csr_only:
 	value = REG_READL(BGF_LPCTL);
 	BTMTK_INFO("0x18060030 = [0x%08x]", value);
+
+	value = REG_READL(BGF_IRQ_STAT);
+	BTMTK_INFO("0x18060034 = [0x%08x]", value);
 
 	value = REG_READL(BGF_IRQ_STAT2);
 	BTMTK_INFO("0x1806003C = [0x%08x]", value);
@@ -1208,6 +1214,11 @@ static inline int32_t bgfsys_power_on(void)
 
 	if (0 == retry)
 		goto error;
+
+	/*clear fw own IRQ*/
+	BTMTK_DBG("clear fw own IRQ");
+	REG_WRITEL(BGF_IRQ_STAT, BGF_IRQ_FW_OWN_SET_B);
+	REG_WRITEL(BGF_IRQ_STAT2, BGF_IRQ_FW_OWN_SET_B);
 
 	/* release n10 cpu core */
 	SET_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
