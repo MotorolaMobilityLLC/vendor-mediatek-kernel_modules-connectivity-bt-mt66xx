@@ -7,6 +7,8 @@
 #define _PLATFORM_BASE_H
 
 #include "conninfra.h"
+#include <linux/arm-smccc.h>
+#include <linux/soc/mediatek/mtk_sip_svc.h>
 
 #define BT_CR_DUMP_BUF_SIZE	(1024)
 #define FW_NAME_LEN		(64)
@@ -60,6 +62,14 @@ extern uint8_t g_fwp_names[PATCH_FILE_NUM][1][FW_NAME_LEN];
 	((_type *)((unsigned char *)(_addr_of_field) - (unsigned char *)OFFSET_OF(_type, _field)))
 #endif /* ENTRY_OF */
 
+/*------------------------------------------------------------------------------
+ * Flags of ATF (ARM Trusted firmware) Support
+ *------------------------------------------------------------------------------
+ */
+#ifndef CFG_BT_ATF_SUPPORT
+#define CFG_BT_ATF_SUPPORT 0
+#endif
+
 /*******************************************************************************
 *                             D A T A   T Y P E S
 ********************************************************************************
@@ -87,6 +97,39 @@ enum bt_base_addr_index {
 
 	CONSYS_BASE_ADDR_MAX
 };
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+enum enum_bt_smc_opid {
+        /* init, on, off */
+        SMC_BT_PWR_ON_TOP_CONSYS_MCU_OPID = 1,
+        SMC_BT_PWR_ON_MID_CONSYS_MCU_OPID = 2,
+        SMC_BT_PWR_ON_END_CONSYS_MCU_OPID = 3,
+        SMC_BT_PWR_OFF_TOP_CONSYS_MCU_OPID = 4,
+        SMC_BT_PWR_OFF_MID_CONSYS_MCU_OPID = 5,
+        SMC_BT_PWR_OFF_END_CONSYS_MCU_OPID = 6,
+        SMC_BT_PWR_ON_DUMP_CR_OPID = 7,
+        SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID = 8,
+        SMC_BT_PWR_ON_DUMP_CIF_OWN_CR_ONE_OPID = 9,
+        SMC_BT_PWR_ON_DUMP_CIF_OWN_CR_TWO_OPID = 10,
+        SMC_BT_GET_SW_IRQ_STATUS = 11,
+        SMC_BT_BGF_DRIVER_DUMP = 12,
+        SMC_BT_FW_OWN_CLR_FIRST = 13,
+        SMC_BT_FW_OWN_CLR_SECOND = 14,
+        SMC_BT_FW_OWN_SET_FIRST = 15,
+        SMC_BT_FW_OWN_SET_SECOND = 16,
+        SMC_BT_DBG_REG_WRITE = 17,
+        SMC_BT_DBG_AP_REG_WRITE = 18,
+        SMC_BT_SUSPEND_WAKEUP = 19,
+        SMC_BT_CAL_DATA_RESTORE_ONE = 20,
+        SMC_BT_CAL_DATA_RESTORE_TWO = 21,
+
+        /* HIF */
+        SMC_BT_HIF_OPID = 1000,
+
+        /* add new module here */
+        /* set OPID +1000 based on previous module */
+};
+#endif
 
 struct bt_base_addr {
 	struct consys_reg_base_addr reg_base_addr[CONSYS_BASE_ADDR_MAX];
@@ -250,5 +293,136 @@ static inline void compose_fw_name(u_int8_t has_flavor, uint8_t flavor,
 #endif
 }
 
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+static inline uint32_t bgfsys_power_on_smc(uint32_t u4Opid)
+{
+	struct arm_smccc_res res;
+	arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+			0, 0, 0, 0, 0, 0, &res);
+	return res.a0;
+}
+
+static inline uint32_t bgfsys_power_off_smc(uint32_t u4Opid, uint32_t value)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        value, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t btmtk_cif_fw_own_clr_smc(uint32_t u4Opid)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        0, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t btmtk_cif_fw_own_set_smc(uint32_t u4Opid)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        0, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bgfsys_power_on_dump_cr_smc(uint32_t u4Opid)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        0, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bt_conn_infra_on_off_smc(uint32_t u4Opid, uint32_t set)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        set, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bt_dump_cif_own_cr_one_smc(uint32_t u4Opid, uint32_t value)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        value, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bt_dump_cif_own_cr_two_smc(uint32_t u4Opid)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        0, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+
+static inline uint32_t bgfsys_get_sw_irq_status_smc(uint32_t u4Opid)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        0, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bt_dump_bgfsys_smc(uint32_t u4Opid, uint32_t value)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        value, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bt_dump_bgfsys_suspend_wakeup_debug_smc(uint32_t u4Opid, uint32_t value)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        value, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bgfsys_cal_data_restore_one_smc(uint32_t u4Opid, uint32_t start_offset, uint8_t cal_data)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        start_offset, cal_data, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t bgfsys_cal_data_restore_two_smc(uint32_t u4Opid, uint32_t ready_offset)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        ready_offset, 0, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t SendAtfSmcCmd_dbg_write(uint32_t u4Opid, int32_t par2, int32_t par3)
+{
+        struct arm_smccc_res res;
+        arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+                        par2, par3, 0, 0, 0, 0, &res);
+        return res.a0;
+}
+
+static inline uint32_t SendAtfSmcCmd_power_off(uint32_t u4Opid, uint32_t value)
+{
+	struct arm_smccc_res res;
+	arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+			value, 0, 0, 0, 0, 0, &res);
+	return res.a0;
+}
+
+static inline uint32_t SendAtfSmcCmd_conn_infra_force_on_off(uint32_t u4Opid, uint32_t set)
+{
+	struct arm_smccc_res res;
+	arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+			set, 0, 1, 2, 3, 4, &res);
+	return res.a0;
+}
+#endif
 
 #endif

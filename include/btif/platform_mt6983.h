@@ -280,10 +280,12 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		BTMTK_ERR("CONNINFRA_CFG_VERSION ioremap fail");
 		return -1;
 	}
-
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 1);
+#else
 	/* wake up conn_infra off */
-	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
+        SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 	/* wait 200 us to avoid fake ready */
 	udelay(200);
 
@@ -435,7 +437,11 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	for (i = 0xC0010100; i <= 0xC0015D00; i += 0x200) {
 		if (i == 0xC0010D00 || i == 0xC0011700 || i == 0xC0012500 || i ==0xC0015D00)
 			continue;
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_bgfsys_smc(SMC_BT_BGF_DRIVER_DUMP, i);
+#else
 		REG_WRITEL(base + 0x04, i);
+#endif
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1)){
@@ -477,7 +483,11 @@ static void inline bt_dump_bgf_mcu_dma_flag(void)
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF MCU DMA debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0011700; i <= 0xC0011707; i++) {
-		REG_WRITEL(base + 0x04, i);
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_bgfsys_smc(SMC_BT_BGF_DRIVER_DUMP, i);
+#else
+                REG_WRITEL(base + 0x04, i);
+#endif
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1)){
@@ -519,7 +529,11 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF BUS debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0012510; i <= 0xC00125A0; i += 0x10) {
-		REG_WRITEL(base + 0x04, i);
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_bgfsys_smc(SMC_BT_BGF_DRIVER_DUMP, i);
+#else
+                REG_WRITEL(base + 0x04, i);
+#endif
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1)){
@@ -607,7 +621,11 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF MCU core debug flag] Count = (%d)", cr_count);
 	for (i = 0xC0015D00; i <= 0xC0015D25; i++) {
-		REG_WRITEL(base + 0x04, i);
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_bgfsys_smc(SMC_BT_BGF_DRIVER_DUMP, i);
+#else
+                REG_WRITEL(base + 0x04, i);
+#endif
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1)){
@@ -649,7 +667,11 @@ static inline void bt_dump_bgfsys_mcu_pc_log(void)
 	/* write 0x18023A04, read 0x18023A00 */
 	BTMTK_INFO("[BGF MCU PC/LR log] Count = (%d)", cr_count);
 	for (i = 0xC0010D00; i <= 0xC0010D54; i++) {
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_bgfsys_smc(SMC_BT_BGF_DRIVER_DUMP, i);
+#else
 		REG_WRITEL(base + 0x04, i);
+#endif
 		value = REG_READL(base);
 		ret = snprintf(pos, (end - pos + 1), "%08x ", value);
 		if (ret < 0 || ret >= (end - pos + 1)){
@@ -690,12 +712,20 @@ static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x794, value);
 	pos += ret;
 
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_dump_bgfsys_suspend_wakeup_debug_smc(SMC_BT_SUSPEND_WAKEUP, 0x300508);
+#else
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300508);
+#endif
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
 	ret = snprintf(pos, (end - pos + 1), "BT[0x%08x]=[0x%08x], ", 0x18060000 + 0xC00, value);
         pos += ret;
-	
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_dump_bgfsys_suspend_wakeup_debug_smc(SMC_BT_SUSPEND_WAKEUP, 0x300507);
+#else
         REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xC04, 0x300507);
+#endif
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
 	ret = snprintf(pos, (end - pos + 1), "MCU[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
 
@@ -767,8 +797,13 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 
 host_csr_only:
 	bt_dump_bgfsys_all();
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 }
 
 /* bt_cif_dump_own_cr
@@ -814,7 +849,11 @@ static inline void bt_dump_cif_own_cr(void)
 		BTMTK_INFO("0x18001604 = [0x%08x]", value);
 
 		value = 0x87654321;
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_dump_cif_own_cr_one_smc(SMC_BT_PWR_ON_DUMP_CIF_OWN_CR_ONE_OPID, value);
+#else
 		REG_WRITEL(CON_REG_INFRA_CFG_ADDR + 0x10, value);
+#endif
 		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x10);
 		BTMTK_INFO("0x18001010 = [0x%08x]", value);
 
@@ -863,16 +902,25 @@ host_csr_only:
 	BTMTK_INFO("0x1806003C = [0x%08x]", value);
 
 	value = 0x12345678;
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_dump_cif_own_cr_two_smc(SMC_BT_PWR_ON_DUMP_CIF_OWN_CR_TWO_OPID);
+#else
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0x188, value);
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x188);
 	BTMTK_INFO("0x18060188 = [0x%08x]", value);
 
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0xA8, 0x194C4BA7);
 	BTMTK_INFO("Write [0x180600A8] = [0x194C4BA7]");
-
+#endif
 	bt_dump_bgfsys_all();
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 }
 
 static inline int32_t bgfsys_get_sw_irq_status(void)
@@ -884,7 +932,9 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 		bt_dump_bgfsys_all();
 		return RET_SWIRQ_ST_FAIL;
 	}
-
+#if (CFG_BT_ATF_SUPPORT == 1)
+        value = bgfsys_get_sw_irq_status_smc(SMC_BT_GET_SW_IRQ_STATUS);
+#else
 	/* read sw irq status*/
 	value = bt_read_cr(BGF_SW_IRQ_STATUS);
 
@@ -895,7 +945,7 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 	} else if (value &  BGF_WHOLE_CHIP_RESET){
 		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET, TRUE);
 	}
-
+#endif
 	return value;
 }
 
@@ -925,7 +975,7 @@ static inline void bgfsys_ack_sw_irq_reset(void)
 static inline void bgfsys_power_on_dump_cr(void)
 {
 	uint32_t i;
-	uint32_t val_w, val_r;
+	uint32_t val_r;
 	int32_t is_bus_hang = 0;
 
 	is_bus_hang = conninfra_is_bus_hang();
@@ -966,6 +1016,11 @@ static inline void bgfsys_power_on_dump_cr(void)
 	}
 
 host_csr_only:
+#if (CFG_BT_ATF_SUPPORT == 1)
+	bgfsys_power_on_dump_cr_smc(SMC_BT_PWR_ON_DUMP_CR_OPID);
+#else
+	uint32_t i;
+	uint32_t val_w, val_r;
 	for(i = 0x0F; i >= 0x01; i--) {
 		val_w = (i << 16) + 0x0001;
 		REG_WRITEL(CONN_HOST_CSR_TOP_START + 0x0128, val_w);
@@ -998,10 +1053,16 @@ host_csr_only:
 	BTMTK_INFO("%s: REG[0x18060268] read[0x%08x]", __func__, val_r);
 	val_r = REG_READL(CON_REG_SPM_BASE_ADDR + 0x26C);
 	BTMTK_INFO("%s: REG[0x1806026C] read[0x%08x]", __func__, val_r);
+#endif
 
 	bt_dump_bgfsys_all();
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 }
 
 static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
@@ -1056,12 +1117,23 @@ static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
  */
 static inline int32_t bgfsys_power_on(void)
 {
+	//uint32_t value = 0;
+        int32_t retry = POS_POLLING_RTY_LMT;
+        uint32_t delay_ms = 5;
+        uint32_t mcu_idle, mcu_pc;
+        uint8_t *base = NULL;
+#if (CFG_BT_ATF_SUPPORT == 1)
+	int32_t ret = 0;
+        ret = bgfsys_power_on_smc(SMC_BT_PWR_ON_TOP_CONSYS_MCU_OPID);
+	BTMTK_INFO("bgfsys_power_on_smc top, ret = %d", ret);
+	if (ret < 0)
+		goto error;
+#else
 	uint32_t value;
 	int32_t retry = POS_POLLING_RTY_LMT;
 	uint32_t delay_ms = 5;
 	uint32_t mcu_idle, mcu_pc;
 	uint8_t *base = NULL;
-
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
 
@@ -1087,14 +1159,19 @@ static inline int32_t bgfsys_power_on(void)
 
 	/* enable bt function en */
 	SET_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
-
+#endif
 	if (!conninfra_reg_readable()) {
 		if (conninfra_is_bus_hang() > 0) {
 			BTMTK_ERR("%s: check conninfra status fail after set CONN_INFRA_CFG_BT_PWRCTLCR0!", __func__);
 			goto error;
 		}
 	}
-
+#if (CFG_BT_ATF_SUPPORT == 1)
+        ret = bgfsys_power_on_smc(SMC_BT_PWR_ON_MID_CONSYS_MCU_OPID);
+        BTMTK_INFO("bgfsys_power_on_smc mid, ret = %d", ret);
+        if (ret < 0)
+                goto error;
+#else
 	/* polling bgfsys top off power ack bits until they are asserted */
 	retry = POS_POLLING_RTY_LMT;
 	do {
@@ -1255,6 +1332,10 @@ static inline int32_t bgfsys_power_on(void)
 		BTMTK_WARN("ioremap 0x18023A00 fail");
 	else
 		REG_WRITEL(base + 4, 0xC0010D2A);
+#endif
+	base = ioremap(0x18023A00, 0x10);
+        if (!base)
+                BTMTK_WARN("ioremap 0x18023A00 fail");
 
 	do {
 		if (conninfra_reg_readable()) {
@@ -1286,21 +1367,35 @@ static inline int32_t bgfsys_power_on(void)
 		bt_dump_cif_own_cr();
 		return -1;
 	}
-
+#if (CFG_BT_ATF_SUPPORT == 1)
+        ret = bgfsys_power_on_smc(SMC_BT_PWR_ON_END_CONSYS_MCU_OPID);
+        BTMTK_INFO("bgfsys_power_on_smc end, ret = %d", ret);
+        if (ret < 0)
+                goto error;
+#else
 	/* reset BGF_SW_IRQ */
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
+#endif
 
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+	bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
 	/* release conn_infra force on, force on at bgfsys_mcu_rom_patch_dl */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
+#endif
 	return 0;
 
 error:
 	bgfsys_power_on_dump_cr();
 
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 
 	return -1;
 
@@ -1317,18 +1412,28 @@ error:
  *     0 if success, otherwise error code
  *
  */
+
 static inline int32_t bgfsys_power_off(void)
 {
 	uint32_t value = 0;
-	int32_t retry = POS_POLLING_RTY_LMT;
+	//int32_t retry = POS_POLLING_RTY_LMT;
 	int32_t ret = 0;
-	uint32_t addr = 0;
-	uint32_t *remap_addr = NULL;
+	//uint32_t addr = 0;
+	//uint32_t *remap_addr = NULL;
 
 	/* wake up conn_infra */
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		return ret;
+#if (CFG_BT_ATF_SUPPORT == 1)
+        ret = bgfsys_power_off_smc(SMC_BT_PWR_OFF_TOP_CONSYS_MCU_OPID, 0);
+        BTMTK_INFO("bgfsys_power_off_smc top, ret = %d", ret);
+#else
+        uint32_t value = 0;
+        int32_t retry = POS_POLLING_RTY_LMT;
+        int32_t ret = 0;
+        uint32_t addr = 0;
+        uint32_t *remap_addr = NULL;
 
 	/* enable bt2conn slp_prot tx en */
 	SET_BIT(CONN_INFRA_BT2CONN_GALS_SLP_CTL, BT2CONN_SLP_PROT_TX_EN_B);
@@ -1389,10 +1494,13 @@ static inline int32_t bgfsys_power_off(void)
 
 	if (retry == 0)
 		ret = -1;
-
+#endif
 	if (ret == -2)
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "Power off fail");
-
+#if (CFG_BT_ATF_SUPPORT == 1)
+        ret = bgfsys_power_off_smc(SMC_BT_PWR_OFF_MID_CONSYS_MCU_OPID, 0);
+        BTMTK_INFO("bgfsys_power_off_smc mid, ret = %d", ret);
+#else
 	/* disable bt function en */
 	CLR_BIT(CONN_INFRA_CFG_BT_PWRCTLCR0, BT_FUNC_EN_B);
 
@@ -1403,12 +1511,18 @@ static inline int32_t bgfsys_power_off(void)
 
 	/* reset n10 cpu core */
 	CLR_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
-
+#endif
 	/* reset IRQ */
 	usleep_range(1000, 1100);
 	value = bgfsys_get_sw_irq_status();
 	BTMTK_INFO("%s: bgf_status[0x%08x]", __func__, value);
 
+#if (CFG_BT_ATF_SUPPORT == 1)
+        ret = bgfsys_power_off_smc(SMC_BT_PWR_OFF_END_CONSYS_MCU_OPID, value);
+        BTMTK_INFO("bgfsys_power_off_smc end, ret = %d", ret);
+#else
+	uint32_t addr = 0;
+	uint32_t *remap_addr = NULL;
 	/* Disable A-die top_ck_en_2
 	 * 0x18003128	WR	0x18003128[0] == 1'b0
 	 * 0x18003128	POLLING 0x18003128[1] == 1'b0
@@ -1455,7 +1569,7 @@ static inline int32_t bgfsys_power_off(void)
 		BTMTK_ERR("ioremap [0x%08x] fail", addr);
 		return -1;
 	}
-
+#endif
 	if (ret)
 		bgfsys_power_on_dump_cr();
 
@@ -1463,8 +1577,12 @@ static inline int32_t bgfsys_power_off(void)
 	udelay(50);
 	bgfsys_dump_conn_wt_slp_ctrl_reg();
 
-	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 
 	return ret;
 }
