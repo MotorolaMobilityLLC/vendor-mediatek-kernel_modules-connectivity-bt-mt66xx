@@ -1209,6 +1209,7 @@ int btmtk_load_code_from_bin(u8 **image, char *bin_name, struct device *dev,
 	*image = vmalloc(ALIGN_4(fw_entry->size));
 	if (*image == NULL) {
 		*code_len = 0;
+		release_firmware(fw_entry);
 		BTMTK_ERR("%s: vmalloc failed!! error code = %d", __func__, err);
 		return -1;
 	}
