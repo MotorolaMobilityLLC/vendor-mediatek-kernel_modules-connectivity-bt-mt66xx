@@ -26,6 +26,8 @@ ifneq (true,$(strip $(TARGET_NO_KERNEL)))
   include $(LOCAL_PATH_B)/btif/Android.mk
   BT_PLATFORM := 6895
   include $(LOCAL_PATH_B)/btif/Android.mk
+  BT_PLATFORM := 6886
+  include $(LOCAL_PATH_B)/btif/Android.mk
 endif
 endif
 
