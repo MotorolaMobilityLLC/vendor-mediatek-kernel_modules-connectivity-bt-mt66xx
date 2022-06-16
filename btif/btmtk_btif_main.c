@@ -261,8 +261,10 @@ static int btmtk_pm_notifier_callback(struct notifier_block *nb,
 
 	switch (event) {
 		case PM_SUSPEND_PREPARE:
-			BTMTK_INFO("%s: bt_state[%d], event[%ld]",
-					__func__, cif_dev->bt_state, event);
+			if(cif_dev->bt_state != FUNC_ON) {
+				BTMTK_INFO("%s: bt_state[%d], event[%ld]",
+						__func__, cif_dev->bt_state, event);
+			}
 		case PM_POST_SUSPEND:
 			if(cif_dev->bt_state == FUNC_ON) {
 				bt_dump_bgfsys_suspend_wakeup_debug();
