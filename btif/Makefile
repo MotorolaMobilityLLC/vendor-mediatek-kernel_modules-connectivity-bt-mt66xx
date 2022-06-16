@@ -48,7 +48,7 @@ $(info $(LOG_TAG) support bin to img)
 else ifneq ($(filter 6886, $(BT_PLATFORM)),)
 $(info $(LOG_TAG) support bin to img)
     ccflags-y += -D SUPPORT_BIN2IMG=1
-    ccflags-y += -D CFG_BT_ATF_SUPPORT=0
+    ccflags-y += -D CFG_BT_ATF_SUPPORT=1
 else
 $(info $(LOG_TAG) not support bin to img)
     ccflags-y += -D SUPPORT_BIN2IMG=0
