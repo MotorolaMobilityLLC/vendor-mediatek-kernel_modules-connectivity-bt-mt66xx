@@ -843,7 +843,11 @@ void bthost_debug_print(void)
 	end = pos + 700 - 1;
 
 	ret = snprintf(pos, (end - pos + 1), "[bt host info] ");
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [bt host info] fail");
+	} else {
+		pos += ret;
+	}
 
 	for (i = 0; i < BTHOST_INFO_MAX; i++){
 		if (bthost_info_table[i].id == 0){
