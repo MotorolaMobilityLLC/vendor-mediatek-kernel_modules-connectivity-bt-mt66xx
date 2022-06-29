@@ -1326,13 +1326,13 @@ static inline int32_t bgfsys_power_on(void)
 	 * polling BGFSYS MCU sw_dbg_ctl cr to wait it becomes 0x1D1E,
 	 * which indicates that the power-on part of ROM is completed.
 	 */
-	retry = IDLE_LOOP_RTY_LMT;
 	base = ioremap(0x18023A00, 0x10);
 	if (!base)
 		BTMTK_WARN("ioremap 0x18023A00 fail");
 	else
 		REG_WRITEL(base + 4, 0xC0010D2A);
 #endif
+	retry = IDLE_LOOP_RTY_LMT;
 	base = ioremap(0x18023A00, 0x10);
         if (!base)
                 BTMTK_WARN("ioremap 0x18023A00 fail");
