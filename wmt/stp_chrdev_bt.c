@@ -113,7 +113,7 @@ void bthost_debug_init(void)
 void bthost_debug_print(void)
 {
 	uint32_t i = 0;
-	uint32_t ret = 0;
+	int32_t ret = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	uint8_t dump_buffer[700] = {0};
 
