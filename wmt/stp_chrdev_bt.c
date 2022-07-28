@@ -121,7 +121,10 @@ void bthost_debug_print(void)
 	end = pos + 700 - 1;
 
 	ret = snprintf(pos, (end - pos + 1), "[bt host info] ");
-	pos += ret;
+	if (ret < 0)
+		BT_LOG_PRT_ERR("%s: snprintf fail ret[%d]", __func__, ret);
+	else
+		pos += ret;
 
 	for (i = 0; i < BTHOST_INFO_MAX; i++) {
 		if (bthost_info_table[i].id == 0) {
@@ -752,7 +755,7 @@ static void pm_qos_set_feature(void)
 		rc = of_property_read_u32(node, DTS_QOS_KEY, &pm_qos_support);
 		if (!rc)
 			BT_LOG_PRT_ERR("get property[%s] fail!\n", DTS_QOS_KEY);
-	} else 
+	} else
 		BT_LOG_PRT_ERR("get dts[mediatek,bt] fail!\n");
 
 	BT_LOG_PRT_INFO("property[%s] = %d\n", DTS_QOS_KEY, pm_qos_support);
