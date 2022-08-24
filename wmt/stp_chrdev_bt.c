@@ -55,7 +55,7 @@ static struct device *stpbt_dev;
 static UINT8 i_buf[BT_BUFFER_SIZE]; /* Input buffer for read */
 static UINT8 o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
 
-static struct semaphore wr_mtx, rd_mtx;
+static struct semaphore wr_mtx, rd_mtx, bt_on_mtx;
 static struct wakeup_source *bt_wakelock;
 /* Wait queue for poll and read */
 static wait_queue_head_t inq;
@@ -774,8 +774,11 @@ static void pm_qos_release(struct work_struct *pwork)
 
 static int BT_open(struct inode *inode, struct file *file)
 {
+	down(&bt_on_mtx);
+
 	if(btonflag) {
 		BT_LOG_PRT_WARN("BT already on!\n");
+		up(&bt_on_mtx);
 		return -EIO;
 	}
 
@@ -786,10 +789,13 @@ static int BT_open(struct inode *inode, struct file *file)
 	/* Turn on BT */
 	if (mtk_wcn_wmt_func_on(WMTDRV_TYPE_BT) == MTK_WCN_BOOL_FALSE) {
 		BT_LOG_PRT_WARN("WMT turn on BT fail!\n");
+		up(&bt_on_mtx);
 		return -EIO;
 	}
 
 	BT_LOG_PRT_INFO("WMT turn on BT OK!\n");
+
+	up(&bt_on_mtx);
 
 	if (mtk_wcn_stp_is_ready() == MTK_WCN_BOOL_FALSE) {
 
@@ -954,6 +960,8 @@ static int BT_init(void)
 	fw_log_bt_init();
 #endif
 	bt_dev_dbg_init();
+
+	sema_init(&bt_on_mtx, 1);
 
 	pm_qos_set_feature();
 	if(pm_qos_support) {
