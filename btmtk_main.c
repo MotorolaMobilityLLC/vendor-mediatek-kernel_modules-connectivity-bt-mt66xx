@@ -1199,6 +1199,7 @@ int btmtk_load_code_from_bin(u8 **image, char *bin_name, struct device *dev,
 			*image = NULL;
 			BTMTK_INFO("%s: request_firmware %d times fail, maybe file not exist, err = %d",
 				__func__, 10, err);
+			release_firmware(fw_entry);
 			return -1;
 		}
 		BTMTK_INFO("%s: request_firmware fail, maybe file not exist, err = %d, retry = %d",
