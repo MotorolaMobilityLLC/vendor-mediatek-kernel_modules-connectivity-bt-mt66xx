@@ -658,19 +658,28 @@ OUT:
 long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	INT32 retval = 0;
-	UINT32 reason;
+	UINT32 reason = 0;
 	UINT32 ver = 0;
 	uint8_t host_dbg_buff[32]; //arg: id[0:3], value[4:7], desc[8:31]
 	BT_LOG_PRT_DBG("cmd: 0x%08x\n", cmd);
+
+	if (_IOC_TYPE(cmd) != COMBO_IOC_MAGIC) {
+		BT_LOG_PRT_ERR("Bad magic num:%c", _IOC_TYPE(cmd));
+		return -ENOTTY;
+	}
 
 	switch (cmd) {
 	case COMBO_IOCTL_FW_ASSERT:
 		/* Trigger FW assert for debug */
 		reason = (UINT32)arg & 0xFFFF;
 		BT_LOG_PRT_INFO("Host trigger FW assert......, reason:%d\n", reason);
-		if (reason == 31) /* HCI command timeout */
+		if (reason == 31) { /* HCI command timeout */
 			BT_LOG_PRT_INFO("HCI command timeout OpCode 0x%04x\n", ((UINT32)arg >> 16) & 0xFFFF);
-
+                } else {
+                	BT_LOG_PRT_ERR("Not support reason:%d\n", reason);
+			retval = -EOPNOTSUPP;
+			break;
+                }
 		if (mtk_wcn_wmt_assert(WMTDRV_TYPE_BT, reason) == MTK_WCN_BOOL_TRUE) {
 			BT_LOG_PRT_INFO("Host trigger FW assert succeed\n");
 			retval = 0;
