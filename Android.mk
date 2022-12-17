@@ -5,6 +5,13 @@ BT_PLATFORM:=$(subst MTK_CONSYS_MT,,$(MTK_BT_CHIP))
 $(info [BT_Drv] MTK_BT_SUPPORT = $(MTK_BT_SUPPORT))
 $(info [BT_Drv] MTK_BT_CHIP = $(MTK_BT_CHIP))
 
+BT_CONFIG_TRACING=n
+ifeq ($(BT_CONFIG_TRACING),y)
+ifeq ($(CONFIG_TRACING),n)
+	$(error BT_CONFIG_TRACING not support CONFIG_TRACING=n, build error)
+endif
+endif
+
 ifeq ($(strip $(MTK_BT_SUPPORT)), yes)
 ifneq (true,$(strip $(TARGET_NO_KERNEL)))
   # connac1x
