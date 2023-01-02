@@ -375,7 +375,8 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 						uint16_t data_len)
 {
 	uint32_t start_offset, ready_offset;
-	uint32_t ready_status = 0;
+//	uint32_t ready_status = 0;
+//	uint16_t i;
 
 	start_offset = start_addr & 0x00000FFF;
 	ready_offset = ready_addr & 0x00000FFF;
@@ -394,12 +395,22 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
 		return;
 	}
+#if (CFG_BT_ATF_SUPPORT == 1)
+/*
+	for(i = 0; i < data_len; i++) {
+		BTMTK_INFO("![%s] data_len=%d, start_offset=0x%08x, *(cal_data++)=0x%08x", __func__, data_len, start_offset, *(cal_data++));
+		bgfsys_cal_data_restore_one_smc(SMC_BT_CAL_DATA_RESTORE_ONE, start_offset + i, *(cal_data++));
+	}
+*/
+#else
+	uint32_t ready_status = 0;
 
 	memcpy_toio((volatile void *)(CON_REG_INFRA_SYS_ADDR + start_offset), cal_data, data_len);
 	/* Firmware will not do calibration again when BT func on */
 	REG_WRITEL(CON_REG_INFRA_SYS_ADDR + ready_offset, CAL_READY_BIT_PATTERN);
 	ready_status = REG_READL(CON_REG_INFRA_SYS_ADDR + ready_offset);
 	BTMTK_DBG("Ready pattern after restore cal=[0x%08x]", ready_status);
+#endif
 }
 
 /* __download_patch_to_emi
