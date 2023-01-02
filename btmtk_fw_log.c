@@ -16,7 +16,13 @@
  * - 0x02: SQC
  * - 0x03: Debug
  */
-#define BT_FWLOG_DEFAULT_LEVEL 0x02
+
+
+#if (FW_LOG_DEFAULT_ON == 0)
+	#define BT_FWLOG_DEFAULT_LEVEL 0x00
+#else
+	#define BT_FWLOG_DEFAULT_LEVEL 0x02
+#endif
 
 /* CTD BT log function and log status */
 static wait_queue_head_t BT_log_wq;

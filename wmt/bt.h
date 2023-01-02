@@ -119,7 +119,13 @@ struct pm_qos_ctrl {
  * BT Logger Tool will send 3 levels(Low, SQC and Debug)
  * Driver will not check its range so we can provide capability of extention.
  ******************************************************************************************/
-#define DEFAULT_LEVEL 0x02 /* 0x00:OFF, 0x01: LOW POWER, 0x02: SQC, 0x03: DEBUG */
+/* 0x00:OFF, 0x01: LOW POWER, 0x02: SQC, 0x03: DEBUG */
+
+#if (FW_LOG_DEFAULT_ON == 0)
+	#define DEFAULT_LEVEL 0x00
+#else
+	#define DEFAULT_LEVEL 0x02
+#endif
 
 extern int  fw_log_bt_init(void);
 extern void fw_log_bt_exit(void);
