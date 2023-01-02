@@ -491,6 +491,14 @@ static inline void bt_psm_deinit(struct bt_psm_ctrl *psm)
 	bt_wake_lock_deinit(&psm->wake_lock);
 }
 
+static inline int osal_strtol(const char *str, unsigned int adecimal, long *res)
+{
+	if (sizeof(long) == 4)
+		return kstrtou32(str, adecimal, (unsigned int *) res);
+	else
+		return kstrtol(str, adecimal, res);
+}
+
 /**
  * Send cmd dispatch evt
  */

@@ -1022,6 +1022,108 @@ int32_t btmtk_intcmd_wmt_power_on(struct hci_dev *hdev)
 	return ret;
 }
 
+int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
+{
+	#define BT_FW_CFG_FILE	"BT_FW.cfg"
+	#define BT_FW_CFG_TAG	"[driver_antenna]"
+
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
+	uint32_t i = 0, len = 0;
+	uint8_t *p_img = NULL;
+	uint8_t *ptr = NULL, *pRaw = NULL, findTag[30] = {0};
+	uint8_t cmd[32] = {0};
+	long val = 0;
+	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
+
+	BTMTK_INFO("%s: load config [%s]", __func__, BT_FW_CFG_FILE);
+	btmtk_load_code_from_bin(&p_img, BT_FW_CFG_FILE, NULL, &len, 10);
+	if (p_img == NULL) {
+		BTMTK_WARN("%s: get config file fail!", __func__);
+		return 0;
+	}
+
+	/* find tag: [BT_FW_CFG_TAG][CONNAC20_CHIPID] */
+	if (snprintf(findTag, sizeof(findTag), "%s[%d] ", BT_FW_CFG_TAG, CONNAC20_CHIPID) < 0) {
+		BTMTK_INFO("%s: snprintf error", __func__);
+		goto done;
+	}
+
+	p_img[len - 1] = 0;
+	ptr = strstr(p_img, findTag);
+	if (ptr == NULL) {
+		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antenna setting", __func__);
+		return 0;
+	}
+
+	memcpy(cmd, cmd_header, sizeof(cmd_header));
+
+	/*
+	 * command and event example
+	 *  0  1  2  3  4  5  6  7  8  9  A
+	 * 01 6F FC PP 01 55 LL LL 00 MM NN XX XX XX
+	 * PP : WMT length = LL + 4
+	 * LL LL : length = NN + 3
+	 * MM : ant swap mode
+	 * NN : ant pin num
+	 * XX XX : NN bytes data
+	 * 02 55 02 00 00 SS
+	 * SS : status
+	 */
+
+	/* parse parameter */
+	ptr += (int)strlen(findTag);
+
+	/* find line feed */
+	pRaw = ptr;
+	while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
+		pRaw++;
+	*pRaw = 0;
+
+	len = sizeof(cmd_header);
+	pRaw = ptr;
+	/* separate by space to get paramter */
+	for (i = 0; ; i++) {
+		ptr = strsep((char **)&pRaw, " ");
+		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
+			cmd[len++] = val;
+		else
+			break;
+	}
+
+	/* check input size and also boundary check */
+	if (cmd[10] != (i - 2) || cmd[10] > 25) {
+		BTMTK_ERR("input antenna parameter length incorrect len = %d", cmd[10]);
+		goto done;
+	}
+
+	/* we only allocate 32 bytes cmd buffer, only 25 pins are allowed,
+	 * so total length won't more than a byte, cmd[7] is not neccessary to assign value */
+	cmd[6] = cmd[10] + 3;
+	cmd[3] = cmd[6] + 4;
+
+	BTMTK_INFO_RAW(cmd, len, "%s: Send: ", __func__);
+
+	down(&cif_dev->internal_cmd_sem);
+	cif_dev->event_intercept = TRUE;
+	p_inter_cmd->waiting_event = 0xE4;
+	p_inter_cmd->pending_cmd_opcode = 0xFC6F;
+	p_inter_cmd->wmt_opcode = WMT_OPCODE_ANT_EFEM;
+	p_inter_cmd->result = WMT_EVT_INVALID;
+
+	btmtk_main_send_cmd(g_sbdev, cmd, len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+
+	cif_dev->event_intercept  = FALSE;
+	up(&cif_dev->internal_cmd_sem);
+	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
+	return p_inter_cmd->result;
+
+done:
+	if (p_img)
+		vfree(p_img);
+	return -1;
+}
+
 /* btmtk_intcmd_wmt_power_off
  *
  *    Send BT func off (cmd won't send during reset flow)
@@ -1605,6 +1707,13 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	ret = btmtk_intcmd_send_connfem_cmd();
 	if (ret) {
 		BTMTK_ERR("btmtk_send_confem_cmd fail");
+		//goto wmt_power_on_error;
+	}
+
+	/* 9.6 send antenna command before BT on */
+	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev);
+	if (ret) {
+		BTMTK_ERR("btmtk_send_wmt_antenna_cmd fail");
 		//goto wmt_power_on_error;
 	}
 
