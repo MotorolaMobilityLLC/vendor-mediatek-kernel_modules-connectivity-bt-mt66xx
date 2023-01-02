@@ -632,6 +632,10 @@ static int32_t bt_hw_and_mcu_on(void)
 		goto power_on_error;
 	}
 
+	/*reset sw_irq*/
+	bgfsys_ack_sw_irq_reset();
+	bgfsys_ack_sw_irq_fwlog();
+
 	/* Register all needed IRQs by MCU */
 	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 	if (ret)
@@ -682,6 +686,13 @@ static void bt_hw_and_mcu_off(void)
 	BTMTK_INFO("%s", __func__);
 	/* Close hardware bus interface */
 	btmtk_wcn_btif_close();
+
+	/*reset sw_irq*/
+	bgfsys_ack_sw_irq_reset();
+	bgfsys_ack_sw_irq_fwlog();
+
+	bt_disable_irq(BGF2AP_SW_IRQ);
+	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 
 	/* Free all registered IRQs */
 	bt_free_irq(BGF2AP_SW_IRQ);
