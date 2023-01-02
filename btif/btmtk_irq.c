@@ -171,8 +171,6 @@ void bt_conn2ap_irq_handler(void)
 	value = bt_read_cr(BT_SSPM_TIMER);
 	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
 	bt_trigger_reset();
-	bt_enable_irq(BT_CONN2AP_SW_IRQ);
-
 }
 /* btmtk_reset_init()
  *
