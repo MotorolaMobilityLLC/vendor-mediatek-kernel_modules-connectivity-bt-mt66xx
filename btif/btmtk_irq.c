@@ -67,7 +67,7 @@ static struct work_struct rst_trigger_work;
 static void bt_reset_work(struct work_struct *work)
 {
 	BTMTK_INFO("Trigger subsys reset");
-	bt_chip_reset_flow(RESET_LEVEL_0_5, CONNDRV_TYPE_BT, "Subsys reset");
+	bt_chip_reset_flow(RESET_LEVEL_0_5, CONNDRV_TYPE_BT, "BT Subsys reset");
 }
 
 /* bt_trigger_reset
