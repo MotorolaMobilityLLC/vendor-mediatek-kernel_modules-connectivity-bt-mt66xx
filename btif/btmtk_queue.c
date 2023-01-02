@@ -103,8 +103,8 @@ int32_t rx_skb_enqueue(struct sk_buff *skb)
 	int32_t ret = 0;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	if (skb->len == 0) {
-		BTMTK_WARN("Inavlid data event, skip, length = %d", skb->len);
+	if ( !skb || skb->len == 0) {
+		BTMTK_WARN("Inavlid data event, skip, skb = NULL or skb len = 0");
 		ret = -1;
 		goto end;
 	}
