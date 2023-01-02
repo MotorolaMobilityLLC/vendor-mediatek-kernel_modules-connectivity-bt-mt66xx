@@ -1538,6 +1538,9 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 9. Init debug interface */
 	bt_dev_dbg_init();
 
+	/* 10. Init rst_onoff_waitq */
+	init_waitqueue_head(&cif_dev->rst_onoff_waitq);
+
 	/* Register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
 	bt_pwrctrl_register_evt();

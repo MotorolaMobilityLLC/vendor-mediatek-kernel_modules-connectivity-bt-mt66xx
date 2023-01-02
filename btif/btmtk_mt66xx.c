@@ -1591,7 +1591,6 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_level = RESET_LEVEL_NONE;
 	cif_dev->rst_count = 0;
 	cif_dev->rst_flag = FALSE;
-	init_waitqueue_head(&cif_dev->rst_onoff_waitq);
 
 	/* 9.5 send connfem command before BT on */
 	ret = btmtk_intcmd_send_connfem_cmd();
