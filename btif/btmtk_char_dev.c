@@ -63,6 +63,7 @@ static uint8_t o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
 static uint8_t ioc_buf[IOCTL_BT_HOST_INTTRX_SIZE];
 
 extern struct btmtk_dev *g_sbdev;
+extern bool g_bt_trace_pt;
 extern struct btmtk_btif_dev g_btif_dev;
 extern void bthost_debug_init(void);
 extern void bthost_debug_save(uint32_t id, uint32_t value, char* desc);
@@ -212,7 +213,8 @@ static ssize_t __bt_write(uint8_t *buf, size_t count, uint32_t flags)
 {
 	int32_t retval = 0;
 
-	bt_dbg_tp_evt(TP_ACT_WR_IN, 0, count, buf);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_WR_IN, 0, count, buf);
 	retval = btmtk_send_data(g_sbdev->hdev, buf, count);
 
 	if (retval < 0)
@@ -309,7 +311,8 @@ static ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t
 {
 	ssize_t retval = 0;
 
-	bt_dbg_tp_evt(TP_ACT_RD_IN, 0, count, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_RD_IN, 0, count, NULL);
 	ftrace_print("%s get called, count %zd", __func__, count);
 	down(&rd_mtx);
 
@@ -374,7 +377,8 @@ static ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t
 			wait_event(BT_wq, flag != 0);
 			flag = 0;
 		} else { /* Got something from RX queue */
-			bt_dbg_tp_evt(TP_ACT_RD_OUT, 0, retval, i_buf);
+			if (g_bt_trace_pt)
+				bt_dbg_tp_evt(TP_ACT_RD_OUT, 0, retval, i_buf);
 			break;
 		}
 	} while (btmtk_rx_data_valid() && rstflag == CHIP_RESET_NONE);

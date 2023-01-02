@@ -101,6 +101,7 @@ static struct fwp_info g_fwp_info;
 ********************************************************************************
 */
 
+extern bool g_bt_trace_pt;
 extern struct btmtk_dev *g_sbdev;
 extern struct bt_dbg_st g_bt_dbg_st;
 
@@ -1569,7 +1570,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
 	/*
 	 *  1. ConnInfra hardware power on (Must be the first step)
 	 *
@@ -1803,7 +1805,8 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	BTMTK_INFO("%s", __func__);
-	bt_dbg_tp_evt(TP_ACT_PWR_OFF, 0, 0, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_PWR_OFF, 0, 0, NULL);
 
 	down(&cif_dev->halt_sem);
 
