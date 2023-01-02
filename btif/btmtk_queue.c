@@ -459,11 +459,13 @@ void update_command_response_workqueue(void)
 void cmd_workqueue_exit(void)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
-
-	BTMTK_INFO("exit workqueue");
+	int ret = 0;
 	if(workqueue_task != NULL) {
-		cancel_delayed_work(&work);
+		ret = cancel_delayed_work(&work);
+		BTMTK_INFO("cancel workqueue before flush ret[%d]", ret);
 		flush_workqueue(workqueue_task);
+		ret = cancel_delayed_work(&work);
+		BTMTK_INFO("cancel workqueue after flush ret[%d]", ret);
 		down(&cif_dev->cmd_tout_sem);
 		destroy_workqueue(workqueue_task);
 		workqueue_task = NULL;
