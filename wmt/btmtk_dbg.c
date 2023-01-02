@@ -35,6 +35,7 @@ typedef struct {
 *			      P U B L I C   D A T A
 ********************************************************************************
 */
+bool g_bt_trace_pt = TRUE;
 
 /*******************************************************************************
 *                  F U N C T I O N   D E C L A R A T I O N S
@@ -43,6 +44,7 @@ typedef struct {
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
 static int bt_dbg_setlog_level(int par1, int par2, int par3);
 static int bt_dbg_is_adie_work(int par1, int par2, int par3);
+static int bt_dbg_trace_pt(int par1, int par2, int par3);
 
 /*******************************************************************************
 *			     P R I V A T E   D A T A
@@ -62,6 +64,7 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0xb] = {bt_dbg_setlog_level,		TRUE},
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
 	[0x12] = {bt_dbg_is_adie_work,		TRUE},
+	[0x15] = {bt_dbg_trace_pt,		FALSE},
 };
 
 /*******************************************************************************
@@ -84,6 +87,15 @@ int bt_dbg_get_bt_state(int par1, int par2, int par3)
 	g_bt_dump_buf[0] = g_bt_turn_on;
 	g_bt_dump_buf[1] = '\0';
 	g_bt_dump_buf_len = 2;
+	return 0;
+}
+
+int bt_dbg_trace_pt(int par1, int par2, int par3)
+{
+	if(par2 == 0)
+		g_bt_trace_pt = FALSE;
+	else
+		g_bt_trace_pt = TRUE;
 	return 0;
 }
 
