@@ -384,7 +384,7 @@ static inline uint32_t bt_dump_bgfsys_suspend_wakeup_debug_smc(uint32_t u4Opid, 
         return res.a0;
 }
 
-static inline uint32_t bgfsys_cal_data_restore_one_smc(uint32_t u4Opid, uint32_t start_offset, uint8_t cal_data)
+static inline uint32_t bgfsys_cal_data_restore_one_smc(uint32_t u4Opid, uint32_t start_offset, uint32_t cal_data)
 {
         struct arm_smccc_res res;
         arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
