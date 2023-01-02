@@ -443,11 +443,11 @@ static long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long
 			BTMTK_INFO_RAW(ioc_buf, ioc_buf[3] + 4, "%s: len[%d] TX: ", __func__, ioc_buf[3] + 4);
 			/* DynamicAdjustTxPower function */
 			if (ioc_buf[0] == 0x01 && ioc_buf[1] == 0x2D && ioc_buf[2] == 0xFC) {
-				if (btmtk_inttrx_DynamicAdjustTxPower(ioc_buf[4], ioc_buf[5], _ioctl_copy_evt_to_buf) == 0) {	
+				if (btmtk_inttrx_DynamicAdjustTxPower(ioc_buf[4], ioc_buf[5], _ioctl_copy_evt_to_buf, TRUE) == 0) {
 					if (copy_to_user((uint8_t __user*)arg, ioc_buf, IOCTL_BT_HOST_INTTRX_SIZE))
 						retval = -EFAULT;
 				}
-			} else 
+			} else
 				retval = -EFAULT;
 		}
 		break;
