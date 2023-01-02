@@ -376,8 +376,8 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 	uint32_t start_offset, ready_offset;
 	uint32_t ready_status = 0;
 
-	start_offset = start_addr & 0x0000FFFF;
-	ready_offset = ready_addr & 0x0000FFFF;
+	start_offset = start_addr & 0x00000FFF;
+	ready_offset = ready_addr & 0x00000FFF;
 
 	if (start_offset > 0x1000 || ready_offset > 0x1000) {
 		BTMTK_ERR("Error sysram offset address start=[0x%08x], ready=[0x%08x]",
