@@ -19,19 +19,19 @@
 #define CFG_SUPPORT_BLUEZ               0
 
 #if (CONNAC20_CHIPID == 6885)
-	#include "platform_mt6885.h"
+	#include "platform_6885.h"
 #elif (CONNAC20_CHIPID == 6893)
-	#include "platform_mt6893.h"
+	#include "platform_6893.h"
 #elif (CONNAC20_CHIPID == 6877)
-	#include "platform_mt6877.h"
+	#include "platform_6877.h"
 #elif (CONNAC20_CHIPID == 6983)
-	#include "platform_mt6983.h"
+	#include "platform_6983.h"
 #elif (CONNAC20_CHIPID == 6879)
-	#include "platform_mt6879.h"
+	#include "platform_6879.h"
 #elif (CONNAC20_CHIPID == 6895)
-	#include "platform_mt6895.h"
+	#include "platform_6895.h"
 #elif (CONNAC20_CHIPID == 6886)
-	#include "platform_mt6886.h"
+	#include "platform_6886.h"
 #endif
 #endif
 
