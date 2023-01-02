@@ -278,7 +278,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 		if (node) {
 			irq_num = irq_of_parse_and_map(node, 0);
-			BTMTK_INFO("irqNum of BGF2AP_BTIF_WAKEUP_IRQ = %d", irq_num);
+			BTMTK_DBG("irqNum of BGF2AP_BTIF_WAKEUP_IRQ = %d", irq_num);
 		}
 		else
 			BTMTK_ERR("WIFI-OF: get bt device node fail");
@@ -290,7 +290,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 		if (node) {
 			irq_num = irq_of_parse_and_map(node, 1);
-			BTMTK_INFO("irqNum of BGF2AP_SW_IRQ = %d", irq_num);
+			BTMTK_DBG("irqNum of BGF2AP_SW_IRQ = %d", irq_num);
 		}
 		else
 			BTMTK_ERR("WIFI-OF: get bt device node fail");
@@ -301,7 +301,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 		if (node) {
 			irq_num = irq_of_parse_and_map(node, 2);
-			BTMTK_INFO("irqNum of BT_CONN2AP_SW_IRQ = %d", irq_num);
+			BTMTK_DBG("irqNum of BT_CONN2AP_SW_IRQ = %d", irq_num);
 		}
 		else
 			BTMTK_ERR("WIFI-OF: get bt device node fail");
@@ -313,7 +313,6 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		return -EINVAL;
 	}
 
-	BTMTK_INFO("pirq = %p, flag = 0x%08x", pirq, irq_flags);
 	pirq->irq_num = irq_num;
 	spin_lock_init(&pirq->lock);
 	pirq->active = TRUE;
@@ -330,7 +329,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		BTMTK_ERR("enable_irq_wake %s (%u) failed! ret(%d)", pirq->name, irq_num, ret);
 	}
 
-	BTMTK_INFO("Request %s (%u) succeed", pirq->name, irq_num);
+	BTMTK_INFO("Request %s (%u) succeed, pirq = %p, flag = 0x%08x", pirq->name, irq_num, pirq, irq_flags);
 	bt_irq_table[irq_type] = pirq;
 
 	return 0;
