@@ -1543,7 +1543,7 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	bt_pwrctrl_register_evt();
 
 	/* Runtime malloc patch names */
-	fwp_malloc_patch_names();
+	fwp_get_patch_names();
 
 	/* Set ICB cif state */
 	btmtk_set_chip_state((void *)g_sbdev, BTMTK_STATE_WORKING);
@@ -1570,7 +1570,6 @@ static int btmtk_cif_remove(struct platform_device *pdev)
 	conninfra_sub_drv_ops_unregister(CONNDRV_TYPE_BT);
 
 	bt_dev_dbg_deinit();
-	fwp_free_patch_names();
 
 	/* Unregister screen on/off & suspend/wakup notify callback */
 
