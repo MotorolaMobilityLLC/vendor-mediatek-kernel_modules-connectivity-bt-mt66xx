@@ -278,7 +278,7 @@ int fwp_if_get_datetime(char *buf, int max_len)
 		tmp = tmp + strlen(tmp);
 	}
 	buf[ret_len] = '\0';
-	BTMTK_INFO("%s: %s, %d", __func__, buf, strlen(buf));
+	BTMTK_INFO("%s: %s, %lu", __func__, buf, strlen(buf));
 	return ret_len + 1;
 }
 
@@ -305,7 +305,7 @@ int fwp_if_get_bt_patch_path(char *buf, int max_len)
 		BTMTK_INFO("%s: snprintf error", __func__);
 		return 0;
 	}
-	BTMTK_INFO("%s: %s, %d", __func__, buf, strlen(buf));
+	BTMTK_INFO("%s: %s, %lu", __func__, buf, strlen(buf));
 	return strlen(buf) + 1;
 }
 
@@ -501,7 +501,7 @@ static int32_t __download_patch_to_emi(
 	//if ((patch_emi_offset >= emi_start) &&
 	//    (patch_emi_offset + patch_size < emi_start + emi_size)) {
 		remap_addr = ioremap(emi_ap_phy_base + patch_emi_offset, patch_size);
-		BTMTK_INFO("[Patch] emi_ap_phy_base[0x%p], remap_addr[0x%08x]", emi_ap_phy_base, *remap_addr);
+		BTMTK_INFO("[Patch] emi_ap_phy_base[0x%llu], remap_addr[0x%08x]", emi_ap_phy_base, *remap_addr);
 		BTMTK_INFO("[Patch] patch_emi_offset[0x%08x], patch_size[0x%08x]", patch_emi_offset, patch_size);
 
 		if (remap_addr) {
