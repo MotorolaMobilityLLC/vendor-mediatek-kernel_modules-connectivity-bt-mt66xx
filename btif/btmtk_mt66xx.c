@@ -307,7 +307,7 @@ int fwp_if_get_bt_patch_path(char *buf, int max_len)
 	return strlen(buf) + 1;
 }
 
-int fwp_is_siso_project(void)
+int fwp_is_siso_project(uint8_t *flavor)
 {
 	#define TARGET_KEY "flavor_bin"
  	int ret = FALSE;
@@ -319,7 +319,8 @@ int fwp_is_siso_project(void)
 		if (of_property_read_string(node, TARGET_KEY, &str)) {
 			BTMTK_INFO("%s: get %s: fail", __func__, TARGET_KEY);
 		} else {
-			BTMTK_INFO("%s: get %s: %s", __func__, TARGET_KEY, str);
+			*flavor = *str;
+			BTMTK_INFO("%s: get %s: %c", __func__, TARGET_KEY, *flavor);
 			ret = TRUE;
 		}
 	} else
@@ -332,14 +333,15 @@ void fwp_malloc_patch_names(void)
 {
 	#undef VER_STR_LEN
 	#define VER_STR_LEN	50
+	#define FLAVOR_NONE	'0'
 	int idx = 0, i = 0;
+	uint8_t flavor = FLAVOR_NONE;
 	uint8_t *buf = NULL;
 	uint8_t *all_fwp_names[5][PATCH_FILE_NUM] = {
-		{"soc3_0_ram_mcu_1_1_hdr", "soc3_0_ram_bt_1_1_hdr"},	// 0x00: 0x6885
-		{"soc3_0_ram_mcu_1b_1_hdr", "soc3_0_ram_bt_1b_1_hdr"},	// 0x01: 0x6885, BT_CUS_FEATURE
-		{"soc3_0_ram_mcu_1a_1_hdr", "soc3_0_ram_bt_1a_1_hdr"},	// 0x02: 0x6893
-		{"soc5_0_ram_mcu_1_1_hdr", "soc5_0_ram_bt_1_1_hdr"}, 	// 0x03: 0x6877
-		{"soc5_0_ram_mcu_1c_1_hdr", "soc5_0_ram_bt_1c_1_hdr"},	// 0x04: 0x6877, SISO
+		{"soc3_0_ram_mcu_1",  "soc3_0_ram_bt_1"},	// 0x00: 0x6885
+		{"soc3_0_ram_mcu_1b", "soc3_0_ram_bt_1b"},	// 0x01: 0x6885, BT_CUS_FEATURE
+		{"soc3_0_ram_mcu_1",  "soc3_0_ram_bt_1"},	// 0x02: 0x6893
+		{"soc5_0_ram_mcu_1",  "soc5_0_ram_bt_1"}, 	// 0x03: 0x6877
 	};
 
 	if (CONNAC20_CHIPID == 6885) {
@@ -349,24 +351,29 @@ void fwp_malloc_patch_names(void)
 		idx = 0;
 		#endif
 	} else if (CONNAC20_CHIPID == 6893) {
+		fwp_is_siso_project(&flavor);
 		idx = 2;
 	} else if (CONNAC20_CHIPID == 6877) {
-		if (fwp_is_siso_project() == FALSE)
-			idx = 3;
-		else
-			idx = 4;
+		fwp_is_siso_project(&flavor);
+		idx = 3;
 	}
 	BTMTK_INFO("%s: CONNAC20_CHIPID[%d], idx[%d]", __func__, CONNAC20_CHIPID, idx);
 
 	for (i = 0; i < PATCH_FILE_NUM; i++) {
 		buf = kmalloc(VER_STR_LEN, GFP_KERNEL);
-		snprintf(buf, VER_STR_LEN, "%s.bin", all_fwp_names[idx][i]);
+		if (flavor == FLAVOR_NONE)
+			snprintf(buf, VER_STR_LEN, "%s_1_hdr.bin", all_fwp_names[idx][i]);
+		else
+			snprintf(buf, VER_STR_LEN, "%s%c_1_hdr.bin", all_fwp_names[idx][i], flavor);
 		g_fwp_names[i][0] = buf;
 	}
 #if (CUSTOMER_FW_UPDATE == 1)
 	for (i = 0; i < PATCH_FILE_NUM; i++) {
 		buf = kmalloc(VER_STR_LEN, GFP_KERNEL);
-		snprintf(buf, VER_STR_LEN, "%s-u.bin", all_fwp_names[idx][i]);
+		if (flavor == FLAVOR_NONE)
+			snprintf(buf, VER_STR_LEN, "%s_1_hdr-u.bin", all_fwp_names[idx][i]);
+		else
+			snprintf(buf, VER_STR_LEN, "%s%c_1_hdr-u.bin", all_fwp_names[idx][i], flavor);
 		g_fwp_names[i][1] = buf;
 	}
 #endif
