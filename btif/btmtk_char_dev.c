@@ -27,6 +27,9 @@ MODULE_LICENSE("Dual BSD/GPL");
 #define FTRACE_STR_LOG_SIZE			(256)
 #define COMBO_IOC_MAGIC				0xb0
 #define COMBO_IOCTL_BT_HOST_DEBUG	_IOW(COMBO_IOC_MAGIC, 4, void*)
+#define COMBO_IOCTL_BT_INTTRX		_IOW(COMBO_IOC_MAGIC, 5, void*)
+#define IOCTL_BT_HOST_DEBUG_BUF_SIZE	(32)
+#define IOCTL_BT_HOST_INTTRX_SIZE		(128)
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -57,6 +60,7 @@ static struct device *BT_dev;
 
 static uint8_t i_buf[BT_BUFFER_SIZE]; /* Input buffer for read */
 static uint8_t o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
+static uint8_t ioc_buf[IOCTL_BT_HOST_INTTRX_SIZE];
 
 extern struct btmtk_dev *g_sbdev;
 extern struct btmtk_btif_dev g_btif_dev;
@@ -400,20 +404,51 @@ OUT:
 	return retval;
 }
 
+int _ioctl_copy_evt_to_buf(uint8_t *buf, int len)
+{
+	BTMTK_INFO("%s", __func__);
+	memset(ioc_buf, 0x00, sizeof(ioc_buf));
+	ioc_buf[0] = 0x04; // evt packet type
+	memcpy(ioc_buf + 1, buf, len); // copy evt to ioctl buffer
+	BTMTK_INFO_RAW(ioc_buf, len + 1, "%s: len[%d] RX: ", __func__, len + 1);
+	return 0;
+}
+
 static long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int32_t retval = 0;
-	uint8_t host_dbg_buff[32]; //arg: id[0:3], value[4:7], desc[8:31]
 	BTMTK_INFO("%s: cmd[0x%08x]", __func__, cmd);
 
+	memset(ioc_buf, 0x00, sizeof(ioc_buf));
 	switch (cmd) {
 	case COMBO_IOCTL_BT_HOST_DEBUG:
-		if (copy_from_user(host_dbg_buff, (uint8_t __user*)arg, 32))
+		/* input: arg(buf_size = 32): id[0:3], value[4:7], desc[8:31]
+		   output: none
+		*/
+		if (copy_from_user(ioc_buf, (uint8_t __user*)arg, IOCTL_BT_HOST_DEBUG_BUF_SIZE))
 			retval = -EFAULT;
 		else {
-			uint32_t* pint32 = (uint32_t*)&host_dbg_buff[0];
-			BTMTK_INFO("%s: id[%x], value[0x%08x], desc[%s]", __func__, pint32[0], pint32[1], &host_dbg_buff[8]);
-			bthost_debug_save(pint32[0], pint32[1], (char*)&host_dbg_buff[8]);
+			uint32_t* pint32 = (uint32_t*)&ioc_buf[0];
+			BTMTK_INFO("%s: id[%x], value[0x%08x], desc[%s]", __func__, pint32[0], pint32[1], &ioc_buf[8]);
+			bthost_debug_save(pint32[0], pint32[1], (char*)&ioc_buf[8]);
+		}
+		break;
+	case COMBO_IOCTL_BT_INTTRX:
+		/* input: arg(buf_size = 128): hci cmd raw data
+		   output: arg(buf_size = 128): hci evt raw data
+		*/
+		if (copy_from_user(ioc_buf, (uint8_t __user*)arg, IOCTL_BT_HOST_INTTRX_SIZE))
+			retval = -EFAULT;
+		else {
+			BTMTK_INFO_RAW(ioc_buf, ioc_buf[3] + 4, "%s: len[%d] TX: ", __func__, ioc_buf[3] + 4);
+			/* DynamicAdjustTxPower function */
+			if (ioc_buf[0] == 0x01 && ioc_buf[1] == 0x2D && ioc_buf[2] == 0xFC) {
+				if (btmtk_inttrx_DynamicAdjustTxPower(ioc_buf[4], ioc_buf[5], _ioctl_copy_evt_to_buf) == 0) {	
+					if (copy_to_user((uint8_t __user*)arg, ioc_buf, IOCTL_BT_HOST_INTTRX_SIZE))
+						retval = -EFAULT;
+				}
+			} else 
+				retval = -EFAULT;
 		}
 		break;
 	default:
