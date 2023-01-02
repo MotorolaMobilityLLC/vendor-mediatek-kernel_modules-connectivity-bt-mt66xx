@@ -19,6 +19,7 @@ extern uint8_t g_fwp_names[PATCH_FILE_NUM][2[FW_NAME_LEN];
 extern uint8_t g_fwp_names[PATCH_FILE_NUM][1][FW_NAME_LEN];
 #endif
 
+#define FLAVOR_NONE	'0'
 
 /*******************************************************************************
 *                                 M A C R O S
@@ -186,6 +187,49 @@ static void inline bt_dump_memory8(uint8_t *buf, uint32_t len)
 		}
 	}
 
+}
+
+static inline u_int8_t fwp_has_flavor_bin(uint8_t *flavor)
+{
+	#define TARGET_KEY "flavor_bin"
+	u_int8_t ret = FALSE;
+	const char *str;
+	struct device_node *node = NULL;
+	node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
+	if (node) {
+		if (of_property_read_string(node, TARGET_KEY, &str)) {
+			BTMTK_INFO("%s: get %s: fail", __func__, TARGET_KEY);
+		} else {
+			*flavor = *str;
+			BTMTK_INFO("%s: get %s: %c", __func__, TARGET_KEY, *flavor);
+			ret = TRUE;
+		}
+	} else
+		BTMTK_INFO("%s: get dts[mediatek,bt] fail!", __func__);
+	return ret;
+}
+
+static inline void compose_fw_name(u_int8_t has_flavor, uint8_t flavor,
+					   const uint8_t *bin_mcu_name,
+					   const uint8_t *bin_bt_name)
+{
+	if (has_flavor) {
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s%c_1_hdr.bin", bin_mcu_name, flavor);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s%c_1_hdr.bin", bin_bt_name, flavor);
+	} else	{
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s_1_hdr.bin", bin_mcu_name);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s_1_hdr.bin", bin_bt_name);
+	}
+
+#if (CUSTOMER_FW_UPDATE == 1)
+	if (has_flavor) {
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s%c_1_hdr-u.bin", bin_mcu_name, flavor);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s%c_1_hdr-u.bin", bin_bt_name, flavor);
+	} else	{
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s_1_hdr.bin", bin_mcu_name);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s_1_hdr.bin", bin_bt_name);
+	}
+#endif
 }
 
 
