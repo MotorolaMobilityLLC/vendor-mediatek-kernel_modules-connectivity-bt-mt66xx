@@ -847,7 +847,7 @@ void bthost_debug_init(void)
 void bthost_debug_print(void)
 {
 	uint32_t i = 0;
-	uint32_t ret = 0;
+	int32_t ret = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	uint8_t dump_buffer[700]={0};
 
@@ -855,7 +855,11 @@ void bthost_debug_print(void)
 	end = pos + 700 - 1;
 
 	ret = snprintf(pos, (end - pos + 1), "[bt host info] ");
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [bt host info] fail");
+	} else {
+		pos += ret;
+	}
 
 	for (i = 0; i < BTHOST_INFO_MAX; i++){
 		if (bthost_info_table[i].id == 0){
