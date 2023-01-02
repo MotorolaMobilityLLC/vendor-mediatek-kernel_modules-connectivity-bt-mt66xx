@@ -1,129 +1,57 @@
-###############################################################################
-# Bluetooth character device driver
+$(info [bt_drv] btif/Makefile start M=$(M))
 
-###############################################################################
+define build_kernel_modules
+$(MAKE) -C $(KERNEL_SRC) M=$(M)/../$(1) modules $(KBUILD_OPTIONS) BT_PLATFORM=$(1) LOG_TAG=$(PRIVATE_LOG_TAG) KBUILD_EXTRA_SYMBOLS="$(EXTRA_SYMBOLS)"
+endef
 
-# ---------------------------------------------------
-# Compile Options
-# ---------------------------------------------------
-# Support GKI mixed build
-ifeq ($(DEVICE_MODULES_PATH),)
-DEVICE_MODULES_PATH = $(srctree)
+define install_kernel_modules
+$(MAKE) M=$(M)/../$(1) -C $(KERNEL_SRC) modules_install
+endef
+
+define clean_kernel_modules
+$(MAKE) -C $(KERNEL_SRC) M=$(M)/../$(1) clean
+endef
+
+LOG_TAG := [BT_Drv][btif]
+
+ifneq ($(wildcard $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include),)
+include $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include
+extra_symbols := $(abspath $(OUT_DIR)/../vendor/mediatek/kernel_modules/connectivity/conninfra/Module.symvers)
+extra_symbols += $(abspath $(OUT_DIR)/../vendor/mediatek/kernel_modules/connectivity/connfem/Module.symvers)
 else
-LINUXINCLUDE := $(DEVCIE_MODULES_INCLUDE) $(LINUXINCLUDE)
-TOP := $(srctree)/..
-endif
-KO_PATH := $(if $(filter /%,$(src)),,$(srctree)/)$(src)
-
-ifndef TOP
-    TOP := $(srctree)/..
+extra_symbols := $(abspath $(O)/../vendor/mediatek/kernel_modules/connectivity/conninfra/Module.symvers)
+extra_symbols += $(abspath $(O)/../vendor/mediatek/kernel_modules/connectivity/connfem/Module.symvers)
 endif
 
-ifneq ($(KERNEL_OUT),)
-    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
-endif
+all: PRIVATE_LOG_TAG := $(LOG_TAG)
+all: EXTRA_SYMBOLS  += $(extra_symbols)
+all:
+	$(call build_kernel_modules,6885)
+	$(call build_kernel_modules,6893)
+	$(call build_kernel_modules,6877)
+	$(call build_kernel_modules,6983)
+	$(call build_kernel_modules,6879)
+	$(call build_kernel_modules,6895)
+	$(call build_kernel_modules,6886)
 
-# Force build fail on modpost warning
-KBUILD_MODPOST_FAIL_ON_WARNINGS := y
+modules_install:
+	$(call install_kernel_modules,6885)
+	$(call install_kernel_modules,6893)
+	$(call install_kernel_modules,6877)
+	$(call install_kernel_modules,6983)
+	$(call install_kernel_modules,6879)
+	$(call install_kernel_modules,6895)
+	$(call install_kernel_modules,6886)
 
-# platform
-
-ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
-  $(info build-in mode!)
-  $(info _MTK_BT_CHIP = $(_MTK_BT_CHIP))
-  # _MTK_BT_CHIP comes from conninfra setting
-  BT_PLATFORM = $(patsubst MTK_CONSYS_MT%,%,$(strip $(_MTK_BT_CHIP)))
-endif
-
-
-$(info $(LOG_TAG) TARGET_BUILD_VARIANT = $(TARGET_BUILD_VARIANT))
-ifeq ("$(TARGET_BUILD_VARIANT)","user")
-    ccflags-y += -D FW_LOG_DEFAULT_ON=0
-else
-    ccflags-y += -D FW_LOG_DEFAULT_ON=1
-endif
-
-
-ccflags-y += -D CONNAC20_CHIPID=$(BT_PLATFORM)
-$(info $(LOG_TAG) BT_PLATFORM = $(BT_PLATFORM))
-$(info $(LOG_TAG) srctree = $(srctree))
-
-# connsys security
-ifneq ($(filter 6983, $(BT_PLATFORM)),)
-$(info $(LOG_TAG) support bin to img)
-    ccflags-y += -D SUPPORT_BIN2IMG=1
-    ccflags-y += -D CFG_BT_ATF_SUPPORT=1
-else ifneq ($(filter 6886, $(BT_PLATFORM)),)
-$(info $(LOG_TAG) support bin to img)
-    ccflags-y += -D SUPPORT_BIN2IMG=1
-    ccflags-y += -D CFG_BT_ATF_SUPPORT=1
-else
-$(info $(LOG_TAG) not support bin to img)
-    ccflags-y += -D SUPPORT_BIN2IMG=0
-    ccflags-y += -D CFG_BT_ATF_SUPPORT=0
-endif
+clean:
+	$(call clean_kernel_modules,6885)
+	$(call clean_kernel_modules,6893)
+	$(call clean_kernel_modules,6877)
+	$(call clean_kernel_modules,6983)
+	$(call clean_kernel_modules,6879)
+	$(call clean_kernel_modules,6895)
+	$(call clean_kernel_modules,6886)
 
 
-# ---------------------------------------------------
-# Compile Options: set feature flag (1: enable, 0: disable)
-# ---------------------------------------------------
+$(info [bt_drv] btif/Makefile end)
 
-# build btif interface
-ccflags-y += -D CHIP_IF_BTIF
-
-# Use device node or hci_dev as native interface
-ccflags-y += -D USE_DEVICE_NODE=1
-
-# Customized fw update feature
-ccflags-y += -D CUSTOMER_FW_UPDATE=0
-
-# pm_qos control
-ccflags-y += -D PM_QOS_CONTROL=0
-
-# No function, only for build pass
-ccflags-y += -D CONFIG_MP_WAKEUP_SOURCE_SYSFS_STAT=1
-
-# Customized feature, load 1b fw bin
-#ccflags-y += -D BT_CUS_FEATURE
-
-# ---------------------------------------------------
-# Include Path
-# ---------------------------------------------------
-CONN_INFRA_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/conninfra
-CONNFEM_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/connfem
-WMT_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/common
-BTIF_SRC := $(DEVICE_MODULES_PATH)/drivers/misc/mediatek/btif
-ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/connectivity/common
-ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/mt-plat/
-ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/connectivity/power_throttling
-ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/gpu/drm/mediatek/mediatek_v2/
-ccflags-y += -I$(CONN_INFRA_SRC)/include
-ccflags-y += -I$(CONN_INFRA_SRC)/conn_drv/connv2/debug_utility/include
-ccflags-y += -I$(CONN_INFRA_SRC)/conn_drv/connv2/debug_utility/metlog
-ccflags-y += -I$(CONN_INFRA_SRC)/conn_drv/connv2/debug_utility/
-ccflags-y += -I$(CONNFEM_SRC)/include
-ccflags-y += -I$(WMT_SRC)/debug_utility
-ccflags-y += -I$(BTIF_SRC)/common/inc
-
-ccflags-y += -I$(KO_PATH)/core/include
-ccflags-y += -I$(KO_PATH)/connsys/connac_2_0
-ccflags-y += -I$(KO_PATH)/../include
-ccflags-y += -I$(KO_PATH)/../include/btif
-
-# ---------------------------------------------------
-# Objects List
-# ---------------------------------------------------
-MODULE_NAME := bt_drv_$(BT_PLATFORM)
-ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
-  obj-y += $(MODULE_NAME).o
-else
-  obj-m += $(MODULE_NAME).o
-endif
-
-CORE_OBJS := btmtk_dbg.o btmtk_dbg_tp_evt_if.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
-CHIP_OBJS := btmtk_mt66xx.o
-HIF_OBJS := btmtk_btif_main.o btmtk_queue.o
-
-$(MODULE_NAME)-objs  += $(CORE_OBJS)
-$(MODULE_NAME)-objs  += $(HIF_OBJS)
-$(MODULE_NAME)-objs  += $(CHIP_OBJS)
