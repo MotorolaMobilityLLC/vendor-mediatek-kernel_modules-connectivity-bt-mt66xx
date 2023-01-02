@@ -81,6 +81,7 @@ static UINT32 rstflag;
 static UINT8 HCI_EVT_HW_ERROR[] = {0x04, 0x10, 0x01, 0x00};
 static loff_t rd_offset;
 
+extern bool g_bt_trace_pt;
 extern int bt_dev_dbg_init(void);
 extern int bt_dev_dbg_deinit(void);
 extern int bt_dev_dbg_set_state(bool turn_on);
@@ -428,9 +429,11 @@ static ssize_t __bt_write(const PUINT8 buffer, size_t count)
 {
 	INT32 retval = 0;
 
-	bt_dbg_tp_evt(TP_ACT_WR_IN, 0, count, buffer);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_WR_IN, 0, count, buffer);
 	retval = mtk_wcn_stp_send_data(buffer, count, BT_TASK_INDX);
-	bt_dbg_tp_evt(TP_ACT_WR_OUT, 0, count, buffer);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_WR_OUT, 0, count, buffer);
 
 	if (retval < 0)
 		BT_LOG_PRT_ERR("mtk_wcn_stp_send_data fail, retval %d\n", retval);
@@ -544,7 +547,8 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 {
 	INT32 retval = 0;
 
-	bt_dbg_tp_evt(TP_ACT_RD_IN, 0, count, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_RD_IN, 0, count, NULL);
 	ftrace_print("%s get called, count %zu", __func__, count);
 	down(&rd_mtx);
 
@@ -614,7 +618,8 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 				g_bt_dbg_st.trx_cb(i_buf, retval);
 			}
 			//BT_LOG_PRT_DBG("Read bytes %d\n", retval);
-			bt_dbg_tp_evt(TP_ACT_RD_OUT, 0, retval, i_buf);
+			if (g_bt_trace_pt)
+				bt_dbg_tp_evt(TP_ACT_RD_OUT, 0, retval, i_buf);
 			BT_LOG_PRT_DBG_RAW(i_buf, retval, "%s: len[%d], RX: ", __func__, retval);
 			break;
 		}
@@ -747,7 +752,8 @@ static int BT_open(struct inode *inode, struct file *file)
 		return -EIO;
 	}
 
-	bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 
 	/* Turn on BT */
@@ -815,7 +821,8 @@ static int BT_open(struct inode *inode, struct file *file)
 static int BT_close(struct inode *inode, struct file *file)
 {
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
-	bt_dbg_tp_evt(TP_ACT_PWR_OFF, 0, 0, NULL);
+	if (g_bt_trace_pt)
+		bt_dbg_tp_evt(TP_ACT_PWR_OFF, 0, 0, NULL);
 
 	bthost_debug_init();
 	bt_pm_notify_unregister();
