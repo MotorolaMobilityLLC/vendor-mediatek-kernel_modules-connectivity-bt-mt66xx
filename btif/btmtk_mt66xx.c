@@ -1392,10 +1392,10 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 
 	/* assign femid */
 	memcpy(&cmd[9], &fem_info.id, sizeof(fem_info.id));
-	offset = sizeof(cmd_header) + sizeof(fem_info.id);
+	offset = sizeof(cmd_header);
 
 	/* assign pin count */
-	cmd[offset++] = pin_info.count;
+	cmd[offset-1] = pin_info.count;
 
 	/* assign pin mapping info */
 	for (i = 0; i < pin_info.count; i++) {
@@ -1410,6 +1410,8 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 
 	cmd[offset++] = fem_info.part[CONNFEM_PORT_BT].vid;
 	cmd[offset++] = fem_info.part[CONNFEM_PORT_BT].pid;
+
+	BTMTK_INFO_RAW(cmd, offset, "%s: Send: ", __func__);
 
 	down(&cif_dev->internal_cmd_sem);
 	cif_dev->event_intercept = TRUE;
