@@ -157,7 +157,7 @@ void bthost_debug_save(uint32_t id, uint32_t value, char* desc)
 
 static INT32 ftrace_print(const PINT8 str, ...)
 {
-#ifdef CONFIG_TRACING
+#ifdef BT_CONFIG_TRACING
 	va_list args;
 	int ret = 0;
 	INT8 temp_string[FTRACE_STR_LOG_SIZE];
