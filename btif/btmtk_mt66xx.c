@@ -484,13 +484,12 @@ static int32_t __download_patch_to_emi(
 	patch_emi_offset = (p_patch_hdr->emi_addr[2] << 16) |
 		(p_patch_hdr->emi_addr[1] << 8);
 
-	conninfra_get_phy_addr((uint32_t*)&emi_ap_phy_base, NULL);
-	emi_ap_phy_base &= 0xFFFFFFFF;
+	conninfra_get_phy_addr(&emi_ap_phy_base, NULL);
 
 	//if ((patch_emi_offset >= emi_start) &&
 	//    (patch_emi_offset + patch_size < emi_start + emi_size)) {
 		remap_addr = ioremap(emi_ap_phy_base + patch_emi_offset, patch_size);
-		BTMTK_INFO("[Patch] emi_ap_phy_base[0x%08x], remap_addr[0x%08x]", emi_ap_phy_base, *remap_addr);
+		BTMTK_INFO("[Patch] emi_ap_phy_base[0x%p], remap_addr[0x%08x]", emi_ap_phy_base, *remap_addr);
 		BTMTK_INFO("[Patch] patch_emi_offset[0x%08x], patch_size[0x%08x]", patch_emi_offset, patch_size);
 
 		if (remap_addr) {
