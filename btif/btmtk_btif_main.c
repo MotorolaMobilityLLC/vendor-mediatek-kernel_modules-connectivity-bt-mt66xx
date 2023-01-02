@@ -115,7 +115,7 @@ static int32_t bt_reg_init(void)
 				(unsigned long) of_iomap(node, i);
 			of_get_address(node, i, &(base_addr->size), &flag);
 
-			BTMTK_DBG("Get Index(%d) phy(0x%zx) baseAddr=(0x%zx) size=(0x%zx)",
+			BTMTK_DBG("Get Index(%d) phy(0x%zx) baseAddr=(0x%zx) size=(0x%llx)",
 				i, base_addr->phy_addr, base_addr->vir_addr,
 				base_addr->size);
 		}
@@ -179,11 +179,11 @@ int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v
 		}
 
 		if(cif_dev->bt_state == FUNC_ON) {
-			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, new_state);
+			BTMTK_INFO("%s: blank state [%d]->[%d], and send cmd", __func__, cif_dev->blank_state, new_state);
 			cif_dev->blank_state = new_state;
 			btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, cif_dev->blank_state);
 		} else {
-			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, cif_dev->blank_state, new_state);
+			BTMTK_INFO("%s: blank state [%d]->[%d]", __func__, cif_dev->blank_state, new_state);
 			cif_dev->blank_state = new_state;
 		}
         	BTMTK_INFO("%s: end", __func__);
