@@ -1850,6 +1850,9 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 		return 0; // directly return since reset thread will perform turn off
 	}
 
+	/* flush fw log in EMI */
+	connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
+
 	/* 2. Stop TX thread */
 #if SUPPORT_BT_THREAD
 	if (cif_dev->tx_thread) {
