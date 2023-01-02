@@ -362,7 +362,7 @@ static ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t
 	do {
 		retval = btmtk_receive_data(g_sbdev->hdev, i_buf, count);
 		if (retval < 0) {
-			BTMTK_ERR("bt_core_receive_data failed, retval %d", retval);
+			BTMTK_ERR("bt_core_receive_data failed, retval %zd", retval);
 			goto OUT;
 		} else if (retval == 0) { /* Got nothing, wait for RX queue's signal */
 			/*
