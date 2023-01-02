@@ -50,6 +50,7 @@ ccflags-y += -I$(WMT_SRC_FOLDER)/common_main/linux/include
 ifneq ($(CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH),)
 ccflags-y += -I$(WMT_SRC_FOLDER)/debug_utility
 endif
+ccflags-y += -I$(src)/../include/btif
 
 ###############################################################################
 
@@ -59,7 +60,7 @@ obj-m += $(MODULE_NAME).o
 ccflags-y += -D CREATE_NODE_DYNAMIC=1
 
 $(MODULE_NAME)-objs += stp_chrdev_bt.o
-$(MODULE_NAME)-objs += dbg_bt.o
+$(MODULE_NAME)-objs += btmtk_dbg.o btmtk_dbg_tp_evt_if.o
 ifneq ($(CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH),)
 $(MODULE_NAME)-objs += fw_log_bt.o
 endif

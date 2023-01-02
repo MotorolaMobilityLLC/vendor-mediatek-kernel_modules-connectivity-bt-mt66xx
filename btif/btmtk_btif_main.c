@@ -16,6 +16,7 @@
 
 #include "btmtk_define.h"
 #include "btmtk_chip_if.h"
+#include "btmtk_dbg_tp_evt_if.h"
 #include "conninfra.h"
 #include "mtk_btif_exp.h"
 #include "connectivity_build_in_adapter.h"
@@ -388,6 +389,7 @@ static int32_t btmtk_cif_fw_own_clr(void)
 	uint32_t lpctl_cr;
 	int32_t retry = LPCR_POLLING_RTY_LMT;
 
+	bt_dbg_tp_evt(TP_ACT_DRVOWN_IN, 0, 0, NULL);
 	do {
 		/* assume wait interval 0.5ms each time,
 		 * wait maximum total 7ms to query status
@@ -416,6 +418,7 @@ static int32_t btmtk_cif_fw_own_clr(void)
 
 	if (retry == 0) {
 		BTMTK_ERR("[DRV_OWN] (Wakeup) failed!");
+		bt_dbg_tp_evt(TP_ACT_DRVOWN_OUT, TP_PAR_FAIL, 0, NULL);
 		bt_dump_cif_own_cr();
 
 		/* dump cpupcr, 10 times with 1ms interval */
@@ -423,6 +426,7 @@ static int32_t btmtk_cif_fw_own_clr(void)
 		return -1;
 	}
 
+	bt_dbg_tp_evt(TP_ACT_DRVOWN_OUT, TP_PAR_PASS, 0, NULL);
 	BTMTK_DBG("[DRV_OWN] (Wakeup) success, retry[%d]", retry);
 	return 0;
 }
@@ -443,6 +447,7 @@ static int32_t btmtk_cif_fw_own_set(void)
 	uint32_t irqstat_cr;
 	int32_t retry = LPCR_POLLING_RTY_LMT;
 
+	bt_dbg_tp_evt(TP_ACT_FWOWN_IN, 0, 0, NULL);
 	do {
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
 			if (((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32)) &&
@@ -478,6 +483,7 @@ static int32_t btmtk_cif_fw_own_set(void)
 
 	if (retry == 0) {
 		BTMTK_ERR("[FW_OWN] (Sleep) failed!");
+		bt_dbg_tp_evt(TP_ACT_FWOWN_OUT, TP_PAR_FAIL, 0, NULL);
 		bt_dump_cif_own_cr();
 
 		/* dump cpupcr, 10 times with 1ms interval */
@@ -485,6 +491,7 @@ static int32_t btmtk_cif_fw_own_set(void)
 		return -1;
 	}
 
+	bt_dbg_tp_evt(TP_ACT_FWOWN_OUT, TP_PAR_PASS, 0, NULL);
 	BTMTK_DBG("[FW_OWN] (Sleep) success, retry[%d]", retry);
 	return 0;
 }
@@ -528,6 +535,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	int32_t ret = 0;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
+	bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_START, 0, NULL);
 	/* dump debug message */
 	show_all_dump_packet();
 	btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_ALL);
@@ -570,6 +578,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 		/* 4. Do coredump, only do this while BT is on */
 		down(&cif_dev->halt_sem);
 		if (cif_dev->bt_state != RESET_START && cif_dev->bt_state != FUNC_OFF) {
+			bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_DUMP, 0, NULL);
 			bt_dump_bgfsys_debug_cr();
 			connsys_coredump_start(cif_dev->coredump_handle, dump_property, drv, reason);
 		} else
@@ -616,6 +625,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	bt_notify_state();
 
 	/* 5. Turn off BT */
+	bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_OFF, 0, NULL);
 	ret = g_sbdev->hdev->close(g_sbdev->hdev);
 #if (USE_DEVICE_NODE == 0)
 	bt_report_hw_error();
@@ -770,6 +780,7 @@ static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
+	bt_dbg_tp_evt(TP_ACT_RD_CB, 0, count, buf);
 	BTMTK_DBG_RAW(buf, count, "%s, len = %d rx data: ", __func__, count);
 	add_dump_packet(buf, count, RX);
 	cif_dev->psm.sleep_flag = FALSE;
@@ -809,6 +820,7 @@ static void btmtk_btif_enter_deep_idle(struct work_struct *pwork)
 		bt_release_wake_lock(&cif_dev->psm.wake_lock);
 		idle_ctrl->is_dpidle = (ret) ? FALSE : TRUE;
 
+		bt_dbg_tp_evt(TP_ACT_DPI_ENTER, (ret == 0 ? TP_PAR_PASS : TP_PAR_FAIL), 0, NULL);
 		if (ret)
 			BTMTK_ERR("[DP_IDLE] BTIF enter dpidle failed(%d)", ret);
 		else
@@ -853,6 +865,7 @@ static int32_t btmtk_btif_dpidle_ctrl(u_int8_t enable)
 			ret = mtk_wcn_btif_dpidle_ctrl(g_btif_id, BTIF_DPIDLE_DISABLE);
 			idle_ctrl->is_dpidle = (ret) ? TRUE : FALSE;
 
+			bt_dbg_tp_evt(TP_ACT_DPI_EXIT, (ret == 0 ? TP_PAR_PASS : TP_PAR_FAIL), 0, NULL);
 			if (ret)
 				BTMTK_ERR("[DP_IDLE] BTIF exit dpidle failed(%d)", ret);
 			else
@@ -1266,6 +1279,7 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 	int32_t tx_len = skb->len;
 	int32_t _retry = 0;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)bdev->cif_dev;
+	uint8_t *tp_ptr = (uint8_t *)cmd;
 
 	BTMTK_DBG_RAW(cmd, cmd_len, "%s, len = %d, send cmd: ", __func__, cmd_len);
 
@@ -1306,6 +1320,8 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 		wr_count += ret;
 		cmd += ret;
 	}
+
+	bt_dbg_tp_evt(TP_ACT_WR_OUT, 0, cmd_len, tp_ptr);
 	return ret;
 }
 
