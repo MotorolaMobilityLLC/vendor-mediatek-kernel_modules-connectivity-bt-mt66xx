@@ -518,8 +518,6 @@ unsigned int btmtk_connsys_log_get_buf_size(void);
 int btmtk_cif_send_calibration(struct btmtk_dev *bdev);
 int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay,
 	int retry, int pkt_type);
-void fwp_malloc_patch_names(void);
-void fwp_free_patch_names(void);
 
 #if (USE_DEVICE_NODE == 1)
 uint8_t btmtk_rx_data_valid(void);
