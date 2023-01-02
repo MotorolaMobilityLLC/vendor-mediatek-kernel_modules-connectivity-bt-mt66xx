@@ -645,6 +645,7 @@ void btmtk_send_hw_err_to_host(struct btmtk_dev *bdev);
 void btmtk_free_setting_file(struct btmtk_dev *bdev);
 
 unsigned char btmtk_fops_get_state(struct btmtk_dev *bdev);
+void btmtk_fops_set_state(struct btmtk_dev *bdev, unsigned char new_state);
 
 void btmtk_hci_snoop_save_cmd(u32 len, u8 *buf);
 void btmtk_hci_snoop_save_event(u32 len, u8 *buf);
