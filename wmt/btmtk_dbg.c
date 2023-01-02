@@ -277,8 +277,8 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 	if (copy_from_user(buf, buffer, len))
 		return -EFAULT;
 	buf[len] = '\0';
-	BT_LOG_PRT_INFO("g_bt_turn_on[%d], dbg_enable[%d], len[%d], data = %s\n",
-		g_bt_turn_on, g_bt_dbg_enable, (int)len, buf);
+	BT_LOG_PRT_INFO("g_bt_turn_on[%d], dbg_enable[%d], len[%d]\n",
+		g_bt_turn_on, g_bt_dbg_enable, (int)len);
 
 	/* Check debug function is enabled or not
 	 *   - not enable yet: user should enable it
