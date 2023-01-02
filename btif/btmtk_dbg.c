@@ -433,7 +433,7 @@ int bt_dbg_DynamicAdjustTxPower(int par1, int par2, int par3)
 		- set:   0x14 0x02(set)   0x??(set_dbm_val)
 	*/
 	BTMTK_INFO("%s", __func__);
-	btmtk_inttrx_DynamicAdjustTxPower(mode, set_val, bt_dbg_DynamicAdjustTxPower_cb);
+	btmtk_inttrx_DynamicAdjustTxPower(mode, set_val, bt_dbg_DynamicAdjustTxPower_cb, TRUE);
 	return 0;
 }
 

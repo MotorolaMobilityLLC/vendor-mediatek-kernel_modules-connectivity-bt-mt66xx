@@ -824,7 +824,7 @@ int bt_pwrctrl_level_change_cb(enum conn_pwr_event_type type, void *data)
 	case CONN_PWR_EVENT_LEVEL:
 		cif_dev->dy_pwr.lp_cur_lv = *((int *) data);
 		BTMTK_INFO("%s: lp_cur_bat_lv = %d", __func__, cif_dev->dy_pwr.lp_cur_lv);
-		btmtk_inttrx_DynamicAdjustTxPower(HCI_CMD_DY_ADJ_PWR_SET, set_val, NULL);
+		btmtk_inttrx_DynamicAdjustTxPower(HCI_CMD_DY_ADJ_PWR_SET, set_val, NULL, FALSE);
 		break;
 	case CONN_PWR_EVENT_MAX_TEMP:
 		BTMTK_ERR("Unsupport now");
