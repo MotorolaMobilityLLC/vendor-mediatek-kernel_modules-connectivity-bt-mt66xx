@@ -95,6 +95,17 @@ int btmtk_fops_initfwlog(void)
 			return -1;
 		}
 	}
+	//if (is_mt66xx(g_sbdev->chip_id)) {
+	if (bmain_info->hif_hook.log_init) {
+		bmain_info->hif_hook.log_init();
+		bmain_info->hif_hook.log_register_cb(fw_log_bt_event_cb);
+		init_waitqueue_head(&BT_log_wq);
+		sema_init(&ioctl_mtx, 1);
+	} else {
+		spin_lock_init(&g_fwlog->fwlog_lock);
+		skb_queue_head_init(&g_fwlog->fwlog_queue);
+		init_waitqueue_head(&(g_fwlog->fw_log_inq));
+	}
 
 	ret = alloc_chrdev_region(&devIDfwlog, 0, 1, BT_FWLOG_DEV_NODE);
 	if (ret) {
@@ -128,17 +139,6 @@ int btmtk_fops_initfwlog(void)
 
 	g_fwlog->g_devIDfwlog = devIDfwlog;
 
-	//if (is_mt66xx(g_sbdev->chip_id)) {
-	if (bmain_info->hif_hook.log_init) {
-		bmain_info->hif_hook.log_init();
-		bmain_info->hif_hook.log_register_cb(fw_log_bt_event_cb);
-		init_waitqueue_head(&BT_log_wq);
-		sema_init(&ioctl_mtx, 1);
-	} else {
-		spin_lock_init(&g_fwlog->fwlog_lock);
-		skb_queue_head_init(&g_fwlog->fwlog_queue);
-		init_waitqueue_head(&(g_fwlog->fw_log_inq));
-	}
 	BTMTK_INFO("%s: End", __func__);
 	return 0;
 
