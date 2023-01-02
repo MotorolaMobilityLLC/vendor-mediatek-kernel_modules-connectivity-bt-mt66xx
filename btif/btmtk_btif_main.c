@@ -404,16 +404,29 @@ static int32_t btmtk_cif_fw_own_clr(void)
 				((retry & 0x1F) == 0)) {
 				BTMTK_WARN("[DRV_OWN] failed in %d ms, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
+#if (CFG_BT_ATF_SUPPORT == 1)
+				btmtk_cif_fw_own_clr_smc(SMC_BT_FW_OWN_CLR_FIRST);
+#else
 				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
+#endif
 				BTMTK_WARN("[DRV_OWN] dump after write:");
 				bt_dump_cif_own_cr();
-			} else
-				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
+			} else {
+#if (CFG_BT_ATF_SUPPORT == 1)
+                                btmtk_cif_fw_own_clr_smc(SMC_BT_FW_OWN_CLR_FIRST);
+#else
+                                REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
+#endif
+			}
 		}
 
 		lpctl_cr = REG_READL(BGF_LPCTL);
 		if (!(lpctl_cr & BGF_OWNER_STATE_SYNC_B)) {
+#if (CFG_BT_ATF_SUPPORT == 1)
+			btmtk_cif_fw_own_clr_smc(SMC_BT_FW_OWN_CLR_SECOND);
+#else
 			REG_WRITEL(BGF_IRQ_STAT, BGF_IRQ_FW_OWN_CLR_B);
+#endif
 			break;
 		}
 
@@ -462,11 +475,20 @@ static int32_t btmtk_cif_fw_own_set(void)
 				((retry & 0x1F) == 0)) {
 				BTMTK_WARN("[FW_OWN] failed in %d ms, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
-				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
+#if (CFG_BT_ATF_SUPPORT == 1)
+                                btmtk_cif_fw_own_set_smc(SMC_BT_FW_OWN_SET_FIRST);
+#else
+                                REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
+#endif
 				BTMTK_WARN("[FW_OWN] dump after write:");
 				bt_dump_cif_own_cr();
-			} else
-				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
+			} else {
+#if (CFG_BT_ATF_SUPPORT == 1)
+                                btmtk_cif_fw_own_set_smc(SMC_BT_FW_OWN_SET_FIRST);
+#else
+                                REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
+#endif
+			}
 		}
 
 		/*
@@ -480,8 +502,12 @@ static int32_t btmtk_cif_fw_own_set(void)
 		 */
 		irqstat_cr = REG_READL(BGF_IRQ_STAT2);
 		if (irqstat_cr & BGF_IRQ_FW_OWN_SET_B) {
+#if (CFG_BT_ATF_SUPPORT == 1)
+			btmtk_cif_fw_own_set_smc(SMC_BT_FW_OWN_SET_SECOND);
+#else
 			/* Write 1 to clear IRQ */
 			REG_WRITEL(BGF_IRQ_STAT2, BGF_IRQ_FW_OWN_SET_B);
+#endif
 			break;
 		}
 
