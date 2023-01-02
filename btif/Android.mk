@@ -7,6 +7,7 @@ LOCAL_MODULE_OWNER := mtk
 LOCAL_INIT_RC := init.bt_drv.rc
 LOCAL_SRC_FILES := $(patsubst $(LOCAL_PATH)/%,%,$(shell find $(LOCAL_PATH) -type f -name '*.[cho]')) Makefile
 LOCAL_REQUIRED_MODULES := conninfra.ko
+LOCAL_REQUIRED_MODULES += connfem.ko
 include $(MTK_KERNEL_MODULE)
 BT_OPTS := BT_PLATFORM=$(BT_PLATFORM) LOG_TAG=$(LOG_TAG)
 $(info $(LOG_TAG) BT_OPTS = $(BT_OPTS))
