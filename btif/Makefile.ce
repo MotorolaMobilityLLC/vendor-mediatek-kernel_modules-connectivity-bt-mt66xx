@@ -25,7 +25,7 @@ endif
 
 CFILES += btmtk_main.c
 
-ccflags-y += -I$(src)/include/ -I$(src)/
+ccflags-y += -I$(srctree)/$(src)/include/ -I$(srctree)/$(src)/
 
 $(MOD_NAME)-objs := $(CFILES:.c=.o)
 

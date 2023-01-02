@@ -41,33 +41,34 @@ endif
 #################### Configurations ####################
 # For chip interface, driver supports "usb", "sdio", "uart" and "btif"
 MTK_CHIP_IF := usb
+KO_PATH := $(if $(filter /%,$(src)),,$(srctree)/)$(src)
 
 ifeq ($(MTK_CHIP_IF), sdio)
     MOD_NAME = btmtk_sdio_unify
     CFILES := sdio/btmtksdio.c btmtk_woble.c btmtk_buffer_mode.c btmtk_chip_reset.c
     ccflags-y += -DCHIP_IF_SDIO
     ccflags-y += -DSDIO_DEBUG=0
-    ccflags-y += -I$(src)/include/sdio
+    ccflags-y += -I$(KO_PATH)/include/sdio
 else ifeq ($(MTK_CHIP_IF), usb)
     MOD_NAME = btmtk_usb_unify
     CFILES := usb/btmtkusb.c btmtk_woble.c btmtk_chip_reset.c
     ccflags-y += -DCHIP_IF_USB
-    ccflags-y += -I$(src)/include/usb
+    ccflags-y += -I$(KO_PATH)/include/usb
 else ifeq ($(MTK_CHIP_IF), uart)
     MOD_NAME = btmtk_uart_unify
     CFILES := uart/btmtk_uart_main.c
     ccflags-y += -DCHIP_IF_UART
-    ccflags-y += -I$(src)/include/uart
+    ccflags-y += -I$(KO_PATH)/include/uart
 else
     MOD_NAME = btmtkbtif_unify
     CFILES := btif/btmtk_btif.c
     ccflags-y += -DCHIP_IF_BTIF
-    ccflags-y += -I$(src)/include/btif
+    ccflags-y += -I$(KO_PATH)/include/btif
 endif
 
 CFILES += btmtk_main.c btmtk_fw_log.c
 
-ccflags-y += -I$(src)/include/ -I$(src)/
+ccflags-y += -I$(KO_PATH)/include/ -I$(KO_PATH)/
 
 $(MOD_NAME)-objs := $(CFILES:.c=.o)
 

@@ -2,6 +2,15 @@
 # Bluetooth character device driver
 
 ###############################################################################
+# Support GKI mixed build
+ifeq ($(DEVICE_MODULES_PATH),)
+DEVICE_MODULES_PATH = $(srctree)
+else
+LINUXINCLUDE := $(DEVCIE_MODULES_INCLUDE) $(LINUXINCLUDE)
+TOP := $(srctree)/..
+endif
+KO_PATH := $(if $(filter /%,$(src)),,$(srctree)/)$(src)
+
 # Necessary Check
 
 ifneq ($(KERNEL_OUT),)
@@ -45,9 +54,9 @@ else
 endif
 
 ccflags-y += -D MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
-ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
-#ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/mt$(BT_PLATFORM)/include
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include
+ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/mt-plat
+#ccflags-y += -I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/include/mt-plat/mt$(BT_PLATFORM)/include
 
 ifeq ($(CONFIG_MTK_CONN_LTE_IDC_SUPPORT),y)
     ccflags-y += -D WMT_IDC_SUPPORT=1
@@ -64,7 +73,7 @@ ccflags-y += -I$(WMT_SRC_FOLDER)/common_main/linux/include
 ifneq ($(CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH),)
 ccflags-y += -I$(WMT_SRC_FOLDER)/debug_utility
 endif
-ccflags-y += -I$(src)/../include/btif
+ccflags-y += -I$(KO_PATH)/../include/btif
 
 ###############################################################################
 
