@@ -381,6 +381,7 @@ void cmd_list_destory(void)
 	BTMTK_DBG("%s",__func__);
 
 	p_queue = &cif_dev->cmd_queue;
+	spin_lock(&p_queue->lock);
 	curr = p_queue->head;
 	while(curr){
 		curr = cmd_free_node(curr);
@@ -388,6 +389,7 @@ void cmd_list_destory(void)
 	p_queue->head = NULL;
 	p_queue->tail = NULL;
 	p_queue->size = 0;
+	spin_unlock(&p_queue->lock);
 }
 
 void command_response_timeout(struct work_struct *pwork)
@@ -406,7 +408,12 @@ void command_response_timeout(struct work_struct *pwork)
 		btmtk_cif_dump_rxd_backtrace();
 		btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_REG);
 		if (cif_dev->cmd_timeout_count == 4) {
-			BTMTK_ERR("%s,  !!!! Command Timeout !!!!  opcode 0x%4X", __func__, p_queue->head->opcode);
+			spin_lock(&p_queue->lock);
+			if (p_queue->head)
+				BTMTK_ERR("%s,  !!!! Command Timeout !!!!  opcode 0x%4X", __func__, p_queue->head->opcode);
+			else
+				BTMTK_ERR("%s,  p_queue head is NULL", __func__);
+			spin_unlock(&p_queue->lock);
 			// To-do : Need to consider if it has any condition to check
 			cif_dev->cmd_timeout_count = 0;
 			bt_trigger_reset();
@@ -445,7 +452,12 @@ void update_command_response_workqueue(void)
 		BTMTK_DBG("command queue size = 0");
 		cancel_delayed_work(&work);
 	} else {
-		BTMTK_DBG("update new command queue : %4X" , p_queue->head->opcode);
+		spin_lock(&p_queue->lock);
+		if (p_queue->head)
+			BTMTK_DBG("update new command queue : %4X" , p_queue->head->opcode);
+		else
+			BTMTK_ERR("%s,  p_queue head is NULL", __func__);
+		spin_unlock(&p_queue->lock);
 		cif_dev->cmd_timeout_count = 0;
 		cancel_delayed_work(&work);
 		down(&cif_dev->cmd_tout_sem);
