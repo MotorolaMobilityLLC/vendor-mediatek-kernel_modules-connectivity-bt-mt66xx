@@ -28,6 +28,8 @@
 	#include "platform_mt6983.h"
 #elif (CONNAC20_CHIPID == 6879)
 	#include "platform_mt6879.h"
+#elif (CONNAC20_CHIPID == 6895)
+	#include "platform_mt6895.h"
 #endif
 #endif
 
