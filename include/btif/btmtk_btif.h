@@ -122,6 +122,7 @@ enum wmt_blank_state {
 enum bt_irq_type {
 	BGF2AP_BTIF_WAKEUP_IRQ,
 	BGF2AP_SW_IRQ,
+	BT_CONN2AP_SW_IRQ,
 	BGF2AP_IRQ_MAX
 };
 
@@ -354,6 +355,7 @@ struct btmtk_btif_dev {
 #endif
 	u_int8_t		rx_ind; /* RX indication from Firmware */
 	u_int8_t		bgf2ap_ind; /* FW log / reset indication */
+	u_int8_t		bt_conn2ap_ind; /* BGF bus hang indication */
 
 	/* context for current pending command */
 	struct bt_internal_cmd	internal_cmd;
@@ -412,6 +414,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			     enum consys_drv_type drv,
 			     char *reason);
 void bt_bgf2ap_irq_handler(void);
+void bt_conn2ap_irq_handler(void);
 
 /* external functions */
 int BT_init(void);
