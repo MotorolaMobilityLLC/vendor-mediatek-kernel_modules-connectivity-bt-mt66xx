@@ -1192,7 +1192,6 @@ int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count)
 
 	skb_queue_tail(&cif_dev->tx_queue, skb);
 	wake_up_interruptible(&cif_dev->tx_waitq);
-
 	return count;
 }
 
@@ -1604,7 +1603,9 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 8. Register screen on/off & suspend/wakup notify callback */
 	cif_dev->blank_state = WMT_PARA_SCREEN_ON;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
-	mtk_disp_notifier_register("btmtk_disp_notifier", &btmtk_disp_notifier);
+	if (mtk_disp_notifier_register("btmtk_disp_notifier", &btmtk_disp_notifier)) {
+                BTMTK_ERR("Register mtk_disp_notifier failed\n");
+	}
 #else
 	btmtk_fb_notify_register();
 #endif
