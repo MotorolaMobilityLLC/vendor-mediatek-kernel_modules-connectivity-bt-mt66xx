@@ -794,3 +794,69 @@ int bt_dev_dbg_deinit(void)
 	return 0;
 }
 
+/*******************************************************************************
+*                           bt host debug information for low power
+********************************************************************************
+*/
+#define BTHOST_INFO_MAX	16
+#define BTHOST_DESC_LEN 16
+
+struct bthost_info{
+	uint32_t		id; //0 for not used
+	char 		desc[BTHOST_DESC_LEN];
+	uint32_t		value;
+};
+struct bthost_info bthost_info_table[BTHOST_INFO_MAX];
+
+void bthost_debug_init(void)
+{
+	uint32_t i = 0;
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		bthost_info_table[i].id = 0;
+		bthost_info_table[i].desc[0] = '\0';
+		bthost_info_table[i].value = 0;
+	}
+}
+
+void bthost_debug_print(void)
+{
+	uint32_t i = 0;
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		if (bthost_info_table[i].id == 0){
+			BTMTK_WARN("[bt host info][%d-%d] not set", i, BTHOST_INFO_MAX);
+			break;
+		}
+		else {
+			BTMTK_WARN("[bt host info][%d][%s : 0x%08x]", i,
+			bthost_info_table[i].desc,
+			bthost_info_table[i].value);
+		}
+	}
+}
+
+void bthost_debug_save(uint32_t id, uint32_t value, char* desc)
+{
+	uint32_t i = 0;
+	if (id == 0) {
+		BTMTK_WARN("%s: id (%d) must > 0\n", __func__, id);
+		return;
+	}
+	for (i = 0; i < BTHOST_INFO_MAX; i++){
+		// if the id is existed, save to the same column
+		if (bthost_info_table[i].id == id){
+			bthost_info_table[i].value = value;
+			return;
+		}
+		// save to the new column
+		if (bthost_info_table[i].id == 0){
+			bthost_info_table[i].id = id;
+			strncpy(bthost_info_table[i].desc, desc, BTHOST_DESC_LEN - 1);
+			bthost_info_table[i].value = value;
+			return;
+		}
+	}
+	BTMTK_WARN("%s: no space for %d\n", __func__, id);
+}
+
+
+
