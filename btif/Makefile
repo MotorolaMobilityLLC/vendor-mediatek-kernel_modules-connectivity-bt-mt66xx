@@ -40,6 +40,14 @@ ccflags-y += -D CONNAC20_CHIPID=$(BT_PLATFORM)
 $(info $(LOG_TAG) BT_PLATFORM = $(BT_PLATFORM))
 $(info $(LOG_TAG) srctree = $(srctree))
 
+ifeq ($(BT_PLATFORM),6983)
+$(info $(LOG_TAG) support bin to img)
+ccflags-y += -D SUPPORT_BIN2IMG=1
+else
+$(info $(LOG_TAG) not support bin to img)
+ccflags-y += -D SUPPORT_BIN2IMG=0
+endif
+
 # ---------------------------------------------------
 # Compile Options: set feature flag (1: enable, 0: disable)
 # ---------------------------------------------------
