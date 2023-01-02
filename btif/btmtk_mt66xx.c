@@ -633,8 +633,8 @@ static int32_t bt_hw_and_mcu_on(void)
 	}
 
 	/*reset sw_irq*/
-	bgfsys_ack_sw_irq_reset();
-	bgfsys_ack_sw_irq_fwlog();
+	//bgfsys_ack_sw_irq_reset();
+	//bgfsys_ack_sw_irq_fwlog();
 
 	/* Register all needed IRQs by MCU */
 	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
