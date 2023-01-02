@@ -948,6 +948,122 @@ static int32_t _send_wmt_get_cal_data_cmd(
 	return ret;
 }
 
+int btmtk_inttrx_DynamicAdjustTxPower_cb(uint8_t *buf, int len)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+
+	// do nothing if not support
+	if (*(buf + 5) != HCI_EVT_CC_STATUS_SUCCESS) {
+		BTMTK_INFO("%s: status error[0x%02x]!", __func__, *(buf + 5));
+		goto callback;
+	}
+
+	if (*(buf + 6) == HCI_CMD_DY_ADJ_PWR_QUERY) {
+		/* handle command complete(query) */
+		// store dbm value
+		cif_dev->dy_pwr.dy_max_dbm = *(buf + 7);
+		cif_dev->dy_pwr.dy_min_dbm = *(buf + 8);
+		cif_dev->dy_pwr.lp_bdy_dbm = *(buf + 9);
+	} else {
+		/* handle command complete(set) */
+		cif_dev->dy_pwr.fw_sel_dbm = *(buf + 7); //store the dbm value fw select
+	}
+
+callback:
+	BTMTK_INFO("%s: mode[%d], lp_cur_lv[%d], dy_max_dbm[%d], dy_min_dbm[%d], lp_bdy_dbm[%d], fw_sel_dbm[%d]",
+		__func__, *(buf + 6),
+		cif_dev->dy_pwr.lp_cur_lv,
+		cif_dev->dy_pwr.dy_max_dbm,
+		cif_dev->dy_pwr.dy_min_dbm,
+		cif_dev->dy_pwr.lp_bdy_dbm,
+		cif_dev->dy_pwr.fw_sel_dbm);
+
+	// run callback function
+	if (cif_dev->dy_pwr.cb) {
+		cif_dev->dy_pwr.cb(buf, len);
+		cif_dev->dy_pwr.cb = NULL;
+	}
+
+	return 0;
+}
+
+int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HANDLER_CB cb)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	uint8_t cmd_query[5] = {0x01, 0x2D, 0xFC, 0x01, 0x01};
+	uint8_t cmd_set[6] = {0x01, 0x2D, 0xFC, 0x02, 0x02, (uint8_t)req_val};
+	int8_t set_val;
+	/*
+	Query
+		Cmd: 01 2D FC 01 01
+		Evt: 04 0E 08 01 2D FC SS 01 XX YY ZZ
+		SS: Status
+		XX: Dynamic range Max dBm
+		YY: Dynamic range Min dBm
+		ZZ: Low power region boundary dBm
+	Set
+		Cmd: 01 2D FC 02 02 RR
+		Evt: 04 0E 06 01 2D FC SS 02 XX
+		RR: Requested TX power upper limitation dBm
+		SS: Status
+		XX: Selected TX power upper limitation dBm
+	*/
+
+	if (!bt_pwrctrl_support())
+		return 1;
+
+	/* register call back */
+	cif_dev->dy_pwr.cb = cb;
+
+	BTMTK_INFO("%s: mode[%d], lp_cur_lv[%d], dy_max_dbm[%d], dy_min_dbm[%d], lp_bdy_dbm[%d], fw_sel_dbm[%d], req_val[%d]",
+		__func__, mode,
+		cif_dev->dy_pwr.lp_cur_lv,
+		cif_dev->dy_pwr.dy_max_dbm,
+		cif_dev->dy_pwr.dy_min_dbm,
+		cif_dev->dy_pwr.lp_bdy_dbm,
+		cif_dev->dy_pwr.fw_sel_dbm,
+		req_val);
+
+	if (mode == HCI_CMD_DY_ADJ_PWR_QUERY) {
+		// send cmd
+		btmtk_btif_start_inttrx(cmd_query, sizeof(cmd_query), btmtk_inttrx_DynamicAdjustTxPower_cb, FALSE);
+		btmtk_btif_complete_inttrx();
+	} else {
+		// do not send if not support
+		if (cif_dev->dy_pwr.dy_max_dbm <= cif_dev->dy_pwr.dy_min_dbm) {
+			BTMTK_INFO("%s: invalid dbm range, skip set cmd", __func__);
+			return 1;
+		}
+
+		/* value select flow */
+		if (req_val >= cif_dev->dy_pwr.dy_min_dbm) {
+			set_val = req_val;
+			// check max limitation
+			if (set_val > cif_dev->dy_pwr.dy_max_dbm)
+				set_val = cif_dev->dy_pwr.dy_max_dbm;
+			// power throttling limitation
+			if (cif_dev->dy_pwr.lp_cur_lv >= CONN_PWR_THR_LV_4) { //TODO_PWRCTRL
+				set_val = cif_dev->dy_pwr.lp_bdy_dbm;
+				// lp_bdy_dbm may be larger than dy_max_dbm, check again
+				if (set_val > cif_dev->dy_pwr.dy_max_dbm)
+					set_val = cif_dev->dy_pwr.dy_max_dbm;
+			}
+		} else {
+			BTMTK_INFO("%s: invalid dbm value, skip set cmd", __func__);
+			return 1;
+		}
+
+		BTMTK_INFO("%s: set_val[%d]", __func__, set_val);
+		cmd_set[5] = set_val;
+		btmtk_btif_start_inttrx(cmd_set, sizeof(cmd_set), btmtk_inttrx_DynamicAdjustTxPower_cb, FALSE);
+		btmtk_btif_complete_inttrx();
+	}
+
+	return 0;
+}
+
+
+
 /* btmtk_intcmd_wmt_power_on
  *
  *    Send BT func on
@@ -1322,6 +1438,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	 *    - call BT/Wi-Fi registered pwr_on_cb and do_cal_cb
 	 *  then return from this API after 2.4G calibration done.
 	 */
+	bt_pwrctrl_pre_on();
 	if (!for_precal)
 	{
 		if (conninfra_pwr_on(CONNDRV_TYPE_BT)) {
@@ -1395,6 +1512,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	btmtk_rx_flush();
 #endif
 
+	cif_dev->int_trx.cb = NULL;
 #if SUPPORT_BT_THREAD
 	/* 6. Create TX thread with PS state machine */
 	skb_queue_purge(&cif_dev->tx_queue);
@@ -1498,8 +1616,10 @@ thread_create_error:
 
 mcu_error:
 	bgfsys_ccif_off();
-	if (!for_precal)
+	if (!for_precal) {
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
+		bt_pwrctrl_post_off();
+	}
 	up(&cif_dev->halt_sem);
 
 conninfra_error:
@@ -1584,6 +1704,7 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 	/* 6. ConnInfra hardware power off */
 	if (!for_precal)
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
+	bt_pwrctrl_post_off();
 
 	/* Delay sending HW error to stack if it's whole chip reset,
 	 * we have to wait conninfra power on then send message or

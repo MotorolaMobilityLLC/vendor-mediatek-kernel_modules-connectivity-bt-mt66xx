@@ -783,7 +783,7 @@ static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	bt_dbg_tp_evt(TP_ACT_RD_CB, 0, count, buf);
-	BTMTK_DBG_RAW(buf, count, "%s, len = %d rx data: ", __func__, count);
+	BTMTK_DBG_RAW(buf, count, "%s: len[%d] RX: ", __func__, count);
 	add_dump_packet(buf, count, RX);
 	cif_dev->psm.sleep_flag = FALSE;
 	return btmtk_recv(g_sbdev->hdev, buf, count);
@@ -803,6 +803,61 @@ static struct coredump_event_cb bt_coredump_cb =
 };
 #endif
 
+
+/*******************************************************************************
+*                        bt power throttling feature
+********************************************************************************
+*/
+bool bt_pwrctrl_support(void)
+{
+	// TODO_PWRCTRL
+	/*if (CONNAC20_CHIPID == 6983)
+		return TRUE;
+	else
+		return FALSE;*/
+	return TRUE;
+}
+
+int bt_pwrctrl_level_change_cb(enum conn_pwr_low_battery_level level)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	int8_t set_val = cif_dev->dy_pwr.dy_max_dbm;
+
+	cif_dev->dy_pwr.lp_cur_lv = level;
+	BTMTK_INFO("%s: lp_cur_bat_lv = %d", __func__, cif_dev->dy_pwr.lp_cur_lv);
+	btmtk_inttrx_DynamicAdjustTxPower(HCI_CMD_DY_ADJ_PWR_SET, set_val, NULL);
+	return 0;
+}
+
+void bt_pwrctrl_pre_on(void)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+
+	if (!bt_pwrctrl_support())
+		return;
+
+	memset(&cif_dev->dy_pwr, 0x00, sizeof(cif_dev->dy_pwr));
+	cif_dev->dy_pwr.lp_cur_lv = CONN_PWR_THR_LV_0;
+	conn_pwr_drv_pre_on(CONN_PWR_DRV_BT, &cif_dev->dy_pwr.lp_cur_lv);
+	BTMTK_INFO("%s: lp_cur_bat_lv = %d", __func__, cif_dev->dy_pwr.lp_cur_lv);
+}
+
+void bt_pwrctrl_post_off(void)
+{
+	if (!bt_pwrctrl_support())
+		return;
+
+	conn_pwr_drv_post_off(CONN_PWR_DRV_BT);
+}
+
+void bt_pwrctrl_register_evt(void)
+{
+	if (!bt_pwrctrl_support())
+		return;
+
+	/* Register callbacks for power throttling feature */
+	conn_pwr_register_event_cb(CONN_PWR_DRV_BT, (CONN_PWR_EVENT_CB)bt_pwrctrl_level_change_cb);
+}
 
 /*******************************************************************************
 *                        B T I F  F U N C T I O N S
@@ -1043,12 +1098,10 @@ int32_t btmtk_dispatch_event(struct sk_buff *skb)
 
 void btmtk_check_event_timeout(struct sk_buff *skb)
 {
-#define HCI_COMMAND_COMPLETE_EVT		0x0E
-#define HCI_COMMAND_STATUS_EVT			0x0F
 	u8 event_code = skb->data[0];
 	u16 cmd_opcode;
 
-	if (event_code == HCI_COMMAND_COMPLETE_EVT) {
+	if (event_code == HCI_EVT_COMPLETE_EVT) {
 		cmd_opcode = (skb->data[3] << 8) | skb->data[4];
 
 		if (cmd_list_check(cmd_opcode) == FALSE) {
@@ -1057,7 +1110,7 @@ void btmtk_check_event_timeout(struct sk_buff *skb)
 			cmd_list_remove(cmd_opcode);
 			update_command_response_workqueue();
 		}
-	} else if (event_code == HCI_COMMAND_STATUS_EVT) {
+	} else if (event_code == HCI_EVT_STATUS_EVT) {
 		cmd_opcode = (skb->data[4] << 8) | skb->data[5];
 
 		if (cmd_list_check(cmd_opcode) == FALSE) {
@@ -1283,7 +1336,7 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)bdev->cif_dev;
 	uint8_t *tp_ptr = (uint8_t *)cmd;
 
-	BTMTK_DBG_RAW(cmd, cmd_len, "%s, len = %d, send cmd: ", __func__, cmd_len);
+	BTMTK_DBG_RAW(cmd, cmd_len, "%s: len[%d] TX: ", __func__, cmd_len);
 
 	if (!g_btif_id) {
 		BTMTK_ERR("NULL BTIF ID reference!");
@@ -1327,6 +1380,29 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 	return ret;
 }
 
+int btmtk_btif_start_inttrx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_rx_buf)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+
+	cif_dev->int_trx.cb = cb;
+	cif_dev->int_trx.opcode = *(buf + 1) + (*(buf + 2) << 8);
+	cif_dev->int_trx.send_to_rx_buf = send_to_rx_buf;
+	BTMTK_INFO_RAW(buf, count, "[inttrx] len[%d] TX: ", count);
+	btmtk_send_data(g_sbdev->hdev, buf, count);
+	return 0;
+}
+
+int btmtk_btif_complete_inttrx (void)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+
+	if (!wait_for_completion_timeout(&cif_dev->int_trx.comp, msecs_to_jiffies(2000)))
+		BTMTK_ERR("[inttrx] wait event timeout!");
+	BTMTK_INFO("[inttrx] complete");
+	cif_dev->int_trx.cb = NULL;
+	return 0;
+}
+
 int btmtk_btif_event_filter(struct btmtk_dev *bdev, struct sk_buff *skb)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -1365,9 +1441,17 @@ int btmtk_btif_event_filter(struct btmtk_dev *bdev, struct sk_buff *skb)
 		}
 	}
 
-	/* User trx debug function, put rx event to callbacl */
-	if (g_bt_dbg_st.trx_enable)
-		g_bt_dbg_st.trx_cb(skb->data, (int)skb->len);
+	/* handle command complete evt if callback is registered */
+	if (cif_dev->int_trx.cb != NULL) {
+		if (skb->data[0] == HCI_EVT_COMPLETE_EVT && \
+			cif_dev->int_trx.opcode == skb->data[3] + (skb->data[4] << 8)) {
+			BTMTK_INFO_RAW(skb->data, (int)skb->len, "[inttrx] len[%d] RX: ", (int)skb->len);
+			cif_dev->int_trx.cb(skb->data, (int)skb->len);
+			complete(&cif_dev->int_trx.comp);
+			if (!cif_dev->int_trx.send_to_rx_buf)
+				return -1; // do not send to stack
+		}
+	}
 
 	return 0;
 }
@@ -1422,8 +1506,9 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 3. Init power manager */
 	bt_psm_init(&cif_dev->psm);
 
-	/* 4. Init reset completion */
+	/* 4. Init completion */
 	init_completion(&cif_dev->rst_comp);
+	init_completion(&cif_dev->int_trx.comp);
 
 	/* 5. Init semaphore */
 	sema_init(&cif_dev->halt_sem, 1);
@@ -1455,6 +1540,7 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 
 	/* Register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
+	bt_pwrctrl_register_evt();
 
 	/* Runtime malloc patch names */
 	fwp_malloc_patch_names();

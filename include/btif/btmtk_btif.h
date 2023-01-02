@@ -14,6 +14,7 @@
 #include <linux/pm_qos.h>
 
 #include "conninfra.h"
+#include "conn_power_throttling.h"
 #include "btmtk_define.h"
 #include "btmtk_main.h"
 
@@ -66,6 +67,13 @@
 #define MAX_DUMP_DATA_SIZE		(20)
 #define MAX_DUMP_QUEUE_SIZE		(100)
 
+/* BT HCI Cmd/Evt */
+#define HCI_EVT_COMPLETE_EVT		0x0E
+#define HCI_EVT_STATUS_EVT			0x0F
+#define HCI_EVT_CC_STATUS_SUCCESS	0x00
+#define HCI_CMD_DY_ADJ_PWR_QUERY 	0x01
+#define HCI_CMD_DY_ADJ_PWR_SET		0x02
+
 /* sleep parameter */
 #define USLEEP_1MS_L			(1000)
 #define USLEEP_1MS_H			(1100)
@@ -83,6 +91,7 @@
 #define DRIVER_CMD_CHECK	(1)
 
 typedef void (*BT_RX_EVENT_CB) (void);
+typedef int (*BT_RX_EVT_HANDLER_CB) (uint8_t *buf, int len);
 
 enum wmt_evt_result {
 	WMT_EVT_SUCCESS,
@@ -196,10 +205,6 @@ struct sched_param {
 
 struct bt_dbg_st {
 	bool rt_thd_enable;
-	bool trx_enable;
-	uint16_t trx_opcode;
-	struct completion trx_comp;
-	void(*trx_cb) (char *buf, int len);
 	uint8_t rx_buf_ctrl;
 };
 
@@ -295,6 +300,23 @@ struct bt_cmd_queue {
 };
 #endif
 
+struct bt_DyPwr_st {
+	int8_t dy_max_dbm;
+	int8_t dy_min_dbm;
+	int8_t lp_bdy_dbm;
+	int8_t fw_sel_dbm;
+	BT_RX_EVT_HANDLER_CB cb;
+	/* Power Throttling Feature */
+	enum conn_pwr_low_battery_level lp_cur_lv;
+};
+
+struct int_trx_st {
+	BT_RX_EVT_HANDLER_CB cb;
+	uint16_t opcode;
+	bool send_to_rx_buf;
+	struct completion comp;
+};
+
 struct btmtk_btif_dev {
 	/* BT state machine */
 	u_int8_t			bt_state;
@@ -353,6 +375,13 @@ struct btmtk_btif_dev {
 	/* call back to notify upper layer RX data is available */
 	BT_RX_EVENT_CB		rx_event_cb;
 
+	/* initernal trx function: send particular command,
+	get command complete event and run callback function */
+	struct int_trx_st int_trx;
+
+	/* DynamicAdjustTxPower function*/
+	struct bt_DyPwr_st dy_pwr;
+
 	/* sempaphore to control close */
 	struct semaphore halt_sem;
 	struct semaphore internal_cmd_sem;
@@ -363,6 +392,7 @@ struct btmtk_btif_dev {
 
 	/* btif deep idle ctrl */
 	struct btif_deepidle_ctrl btif_dpidle_ctrl;
+
 };
 
 #define BTMTK_GET_DEV(bdev) (&bdev->pdev->dev)
@@ -463,12 +493,18 @@ static inline void bt_psm_deinit(struct bt_psm_ctrl *psm)
 
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal);
 int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal);
-
+int btmtk_btif_start_inttrx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_rx_buf);
+int btmtk_btif_complete_inttrx(void);
+int btmtk_inttrx_DynamicAdjustTxPower_cb(uint8_t *buf, int len);
+int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t set_val, BT_RX_EVT_HANDLER_CB cb);
 int32_t btmtk_intcmd_wmt_calibration(struct hci_dev *hdev);
 int32_t btmtk_intcmd_wmt_blank_status(struct hci_dev *hdev, int32_t blank);
 int32_t btmtk_intcmd_wmt_utc_sync(void);
 int32_t btmtk_intcmd_set_fw_log(uint8_t flag);
 int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count);
+bool bt_pwrctrl_support(void);
+void bt_pwrctrl_pre_on(void);
+void bt_pwrctrl_post_off(void);
 int bt_dev_dbg_init(void);
 int bt_dev_dbg_deinit(void);
 void bthost_debug_print(void);
