@@ -1263,7 +1263,7 @@ int32_t btmtk_wcn_btif_open(void)
  * Return Value:
  *     0 if success, otherwise error code
  */
-int32_t btmtk_wcn_btif_close()
+int32_t btmtk_wcn_btif_close(void)
 {
 	int32_t ret = 0;
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -1567,7 +1567,7 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	cif_dev->pdev = pdev;
 	g_sbdev->chip_id = 0x6631;
 	if (bt_reg_init()) {
-		BTMTK_ERR("%s: Error allocating memory remap");
+		BTMTK_ERR("%s: Error allocating memory remap",__func__);
 		return -1;
 	}
 
