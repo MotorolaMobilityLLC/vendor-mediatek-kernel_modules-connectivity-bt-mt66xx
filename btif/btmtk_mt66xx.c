@@ -16,6 +16,7 @@
 #include "btmtk_dbg_tp_evt_if.h"
 #include "conninfra.h"
 #include "connsys_debug_utility.h"
+#include "connfem_api.h"
 
 
 /*******************************************************************************
@@ -1321,6 +1322,110 @@ int32_t btmtk_intcmd_set_fw_log(uint8_t flag)
 	return 0;
 }
 
+/* btmtk_intcmd_send_connfem_cmd
+ *
+ *    --
+ *
+ * Arguments:
+ *    void
+ *
+ * Return Value:
+ *    N/A
+ *
+ */
+int32_t btmtk_intcmd_send_connfem_cmd(void)
+{
+	struct connfem_epaelna_fem_info fem_info;
+	struct connfem_epaelna_pin_info pin_info;
+	struct connfem_epaelna_flags_bt bt_flag;
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
+
+	uint8_t *cmd = NULL;
+	uint8_t cmd_header[] = {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x00, 0x00,
+				0x01, 0x00, 0x00, 0x00, 0x00, 0x00};
+	uint32_t cmd_len = 0, i = 0, offset = 0;
+	const uint32_t pin_struct_size = sizeof(struct connfem_epaelna_pin);
+
+	BTMTK_INFO("[InternalCmd] %s", __func__);
+
+	/* Get data from connfem_api */
+	connfem_epaelna_get_fem_info(&fem_info);
+	connfem_epaelna_get_pin_info(&pin_info);
+	connfem_epaelna_get_flags(CONNFEM_SUBSYS_BT, &bt_flag);
+
+	if (fem_info.part[CONNFEM_PORT_BT].vid == 0 &&
+	    fem_info.part[CONNFEM_PORT_BT].pid == 0) {
+		BTMTK_INFO("CONNFEM BTvid/pid == 0, ignore");
+		return 0;
+	}
+
+        /*
+         * command and event example
+         *  0  1  2      3  4  5  6  7  8  9  A  B  C  D
+         * 01 6F FC length 01 55 LL LL 01 XX XX XX XX NN YYYYYY ..  YYYYYY AA BB BB
+         * lengthL : LL + 4
+         * LLLL : length = 1 + 4 + 1 + 3*num + 3 (only 1 byte length valid,
+         *					  value 251 should be maxium)
+         * XXXXXXXX : 4 byte,  efem ID
+         * NN : 1 byte, total efem number
+         * YYYYYY: 3 byte * number, u1AntSelNo,    u1FemPin,     u1Polarity;
+         * AA : bt flag
+         * BBBB : 2.4G part = VID + PID
+	 *
+         * RX: 04 E4 06 02 55 02 00 01 SS (SS : status)
+        */
+	cmd_len = sizeof(cmd_header) + pin_info.count * pin_struct_size + 3;
+	cmd = vmalloc(cmd_len);
+	if (!cmd) {
+		BTMTK_ERR("unable to allocate confem command");
+		return -1;
+	}
+
+	memcpy(cmd, cmd_header, sizeof(cmd_header));
+
+	/* assign WMT over HCI command length */
+	cmd[3] = cmd_len - 4;
+
+	/* assign payload length */
+	cmd[6] = cmd_len - 8;
+
+	/* assign femid */
+	memcpy(&cmd[9], &fem_info.id, sizeof(fem_info.id));
+	offset = sizeof(cmd_header) + sizeof(fem_info.id);
+
+	/* assign pin count */
+	cmd[offset++] = pin_info.count;
+
+	/* assign pin mapping info */
+	for (i = 0; i < pin_info.count; i++) {
+		memcpy(&cmd[offset], &pin_info.pin[i], pin_struct_size);
+		offset += pin_struct_size;
+	}
+
+	/* config priority: epa_elna > elna > epa > bypass */
+	cmd[offset++] = (bt_flag.epa_elna) ? 3 :
+			(bt_flag.epa) ? 2:
+			(bt_flag.elna) ? 1: 0;
+
+	cmd[offset++] = fem_info.part[CONNFEM_PORT_BT].vid;
+	cmd[offset++] = fem_info.part[CONNFEM_PORT_BT].pid;
+
+	down(&cif_dev->internal_cmd_sem);
+	cif_dev->event_intercept = TRUE;
+	p_inter_cmd->waiting_event = 0xE4;
+	p_inter_cmd->pending_cmd_opcode = 0xFC6F;
+	p_inter_cmd->wmt_opcode = WMT_OPCODE_ANT_EFEM;
+	p_inter_cmd->result = WMT_EVT_INVALID;
+
+	btmtk_main_send_cmd(g_sbdev, cmd, cmd_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+
+	cif_dev->event_intercept  = FALSE;
+	vfree(cmd);
+	up(&cif_dev->internal_cmd_sem);
+	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
+	return p_inter_cmd->result;
+}
 
 /* btmtk_set_power_on
  *
@@ -1485,6 +1590,13 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_count = 0;
 	cif_dev->rst_flag = FALSE;
 	init_waitqueue_head(&cif_dev->rst_onoff_waitq);
+
+	/* 9.5 send connfem command before BT on */
+	ret = btmtk_intcmd_send_connfem_cmd();
+	if (ret) {
+		BTMTK_ERR("btmtk_send_confem_cmd fail");
+		//goto wmt_power_on_error;
+	}
 
 	/* 10. send WMT cmd to set BT on */
 	ret = btmtk_intcmd_wmt_power_on(hdev);

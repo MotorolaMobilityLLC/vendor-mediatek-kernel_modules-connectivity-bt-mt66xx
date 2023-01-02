@@ -57,6 +57,7 @@ ccflags-y += -D CONFIG_MP_WAKEUP_SOURCE_SYSFS_STAT=1
 # Include Path
 # ---------------------------------------------------
 CONN_INFRA_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/conninfra
+CONNFEM_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/connfem
 WMT_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/common
 BTIF_SRC := $(srctree)/drivers/misc/mediatek/btif
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
@@ -66,6 +67,7 @@ ccflags-y += -I$(CONN_INFRA_SRC)/include
 ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/include
 ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/metlog
 ccflags-y += -I$(CONN_INFRA_SRC)/debug_utility/
+ccflags-y += -I$(CONNFEM_SRC)/include
 ccflags-y += -I$(WMT_SRC)/debug_utility
 ccflags-y += -I$(BTIF_SRC)/common/inc
 
