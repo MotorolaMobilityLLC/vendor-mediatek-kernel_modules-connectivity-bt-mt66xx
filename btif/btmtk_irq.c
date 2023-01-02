@@ -121,7 +121,7 @@ void bt_bgf2ap_irq_handler(void)
 	bgf_status = bgfsys_get_sw_irq_status();
 
 #if (CFG_BT_ATF_SUPPORT == 1)
-        SendAtfSmcCmd_conn_infra_force_on_off(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
 #else
         /* release conn_infra force on */
         CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
