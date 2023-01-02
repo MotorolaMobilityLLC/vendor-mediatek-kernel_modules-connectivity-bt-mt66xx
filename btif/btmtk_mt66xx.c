@@ -841,7 +841,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 	if (p_inter_cmd->result == WMT_EVT_SUCCESS)
 		ret = 0;
 	else {
-		uint32_t offset = *p_start_addr & 0x0000FFFF;
+		uint32_t offset = *p_start_addr & 0x00000FFF;
 		uint8_t *data = NULL;
 
 		if(offset > 0x1000)
