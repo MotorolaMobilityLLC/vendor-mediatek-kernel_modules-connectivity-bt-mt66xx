@@ -110,8 +110,16 @@ void bt_bgf2ap_irq_handler(void)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	cif_dev->bgf2ap_ind = FALSE;
 
+	/* wake up conn_infra off */
+	if(bgfsys_check_conninfra_ready())
+		return;
+
 	/* Read IRQ status CR to identify what happens */
 	bgf_status = bgfsys_get_sw_irq_status();
+
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {

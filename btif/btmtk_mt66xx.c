@@ -687,10 +687,6 @@ static void bt_hw_and_mcu_off(void)
 	/* Close hardware bus interface */
 	btmtk_wcn_btif_close();
 
-	/*reset sw_irq*/
-	bgfsys_ack_sw_irq_reset();
-	bgfsys_ack_sw_irq_fwlog();
-
 	bt_disable_irq(BGF2AP_SW_IRQ);
 	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 
