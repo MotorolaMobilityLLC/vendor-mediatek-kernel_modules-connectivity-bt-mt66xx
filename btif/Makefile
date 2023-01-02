@@ -70,6 +70,7 @@ CONNFEM_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/connfem
 WMT_SRC := $(TOP)/vendor/mediatek/kernel_modules/connectivity/common
 BTIF_SRC := $(srctree)/drivers/misc/mediatek/btif
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/common
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/
 ccflags-y += -I$(srctree)/drivers/misc/mediatek/connectivity/power_throttling
 ccflags-y += -I$(srctree)/drivers/gpu/drm/mediatek/mediatek_v2/
 ccflags-y += -I$(CONN_INFRA_SRC)/include
