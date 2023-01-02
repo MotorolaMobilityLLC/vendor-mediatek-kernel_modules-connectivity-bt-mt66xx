@@ -137,6 +137,7 @@ static void bt_state_cb(u_int8_t state)
 			rstflag = CHIP_RESET_NONE;
 			break;
 		}
+		fallthrough;
 	case RESET_END:
 		rstflag = CHIP_RESET_END;
 		rd_offset = 0;
