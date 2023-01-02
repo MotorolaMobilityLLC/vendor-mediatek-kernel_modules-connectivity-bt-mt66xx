@@ -646,8 +646,7 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 	}
 
 	// Send command and wait for command_complete event
-	btmtk_btif_start_inttrx(hci_cmd, len, bt_dbg_user_trx_cb, TRUE);
-	btmtk_btif_complete_inttrx();
+	btmtk_btif_internal_trx(hci_cmd, len, bt_dbg_user_trx_cb, TRUE, TRUE);
 }
 
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)

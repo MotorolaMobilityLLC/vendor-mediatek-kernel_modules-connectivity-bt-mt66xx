@@ -943,8 +943,11 @@ int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HA
 
 	if (mode == HCI_CMD_DY_ADJ_PWR_QUERY) {
 		// send cmd
-		btmtk_btif_start_inttrx(cmd_query, sizeof(cmd_query), btmtk_inttrx_DynamicAdjustTxPower_cb, FALSE);
-		btmtk_btif_complete_inttrx();
+		btmtk_btif_internal_trx(cmd_query,
+								sizeof(cmd_query),
+								btmtk_inttrx_DynamicAdjustTxPower_cb,
+								FALSE,
+								TRUE);
 	} else {
 		// do not send if not support
 		if (cif_dev->dy_pwr.dy_max_dbm <= cif_dev->dy_pwr.dy_min_dbm) {
@@ -972,8 +975,12 @@ int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HA
 
 		BTMTK_INFO("%s: set_val[%d]", __func__, set_val);
 		cmd_set[5] = set_val;
-		btmtk_btif_start_inttrx(cmd_set, sizeof(cmd_set), btmtk_inttrx_DynamicAdjustTxPower_cb, FALSE);
-		btmtk_btif_complete_inttrx();
+
+		btmtk_btif_internal_trx(cmd_set,
+								sizeof(cmd_set),
+								btmtk_inttrx_DynamicAdjustTxPower_cb,
+								FALSE,
+								FALSE);
 	}
 
 	return 0;
@@ -1535,7 +1542,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	btmtk_rx_flush();
 #endif
 
-	cif_dev->int_trx.cb = NULL;
+	cif_dev->internal_trx.cb = NULL;
+	spin_lock_init(&cif_dev->internal_trx.lock);
+
 #if SUPPORT_BT_THREAD
 	/* 6. Create TX thread with PS state machine */
 	skb_queue_purge(&cif_dev->tx_queue);
