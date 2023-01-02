@@ -220,13 +220,13 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 			cif_dev->rx_ind = TRUE;
 			cif_dev->psm.sleep_flag = FALSE;
 			wake_up_interruptible(&cif_dev->tx_waitq);
-		}
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
-		irq_timer[10] = sched_clock();
-		if (irq_timer[10] - irq_timer[1] > 5000000){
-			BTMTK_ERR("btif: start1[%llu] b_dis2[%llu] in_dis3[%llu] b_lock4[%llu] a_lock5[%llu] b_unlock6[%llu] a_unlock7[%llu] a_dis8[%llu] end11[%llu]", irq_timer[0], irq_timer[1], irq_timer[2], irq_timer[3], irq_timer[4], irq_timer[5], irq_timer[6], irq_timer[7], irq_timer[10]);
-		}
+			irq_timer[10] = sched_clock();
+			if (irq_timer[10] - irq_timer[1] > 5000000){
+				BTMTK_ERR("btif: start1[%llu] b_dis2[%llu] in_dis3[%llu] b_lock4[%llu] a_lock5[%llu] b_unlock6[%llu] a_unlock7[%llu] a_dis8[%llu] end11[%llu]", irq_timer[0], irq_timer[1], irq_timer[2], irq_timer[3], irq_timer[4], irq_timer[5], irq_timer[6], irq_timer[7], irq_timer[10]);
+			}
 #endif
+		}
 		return IRQ_HANDLED;
 	} else if (irq == bgf2ap_sw_irq.irq_num) {
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
