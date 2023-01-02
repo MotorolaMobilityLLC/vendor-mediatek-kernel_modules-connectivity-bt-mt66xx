@@ -617,9 +617,17 @@ static int32_t bt_hw_and_mcu_on(void)
 	 * Firmware patch download (ROM patch, RAM code...)
 	 * start MCU to enter idle loop after patch ready
 	 */
+#if (SUPPORT_BIN2IMG == 0)
 	ret = btmtk_load_rom_patch(g_sbdev);
 	if (ret)
 		goto power_on_error;
+#else
+	BTMTK_INFO("%s support bin to img", __func__);
+	ret = bgfsys_check_conninfra_ready();
+	if (ret)
+		goto power_on_error;
+#endif
+
 
 #if (CUSTOMER_FW_UPDATE == 1)
 	fwp_update_info(&g_fwp_info);
