@@ -22,8 +22,10 @@ MODULE_LICENSE("Dual BSD/GPL");
 *                              C O N S T A N T S
 ********************************************************************************
 */
-#define BT_BUFFER_SIZE                (2048)
-#define FTRACE_STR_LOG_SIZE           (256)
+#define BT_BUFFER_SIZE				(2048)
+#define FTRACE_STR_LOG_SIZE			(256)
+#define COMBO_IOC_MAGIC				0xb0
+#define COMBO_IOCTL_BT_HOST_DEBUG	_IOW(COMBO_IOC_MAGIC, 4, void*)
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
@@ -57,6 +59,8 @@ static uint8_t o_buf[BT_BUFFER_SIZE]; /* Output buffer for write */
 
 extern struct btmtk_dev *g_sbdev;
 extern struct btmtk_btif_dev g_btif_dev;
+extern void bthost_debug_init(void);
+extern void bthost_debug_save(uint32_t id, uint32_t value, char* desc);
 static struct semaphore wr_mtx, rd_mtx;
 static struct bt_wake_lock bt_wakelock;
 /* Wait queue for poll and read */
@@ -394,8 +398,23 @@ OUT:
 static long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 {
 	int32_t retval = 0;
+	uint8_t host_dbg_buff[32]; //arg: id[0:3], value[4:7], desc[8:31]
+	BTMTK_INFO("%s: cmd[0x%08x]", __func__, cmd);
 
-	BTMTK_DBG("cmd: 0x%08x", cmd);
+	switch (cmd) {
+	case COMBO_IOCTL_BT_HOST_DEBUG:
+		if (copy_from_user(host_dbg_buff, (uint8_t __user*)arg, 32))
+			retval = -EFAULT;
+		else {
+			uint32_t* pint32 = (uint32_t*)&host_dbg_buff[0];
+			BTMTK_INFO("%s: id[%x], value[0x%08x], desc[%s]", __func__, pint32[0], pint32[1], &host_dbg_buff[8]);
+			bthost_debug_save(pint32[0], pint32[1], (char*)&host_dbg_buff[8]);
+		}
+		break;
+	default:
+		break;
+	}
+
 	return retval;
 }
 
@@ -425,6 +444,7 @@ static int BT_open(struct inode *inode, struct file *file)
 
 	bt_ftrace_flag = 1;
 	bt_release_wake_lock(&bt_wakelock);
+	bthost_debug_init();
 	return 0;
 }
 
@@ -438,15 +458,15 @@ static int BT_close(struct inode *inode, struct file *file)
 	//bt_core_unregister_rx_event_cb();
 
 	ret = g_sbdev->hdev->close(g_sbdev->hdev);
+	bt_release_wake_lock(&bt_wakelock);
+	bthost_debug_init();
+
 	if (ret) {
 		BTMTK_ERR("BT turn off fail!");
-		bt_release_wake_lock(&bt_wakelock);
 		return ret;
 	}
 
 	BTMTK_INFO("BT turn off OK!");
-
-	bt_release_wake_lock(&bt_wakelock);
 	return 0;
 }
 
