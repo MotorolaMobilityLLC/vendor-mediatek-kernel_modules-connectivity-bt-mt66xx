@@ -19,6 +19,14 @@ endif
 KBUILD_MODPOST_FAIL_ON_WARNINGS := y
 
 # platform
+
+ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
+  $(info build-in mode!)
+  $(info _MTK_BT_CHIP = $(_MTK_BT_CHIP))
+  # _MTK_BT_CHIP comes from conninfra setting
+  BT_PLATFORM = $(patsubst MTK_CONSYS_MT%,%,$(strip $(_MTK_BT_CHIP)))
+endif
+
 ccflags-y += -D CONNAC20_CHIPID=$(BT_PLATFORM)
 $(info $(LOG_TAG) BT_PLATFORM = $(BT_PLATFORM))
 $(info $(LOG_TAG) srctree = $(srctree))
@@ -69,7 +77,11 @@ ccflags-y += -I$(src)/../include/btif
 # Objects List
 # ---------------------------------------------------
 MODULE_NAME := bt_drv_$(BT_PLATFORM)
-obj-m += $(MODULE_NAME).o
+ifeq ($(CONFIG_WLAN_DRV_BUILD_IN),y)
+  obj-y += $(MODULE_NAME).o
+else
+  obj-m += $(MODULE_NAME).o
+endif
 
 CORE_OBJS := btmtk_dbg.o btmtk_dbg_tp_evt_if.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
 CHIP_OBJS := btmtk_mt66xx.o
