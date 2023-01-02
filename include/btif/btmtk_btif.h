@@ -311,10 +311,14 @@ struct bt_DyPwr_st {
 	enum conn_pwr_low_battery_level lp_cur_lv;
 };
 
-struct int_trx_st {
+struct internal_trx_st {
+	spinlock_t lock;
+	unsigned long flag;
 	BT_RX_EVT_HANDLER_CB cb;
 	uint16_t opcode;
-	bool send_to_rx_buf;
+	bool send_to_stack;
+	uint16_t buf_len;
+	uint8_t buf[256];
 	struct completion comp;
 };
 
@@ -378,7 +382,7 @@ struct btmtk_btif_dev {
 
 	/* initernal trx function: send particular command,
 	get command complete event and run callback function */
-	struct int_trx_st int_trx;
+	struct internal_trx_st internal_trx;
 
 	/* DynamicAdjustTxPower function*/
 	struct bt_DyPwr_st dy_pwr;
@@ -494,8 +498,7 @@ static inline void bt_psm_deinit(struct bt_psm_ctrl *psm)
 
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal);
 int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal);
-int btmtk_btif_start_inttrx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_rx_buf);
-int btmtk_btif_complete_inttrx(void);
+int btmtk_btif_internal_trx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_stack, bool is_blocking);
 int btmtk_inttrx_DynamicAdjustTxPower_cb(uint8_t *buf, int len);
 int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t set_val, BT_RX_EVT_HANDLER_CB cb);
 int32_t btmtk_intcmd_wmt_calibration(struct hci_dev *hdev);
