@@ -1676,6 +1676,8 @@ int btmtk_cif_register(void)
 
 #if (USE_DEVICE_NODE == 1)
 	ret = btmtk_cif_probe(NULL);
+	if (ret)
+		return -1;
 	rx_queue_initialize();
 #else
 	ret = platform_driver_register(&mtkbt_btif_driver);
