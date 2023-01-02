@@ -60,6 +60,7 @@ static unsigned long g_btif_id; /* The user identifier to operate btif */
 struct task_struct *g_btif_rxd_thread;
 struct btmtk_btif_dev g_btif_dev;
 struct bt_dbg_st g_bt_dbg_st;
+static struct work_struct internal_trx_work;
 
 static struct platform_driver mtkbt_btif_driver = {
 	.driver = {
@@ -810,11 +811,6 @@ static struct coredump_event_cb bt_coredump_cb =
 */
 bool bt_pwrctrl_support(void)
 {
-	// TODO_PWRCTRL
-	/*if (CONNAC20_CHIPID == 6983)
-		return TRUE;
-	else
-		return FALSE;*/
 	return TRUE;
 }
 
@@ -1393,26 +1389,50 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 	return ret;
 }
 
-int btmtk_btif_start_inttrx (uint8_t *buf, uint32_t count, BT_RX_EVT_HANDLER_CB cb, bool send_to_rx_buf)
+static void btmtk_btif_internal_trx_work(struct work_struct *work)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	cif_dev->int_trx.cb = cb;
-	cif_dev->int_trx.opcode = *(buf + 1) + (*(buf + 2) << 8);
-	cif_dev->int_trx.send_to_rx_buf = send_to_rx_buf;
-	BTMTK_INFO_RAW(buf, count, "[inttrx] len[%d] TX: ", count);
-	btmtk_send_data(g_sbdev->hdev, buf, count);
-	return 0;
+	btmtk_send_data(g_sbdev->hdev, cif_dev->internal_trx.buf, cif_dev->internal_trx.buf_len);
+	if (!wait_for_completion_timeout(&cif_dev->internal_trx.comp, msecs_to_jiffies(2000)))
+		BTMTK_ERR("[internal trx] wait event timeout!");
+	BTMTK_INFO("[internal trx] complete");
+	cif_dev->internal_trx.cb = NULL;
 }
 
-int btmtk_btif_complete_inttrx (void)
+
+int btmtk_btif_internal_trx (uint8_t *buf, uint32_t count,
+									BT_RX_EVT_HANDLER_CB cb,
+									bool send_to_stack,
+									bool is_blocking)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
-	if (!wait_for_completion_timeout(&cif_dev->int_trx.comp, msecs_to_jiffies(2000)))
-		BTMTK_ERR("[inttrx] wait event timeout!");
-	BTMTK_INFO("[inttrx] complete");
-	cif_dev->int_trx.cb = NULL;
+	spin_lock_irqsave(&cif_dev->internal_trx.lock, cif_dev->internal_trx.flag);
+	if (cif_dev->internal_trx.cb) {
+		BTMTK_ERR("unable to do internal trx before previous trx done");
+		return -1;
+	}
+	cif_dev->internal_trx.cb = cb;
+	spin_unlock_irqrestore(&cif_dev->internal_trx.lock, cif_dev->internal_trx.flag);
+
+	cif_dev->internal_trx.opcode = *(buf + 1) + (*(buf + 2) << 8);
+	cif_dev->internal_trx.send_to_stack = send_to_stack;
+	if (count > 256) {
+		BTMTK_ERR("internal command buffer larger than provided");
+		return -1;
+	}
+	memcpy(cif_dev->internal_trx.buf, buf, count);
+	cif_dev->internal_trx.buf_len = count;
+	BTMTK_INFO_RAW(buf, count, "[internal trx] len[%d] TX: ", count);
+	if (is_blocking) {
+		btmtk_send_data(g_sbdev->hdev, cif_dev->internal_trx.buf, cif_dev->internal_trx.buf_len);
+		if (!wait_for_completion_timeout(&cif_dev->internal_trx.comp, msecs_to_jiffies(2000)))
+			BTMTK_ERR("[internal trx] wait event timeout!");
+		BTMTK_INFO("[internal trx] complete");
+		cif_dev->internal_trx.cb = NULL;
+	} else
+		schedule_work(&internal_trx_work);
 	return 0;
 }
 
@@ -1455,13 +1475,13 @@ int btmtk_btif_event_filter(struct btmtk_dev *bdev, struct sk_buff *skb)
 	}
 
 	/* handle command complete evt if callback is registered */
-	if (cif_dev->int_trx.cb != NULL) {
+	if (cif_dev->internal_trx.cb != NULL) {
 		if (skb->data[0] == HCI_EVT_COMPLETE_EVT && \
-			cif_dev->int_trx.opcode == skb->data[3] + (skb->data[4] << 8)) {
-			BTMTK_INFO_RAW(skb->data, (int)skb->len, "[inttrx] len[%d] RX: ", (int)skb->len);
-			cif_dev->int_trx.cb(skb->data, (int)skb->len);
-			complete(&cif_dev->int_trx.comp);
-			if (!cif_dev->int_trx.send_to_rx_buf)
+			cif_dev->internal_trx.opcode == skb->data[3] + (skb->data[4] << 8)) {
+			BTMTK_INFO_RAW(skb->data, (int)skb->len, "[internal trx] len[%d] RX: ", (int)skb->len);
+			cif_dev->internal_trx.cb(skb->data, (int)skb->len);
+			complete(&cif_dev->internal_trx.comp);
+			if (!cif_dev->internal_trx.send_to_stack)
 				return -1; // do not send to stack
 		}
 	}
@@ -1521,7 +1541,7 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 
 	/* 4. Init completion */
 	init_completion(&cif_dev->rst_comp);
-	init_completion(&cif_dev->int_trx.comp);
+	init_completion(&cif_dev->internal_trx.comp);
 
 	/* 5. Init semaphore */
 	sema_init(&cif_dev->halt_sem, 1);
@@ -1553,6 +1573,9 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 
 	/* 10. Init rst_onoff_waitq */
 	init_waitqueue_head(&cif_dev->rst_onoff_waitq);
+
+	/* 11. Init internal trx work */
+	INIT_WORK(&internal_trx_work, btmtk_btif_internal_trx_work);
 
 	/* Register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
