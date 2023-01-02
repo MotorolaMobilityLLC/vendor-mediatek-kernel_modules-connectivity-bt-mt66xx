@@ -13,6 +13,7 @@
 #include "btmtk_define.h"
 #include "btmtk_chip_if.h"
 #include "btmtk_main.h"
+#include "btmtk_dbg_tp_evt_if.h"
 #include "conninfra.h"
 #include "connsys_debug_utility.h"
 
@@ -1304,6 +1305,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
+	bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
 	/*
 	 *  1. ConnInfra hardware power on (Must be the first step)
 	 *
@@ -1518,6 +1520,7 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	BTMTK_INFO("%s", __func__);
+	bt_dbg_tp_evt(TP_ACT_PWR_OFF, 0, 0, NULL);
 
 	down(&cif_dev->halt_sem);
 
