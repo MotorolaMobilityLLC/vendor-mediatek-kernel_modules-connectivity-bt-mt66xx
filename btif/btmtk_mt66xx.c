@@ -866,6 +866,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 		BTMTK_ERR("Unable to get calibration event in time, start dump and reset!");
 		// TODO: FW request dump & reset, need apply to all internal cmdå
 		bt_trigger_reset();
+		up(&cif_dev->internal_cmd_sem);
 		return -1;
 	}
 
@@ -1301,6 +1302,7 @@ int32_t btmtk_intcmd_query_thermal(void)
 
 	if (ret <= 0) {
 		BTMTK_ERR("Unable to send thermal cmd");
+		up(&cif_dev->internal_cmd_sem);
 		return -1;
 	}
 
@@ -1603,6 +1605,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	bool is_wmt_power_on_error = false;
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
@@ -1783,6 +1786,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		return -EIO;
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
+		is_wmt_power_on_error = true;
 		goto wmt_power_on_error;
 	}
 
@@ -1814,7 +1818,8 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-	up(&cif_dev->halt_sem);
+	if (!is_wmt_power_on_error)
+		up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;
