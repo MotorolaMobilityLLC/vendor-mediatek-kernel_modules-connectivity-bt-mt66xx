@@ -460,6 +460,7 @@ int beif_check_header(void)
 		ret = -1;
 		goto end;
 	}
+	beif_dump_array("beif header", (const char *)s, 128);
 
 	val = EMI_READ32(&s->key);
 	if (val != BEIF_HEADER_KEY) {
