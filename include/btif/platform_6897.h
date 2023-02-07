@@ -151,7 +151,7 @@
 #define BGF_MCU_CFG_SW_DBG_CTL				(BGF_REG_BASE_ADDR + 0x016C)
 
 #define BGF_IP_VERSION					(BGF_REG_INFO_BASE_ADDR)
-#define BGF_IP_VER_ID					0x02060000
+#define BGF_IP_VER_ID					0x02080000
 
 #define BGF_MCUCIRQ 					(0x188280C0)
 #define BGF_BTIF0_WAKEUP_OUT_B				BIT(10)
@@ -182,7 +182,7 @@
 */
 #define BIN_NAME_MCU			"soc7_0_ram_mcu_1"
 #define BIN_NAME_BT			"soc7_0_ram_bt_1"
-#define CONN_INFRA_CFG_ID		(0x02050100)
+#define CONN_INFRA_CFG_ID		(0x02050400)
 
 #define MET_EMI_ADDR	(0x2BC00)
 #define BT_SSPM_TIMER	(0x1c011008)
