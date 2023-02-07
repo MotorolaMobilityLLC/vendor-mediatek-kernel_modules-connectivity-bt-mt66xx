@@ -87,6 +87,7 @@
 #undef SUPPORT_BT_THREAD
 #define SUPPORT_BT_THREAD	(1)
 #define SUPPORT_COREDUMP	(1)
+#define EMI_DUMP_LEN 128
 
 #define DRIVER_CMD_CHECK	(1)
 
@@ -396,10 +397,10 @@ struct btmtk_btif_dev {
 
 	/* blank status */
 	int32_t		blank_state;
-
+#if (SUPPORT_BEIF == 0)
 	/* btif deep idle ctrl */
 	struct btif_deepidle_ctrl btif_dpidle_ctrl;
-
+#endif
 };
 
 #define BTMTK_GET_DEV(bdev) (&bdev->pdev->dev)
@@ -506,6 +507,10 @@ static inline int osal_strtol(const char *str, unsigned int adecimal, long *res)
  * Send cmd dispatch evt
  */
 #define HCI_EV_VENDOR			0xff
+
+#if SUPPORT_BEIF
+void btmtk_set_beif_reg(void);
+#endif
 
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal);
 int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal);

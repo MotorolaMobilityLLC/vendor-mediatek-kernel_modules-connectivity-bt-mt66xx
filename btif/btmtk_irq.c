@@ -12,6 +12,9 @@
 #include "btmtk_chip_if.h"
 #include "conninfra.h"
 #include "connsys_debug_utility.h"
+#if SUPPORT_BEIF
+#include "btmtk_beif.h"
+#endif
 
 /*******************************************************************************
 *				C O N S T A N T S
@@ -41,6 +44,7 @@ static struct bt_irq_ctrl bgf2ap_sw_irq = {.name = "BGF_SW_IRQ"};
 static struct bt_irq_ctrl bt_conn2ap_sw_irq = {.name = "BUS_SW_IRQ"};
 static struct bt_irq_ctrl *bt_irq_table[BGF2AP_IRQ_MAX];
 static struct work_struct rst_trigger_work;
+static int32_t g_bgf_status;
 
 
 /*******************************************************************************
@@ -114,46 +118,47 @@ void bt_bgf2ap_irq_handler(void)
 	cif_dev->bgf2ap_ind = FALSE;
 
 	/* wake up conn_infra off */
-	if(bgfsys_check_conninfra_ready())
+	if (bgfsys_check_conninfra_ready())
 		return;
 
-	/* Read IRQ status CR to identify what happens */
-	bgf_status = bgfsys_get_sw_irq_status();
-
-#if (CFG_BT_ATF_SUPPORT == 1)
-        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
-#else
-        /* release conn_infra force on */
-        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-#endif
+	/* Read stored IRQ status CR to identify what happens */
+	bgf_status = g_bgf_status;
 
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
 
 	if (bgf_status && !(bgf_status & BGF_FW_LOG_NOTIFY)) {
+#if SUPPORT_BEIF
+		if (!(bgf_status & BGF_FW2AP_NOTIFY)) {
+			BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
+		}
+#else
 		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
-	}else{
+#endif
+	} else {
 		BTMTK_DBG("bgf_status = 0x%08x", bgf_status);
 	}
 
 	if (bgf_status == 0xDEADFEED) {
 		bt_dump_bgfsys_all();
-		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
 		else
 			schedule_work(&rst_trigger_work);
+		goto end;
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
 		connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
 		while(count--){};
-		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status &  BGF_WHOLE_CHIP_RESET) {
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "FW trigger");
-	} else {
-		bt_enable_irq(BGF2AP_SW_IRQ);
+		goto end;
 	}
+
+	bt_enable_irq(BGF2AP_SW_IRQ);
+end:
+	return;
 }
 
 /* bt_conn2ap_irq_handler
@@ -239,6 +244,19 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		irq_timer[8] = sched_clock();
 #endif
 		bt_disable_irq(BGF2AP_SW_IRQ);
+		/* Store IRQ status CR */
+		g_bgf_status = bgfsys_get_sw_irq_status();
+#if (CFG_BT_ATF_SUPPORT == 1)
+        	bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        	/* release conn_infra force on */
+        	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
+#if SUPPORT_BEIF
+		if (g_bgf_status &  BGF_FW2AP_NOTIFY) {
+			beif_receive_data();
+		}
+#endif
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 		irq_timer[9] = sched_clock();
 #endif
@@ -246,7 +264,7 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		wake_up_interruptible(&cif_dev->tx_waitq);
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 		irq_timer[11] = sched_clock();
-		if (irq_timer[11] - irq_timer[8] > 5000000){
+		if (irq_timer[11] - irq_timer[8] > 5000000) {
 			BTMTK_ERR("sw: start1[%llu] b_dis9[%llu] in_dis3[%llu] b_lock4[%llu] a_lock5[%llu] b_unlock6[%llu] a_unlock7[%llu] a_dis10[%llu] end11[%llu]", irq_timer[0], irq_timer[8], irq_timer[2], irq_timer[3], irq_timer[4], irq_timer[5], irq_timer[6], irq_timer[9], irq_timer[11]);
 		}
 #endif
