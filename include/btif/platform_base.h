@@ -122,7 +122,7 @@ enum enum_bt_smc_opid {
         SMC_BT_SUSPEND_WAKEUP = 19,
         SMC_BT_CAL_DATA_RESTORE_ONE = 20,
         SMC_BT_CAL_DATA_RESTORE_TWO = 21,
-
+        SMC_BT_SET_BEIF_REG = 22,
         /* HIF */
         SMC_BT_HIF_OPID = 1000,
 
@@ -295,6 +295,14 @@ static inline void compose_fw_name(u_int8_t has_flavor, uint8_t flavor,
 
 
 #if (CFG_BT_ATF_SUPPORT == 1)
+static inline uint32_t beif_notify_fw_smc(uint32_t u4Opid)
+{
+	struct arm_smccc_res res;
+	arm_smccc_smc(MTK_SIP_KERNEL_BT_CONTROL, u4Opid,
+					0, 0, 0, 0, 0, 0, &res);
+	return res.a0;
+}
+
 static inline uint32_t bgfsys_power_on_smc(uint32_t u4Opid)
 {
 	struct arm_smccc_res res;
