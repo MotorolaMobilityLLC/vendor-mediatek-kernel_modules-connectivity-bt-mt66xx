@@ -44,7 +44,6 @@ static struct bt_irq_ctrl bgf2ap_sw_irq = {.name = "BGF_SW_IRQ"};
 static struct bt_irq_ctrl bt_conn2ap_sw_irq = {.name = "BUS_SW_IRQ"};
 static struct bt_irq_ctrl *bt_irq_table[BGF2AP_IRQ_MAX];
 static struct work_struct rst_trigger_work;
-static int32_t g_bgf_status;
 
 
 /*******************************************************************************
@@ -122,25 +121,26 @@ void bt_bgf2ap_irq_handler(void)
 		return;
 
 	/* Read stored IRQ status CR to identify what happens */
-	bgf_status = g_bgf_status;
+	bgf_status = bgfsys_get_sw_irq_status();
 
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
-
-	if (bgf_status && !(bgf_status & BGF_FW_LOG_NOTIFY)) {
 #if SUPPORT_BEIF
-		if (!(bgf_status & BGF_FW2AP_NOTIFY)) {
-			BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
-		}
+	if (bgf_status && !(bgf_status & (BGF_FW_LOG_NOTIFY | BGF_FW2AP_NOTIFY ))) {
 #else
-		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
+	if (bgf_status && !(bgf_status & BGF_FW_LOG_NOTIFY)) {
 #endif
+		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
 	} else {
 		BTMTK_DBG("bgf_status = 0x%08x", bgf_status);
 	}
 
 	if (bgf_status == 0xDEADFEED) {
 		bt_dump_bgfsys_all();
+#if SUPPORT_BEIF
+	} else if (bgf_status & BGF_FW2AP_NOTIFY) {
+		beif_receive_data();
+#endif
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
@@ -244,18 +244,11 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		irq_timer[8] = sched_clock();
 #endif
 		bt_disable_irq(BGF2AP_SW_IRQ);
-		/* Store IRQ status CR */
-		g_bgf_status = bgfsys_get_sw_irq_status();
 #if (CFG_BT_ATF_SUPPORT == 1)
         	bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
 #else
         	/* release conn_infra force on */
         	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-#endif
-#if SUPPORT_BEIF
-		if (g_bgf_status &  BGF_FW2AP_NOTIFY) {
-			beif_receive_data();
-		}
 #endif
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 		irq_timer[9] = sched_clock();
