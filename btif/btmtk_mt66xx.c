@@ -711,8 +711,10 @@ power_on_error:
 static void bt_hw_and_mcu_off(void)
 {
 	BTMTK_INFO("%s", __func__);
+#if (SUPPORT_BEIF == 0)
 	/* Close hardware bus interface */
 	btmtk_wcn_btif_close();
+#endif
 
 	bt_disable_irq(BGF2AP_SW_IRQ);
 	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
@@ -1581,6 +1583,13 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
 	return p_inter_cmd->result;
 }
+
+#if SUPPORT_BEIF
+void btmtk_set_beif_reg(void)
+{
+	beif_notify_fw();
+}
+#endif
 
 /* btmtk_set_power_on
  *
