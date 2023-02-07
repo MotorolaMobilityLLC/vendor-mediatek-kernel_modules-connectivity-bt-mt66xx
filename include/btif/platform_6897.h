@@ -947,6 +947,8 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
 	} else if (value &  BGF_WHOLE_CHIP_RESET){
 		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET, TRUE);
+	} else if (value & BGF_FW2AP_NOTIFY){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW2AP_NOTIFY, TRUE);
 	}
 #endif
 	return value;

@@ -597,6 +597,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 		bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_START, 0, NULL);
 	/* dump debug message */
 	show_all_dump_packet();
+	btmtk_cif_dump_btif_tx_no_rsp();
 	btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_ALL);
 
 	is_1st_reset = (cif_dev->rst_count == 0) ? TRUE : FALSE;
