@@ -33,6 +33,7 @@ all:
 	$(call build_kernel_modules,6879)
 	$(call build_kernel_modules,6895)
 	$(call build_kernel_modules,6886)
+	$(call build_kernel_modules,6897)
 
 modules_install:
 	$(call install_kernel_modules,6885)
@@ -42,6 +43,7 @@ modules_install:
 	$(call install_kernel_modules,6879)
 	$(call install_kernel_modules,6895)
 	$(call install_kernel_modules,6886)
+	$(call install_kernel_modules,6897)
 
 clean:
 	$(call clean_kernel_modules,6885)
@@ -51,6 +53,7 @@ clean:
 	$(call clean_kernel_modules,6879)
 	$(call clean_kernel_modules,6895)
 	$(call clean_kernel_modules,6886)
+	$(call clean_kernel_modules,6897)
 
 
 $(info [bt_drv] btif/Makefile end)
