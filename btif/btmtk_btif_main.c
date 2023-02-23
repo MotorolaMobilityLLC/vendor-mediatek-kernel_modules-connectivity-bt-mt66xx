@@ -1948,6 +1948,8 @@ int32_t btmtk_tx_thread(void * arg)
 			 */
 #if (SUPPORT_BEIF == 0)
 			btmtk_btif_dpidle_ctrl(FALSE);
+#else
+			bt_hold_wake_lock(&cif_dev->psm.wake_lock);
 #endif
 			bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 			wakeup_ret = btmtk_cif_fw_own_clr();
@@ -1961,6 +1963,8 @@ int32_t btmtk_tx_thread(void * arg)
 				bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #if (SUPPORT_BEIF == 0)
 				btmtk_btif_dpidle_ctrl(TRUE);
+#else
+				bt_release_wake_lock(&cif_dev->psm.wake_lock);
 #endif
 				/* check current bt_state to prevent from conflict
 				 * resetting b/w subsys reset & whole chip reset
@@ -2095,6 +2099,8 @@ int32_t btmtk_tx_thread(void * arg)
 					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #if (SUPPORT_BEIF == 0)
 					btmtk_btif_dpidle_ctrl(TRUE);
+#else
+					bt_release_wake_lock(&cif_dev->psm.wake_lock);
 #endif
 					psm->state = PSM_ST_SLEEP;
 				}
