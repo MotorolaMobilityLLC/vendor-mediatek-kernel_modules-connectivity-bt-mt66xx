@@ -868,6 +868,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 		BTMTK_ERR("Unable to get calibration event in time, start dump and reset!");
 		// TODO: FW request dump & reset, need apply to all internal cmdå
 		bt_trigger_reset();
+		up(&cif_dev->internal_cmd_sem);
 		return -1;
 	}
 
