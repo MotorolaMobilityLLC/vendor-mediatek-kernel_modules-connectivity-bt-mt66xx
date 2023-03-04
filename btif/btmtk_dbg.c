@@ -230,6 +230,9 @@ int bt_dbg_reg_write(int par1, int par2, int par3)
 
 int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 {
+#if (BUILD_QA_DBG == 0)
+	return -ENODEV;
+#else
 	uint32_t *remap_addr = NULL;
 	int ret_val = 0;
 
@@ -244,6 +247,7 @@ int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 	BTMTK_INFO("%s: 0x%08x read value = [0x%08x]", __func__, par2, ret_val);
 	iounmap(remap_addr);
 	return ret_val;
+#endif
 }
 
 int bt_dbg_ap_reg_write(int par1, int par2, int par3)
@@ -562,6 +566,9 @@ int bt_dbg_rx_buf_control(int par1, int par2, int par3)
 
 ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
+#if (BUILD_QA_DBG == 0)
+	return -ENODEV;
+#else
 	int ret = 0;
 	int dump_len;
 
@@ -596,6 +603,7 @@ exit:
 
 	mutex_unlock(&g_bt_lock);
 	return ret;
+#endif
 }
 
 int bt_osal_strtol(const char *str, unsigned int adecimal, long *res)
@@ -662,6 +670,9 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
 {
+#if (BUILD_QA_DBG == 0)
+	return -ENODEV;
+#else
 	bool is_passwd = FALSE, is_turn_on = FALSE;
 	size_t len = count;
 	char buf[256], *pBuf;
@@ -762,6 +773,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 	}
 
 	return len;
+#endif
 }
 
 int bt_dev_dbg_init(void)
