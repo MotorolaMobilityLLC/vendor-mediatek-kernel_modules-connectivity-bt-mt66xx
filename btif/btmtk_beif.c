@@ -460,7 +460,8 @@ int beif_check_header(void)
 		ret = -1;
 		goto end;
 	}
-	beif_dump_array("beif header", (const char *)s, 128);
+	beif_dump_array("beif header", (const char *)s,
+		sizeof(struct beif_header_t) + 2 * sizeof(struct beif_ctrl_t));
 
 	val = EMI_READ32(&s->key);
 	if (val != BEIF_HEADER_KEY) {
@@ -526,11 +527,8 @@ int beif_check_header(void)
 	}
 
 end:
-	if (ret < 0) {
+	if (ret < 0)
 		pr_info("%s, ERROR!! Please check above log", __func__);
-		beif_dump_array("beif header", (const char *)s,
-			sizeof(struct beif_header_t) + 2 * sizeof(struct beif_ctrl_t));
-	}
 	else
 		pr_info("%s, no error is found", __func__);
 
