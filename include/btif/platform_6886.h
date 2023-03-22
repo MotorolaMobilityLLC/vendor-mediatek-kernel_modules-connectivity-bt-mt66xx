@@ -715,15 +715,27 @@ static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
 	ret = snprintf(pos, (end - pos + 1), "[BGF dump suspend/wakeup] ");
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [BGF dump suspend/wakeup] fail");
+	} else {
+		pos += ret;
+	}
 
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x790);
 	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x790, value);
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [CON_REG_SPM_BASE_ADDR + 0x790] fail");
+	} else {
+		pos += ret;
+	}
 
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0x794);
 	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x], ", 0x18060000 + 0x794, value);
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [CON_REG_SPM_BASE_ADDR + 0x794] fail");
+	} else {
+		pos += ret;
+	}
 
 #if (CFG_BT_ATF_SUPPORT == 1)
         bt_dump_bgfsys_suspend_wakeup_debug_smc(SMC_BT_SUSPEND_WAKEUP, 0x300508);
@@ -732,6 +744,11 @@ static inline void bt_dump_bgfsys_suspend_wakeup_debug(void)
 #endif
 	value = REG_READL(CON_REG_SPM_BASE_ADDR + 0xC00);
 	ret = snprintf(pos, (end - pos + 1), "[0x%08x]=[0x%08x]", 0x18060000 + 0xC00, value);
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf BT[CON_REG_SPM_BASE_ADDR + 0xC00] fail");
+	} else {
+		pos += ret;
+	}
 
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
@@ -1084,6 +1101,10 @@ static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
 	if (base) {
 		for(i = 0x20; i <= 0x34; i+=4) {
 			ret = snprintf(pos, (end - pos + 1)," 0x%08x = [0x%08x]", 0x18005100 + i, REG_READL(base + i));
+			if (ret < 0 || ret >= (end - pos + 1)) {
+				BTMTK_ERR("snprintf [0x%02x] fail", i);
+				break;
+			}
 			pos += ret;
 		}
 		iounmap(base);
@@ -1093,7 +1114,11 @@ static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
 	base = ioremap(0x180050A8, 0x10);
 	if (base) {
 		ret = snprintf(pos, (end - pos + 1)," 0x180050A8 = [0x%08x]", REG_READL(base));
-		pos += ret;
+		if (ret < 0 || ret >= (end - pos + 1)) {
+			BTMTK_ERR("snprintf 0x180050A8 fail");
+		} else {
+			pos += ret;
+                }
 		iounmap(base);
 	} else
 		BTMTK_ERR("%s: remapping 0x180050A8 fail", __func__);
