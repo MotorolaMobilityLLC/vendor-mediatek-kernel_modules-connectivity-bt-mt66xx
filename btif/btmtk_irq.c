@@ -123,6 +123,9 @@ void bt_bgf2ap_irq_handler(void)
 	/* Read stored IRQ status CR to identify what happens */
 	bgf_status = bgfsys_get_sw_irq_status();
 
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
 #if SUPPORT_BEIF
