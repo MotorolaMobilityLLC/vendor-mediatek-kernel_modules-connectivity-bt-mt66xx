@@ -503,15 +503,15 @@ static int BT_close(struct inode *inode, struct file *file)
 	//bt_core_unregister_rx_event_cb();
 
 	ret = g_sbdev->hdev->close(g_sbdev->hdev);
-	bt_release_wake_lock(&bt_wakelock);
-	bthost_debug_init();
-
 	if (ret) {
 		BTMTK_ERR("BT turn off fail!");
+		bt_release_wake_lock(&bt_wakelock);
 		return ret;
 	}
 
 	BTMTK_INFO("BT turn off OK!");
+	bt_release_wake_lock(&bt_wakelock);
+	bthost_debug_init();
 	return 0;
 }
 
