@@ -676,8 +676,6 @@ static int32_t bt_hw_and_mcu_on(void)
 		bt_disable_irq(BT_CONN2AP_SW_IRQ);
 	}
 
-	btmtk_reset_init();
-
 	if (btmtk_wcn_btif_open()) {
 		ret = -EIO;
 		goto bus_operate_error;
