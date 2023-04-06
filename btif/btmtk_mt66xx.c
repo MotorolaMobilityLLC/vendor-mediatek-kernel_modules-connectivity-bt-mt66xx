@@ -1708,8 +1708,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	init_waitqueue_head(&cif_dev->tx_waitq);
 	cif_dev->tx_thread = kthread_create(btmtk_tx_thread, bdev, "bt_tx_ps");
 	if (IS_ERR(cif_dev->tx_thread)) {
-		BTMTK_DBG("btmtk_tx_thread failed to start!");
 		ret = PTR_ERR(cif_dev->tx_thread);
+		BTMTK_INFO("ret = %d, btmtk_tx_thread failed to start!", ret);
+		cif_dev->tx_thread = NULL;
 		goto thread_create_error;
 	}
 
