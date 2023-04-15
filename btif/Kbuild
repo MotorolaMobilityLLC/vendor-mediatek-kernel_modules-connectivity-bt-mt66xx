@@ -129,9 +129,9 @@ else
   obj-m += $(MODULE_NAME).o
 endif
 
-CORE_OBJS := btmtk_dbg.o btmtk_dbg_tp_evt_if.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
-CHIP_OBJS := btmtk_mt66xx.o
-HIF_OBJS := btmtk_btif_main.o btmtk_queue.o btmtk_beif.o btmtk_beif_plat.o
+CORE_OBJS := btif/btmtk_dbg.o btif/btmtk_dbg_tp_evt_if.o btif/btmtk_irq.o btif/btmtk_char_dev.o btmtk_fw_log.o btmtk_main.o
+CHIP_OBJS := btif/btmtk_mt66xx.o
+HIF_OBJS := btif/btmtk_btif_main.o btif/btmtk_queue.o btif/btmtk_beif.o btif/btmtk_beif_plat.o
 
 $(MODULE_NAME)-objs  += $(CORE_OBJS)
 $(MODULE_NAME)-objs  += $(HIF_OBJS)
