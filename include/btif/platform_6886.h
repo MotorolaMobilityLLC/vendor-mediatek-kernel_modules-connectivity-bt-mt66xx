@@ -153,8 +153,8 @@
 #define BGF_IP_VERSION					(BGF_REG_INFO_BASE_ADDR)
 #define BGF_IP_VER_ID					0x02060000
 
-#define BGF_MCUCIRQ 					(0x188280C0)
-#define BGF_BTIF0_WAKEUP_OUT_B				BIT(10)
+#define BGF_MCUCIRQ 					(0x1803F00C)
+#define BGF_BTIF0_WAKEUP_OUT_B				BIT(0) | BIT(1)
 #define BEIF_EMI_OFFSET					(0xBA0000)
 #define BEIF_EMI_SIZE					(1024*32)
 
@@ -198,7 +198,7 @@ static inline void beif_notify_fw(void)
 #if (CFG_BT_ATF_SUPPORT == 1)
 	beif_notify_fw_smc(SMC_BT_SET_BEIF_REG);
 #else
-	bt_write_cr(BGF_MCUCIRQ, BGF_BTIF0_WAKEUP_OUT_B, TRUE);
+	bt_write_cr(BGF_MCUCIRQ, BGF_BTIF0_WAKEUP_OUT_B, FALSE);
 #endif
 }
 
