@@ -76,7 +76,9 @@ static int bt_dbg_fpga_test(int par1, int par2, int par3);
 static int bt_dbg_is_adie_work(int par1, int par2, int par3);
 static int bt_dbg_met_start_stop(int par1, int par2, int par3);
 static int bt_dbg_DynamicAdjustTxPower(int par1, int par2, int par3);
+#if (CFG_ENABLE_DEBUG_WRITE == 1)
 static void bt_dbg_user_trx_proc(char *cmd_raw);
+#endif
 static int bt_dbg_user_trx_cb(uint8_t *buf, int len);
 static int bt_dbg_trace_pt(int par1, int par2, int par3);
 
@@ -97,7 +99,9 @@ static struct mutex g_bt_lock;
 static char g_bt_dump_buf[BT_DBG_DUMP_BUF_SIZE];
 static char *g_bt_dump_buf_ptr;
 static int g_bt_dump_buf_len;
+#if (CFG_ENABLE_DEBUG_WRITE == 1)
 static bool g_bt_dbg_enable = FALSE;
+#endif
 
 static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0x0] = {bt_dbg_hwver_get, 				FALSE},
@@ -574,6 +578,9 @@ int bt_dbg_rx_buf_control(int par1, int par2, int par3)
 
 ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
+#if (CFG_ENABLE_DEBUG_WRITE == 0)
+	return -ENODEV;
+#else
 	int ret = 0;
 	int dump_len;
 
@@ -608,6 +615,7 @@ exit:
 
 	mutex_unlock(&g_bt_lock);
 	return ret;
+#endif
 }
 
 int bt_osal_strtol(const char *str, unsigned int adecimal, long *res)
@@ -644,6 +652,7 @@ end:
 	return 0;
 }
 
+#if (CFG_ENABLE_DEBUG_WRITE == 1)
 void bt_dbg_user_trx_proc(char *cmd_raw)
 {
 #define LEN_64 64
@@ -671,9 +680,13 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 	// Send command and wait for command_complete event
 	btmtk_btif_internal_trx(hci_cmd, len, bt_dbg_user_trx_cb, TRUE, TRUE);
 }
+#endif
 
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
 {
+#if (CFG_ENABLE_DEBUG_WRITE == 0)
+	return -ENODEV;
+#else
 	bool is_passwd = FALSE, is_turn_on = FALSE;
 	size_t len = count;
 	char buf[256], *pBuf;
@@ -774,6 +787,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 	}
 
 	return len;
+#endif
 }
 
 int bt_dev_dbg_init(void)
