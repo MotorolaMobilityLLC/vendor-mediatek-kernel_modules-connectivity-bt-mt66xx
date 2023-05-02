@@ -58,7 +58,9 @@ static char g_bt_dump_buf[BT_DBG_DUMP_BUF_SIZE];
 static char *g_bt_dump_buf_ptr;
 static int g_bt_dump_buf_len;
 static bool g_bt_turn_on = FALSE;
+#if (CFG_ENABLE_DEBUG_WRITE == 1)
 static bool g_bt_dbg_enable = FALSE;
+#endif
 
 static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0xb] = {bt_dbg_setlog_level,		TRUE},
@@ -130,6 +132,9 @@ int bt_dbg_setlog_level(int par1, int par2, int par3)
 
 ssize_t bt_dbg_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos)
 {
+#if (CFG_ENABLE_DEBUG_WRITE == 0)
+	return -ENODEV;
+#else
 	int ret = 0;
 	int dump_len;
 
@@ -164,6 +169,7 @@ exit:
 
 	mutex_unlock(&g_bt_lock);
 	return ret;
+#endif
 }
 
 int _osal_strtol(const char *str, unsigned int adecimal, long *res)
@@ -223,6 +229,7 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 	complete(&g_bt_dbg_st.trx_comp);
 }
 
+#if (CFG_ENABLE_DEBUG_WRITE == 1)
 void bt_dbg_user_trx_proc(char *cmd_raw)
 {
 #define LEN_64 64
@@ -260,9 +267,13 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 		BT_LOG_PRT_ERR("%s: wait event timeout!", __func__);
 	g_bt_dbg_st.trx_enable = FALSE;
 }
+#endif
 
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
 {
+#if (CFG_ENABLE_DEBUG_WRITE == 0)
+	return -ENODEV;
+#else
 	bool is_passwd = FALSE, is_turn_on = FALSE;
 	size_t len = count;
 	char buf[256], *pBuf;
@@ -359,6 +370,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 	}
 
 	return len;
+#endif
 }
 
 int bt_dev_dbg_init(void)

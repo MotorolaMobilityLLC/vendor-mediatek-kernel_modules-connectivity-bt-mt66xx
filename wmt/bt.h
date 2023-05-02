@@ -43,6 +43,14 @@
 #define BT_LOG_ERR              1
 #define RAW_MAX_BYTES           30
 
+#if BUILD_QA_DBG
+#define CFG_SHOW_FULL_MACADDR 1
+#define CFG_ENABLE_DEBUG_WRITE 1
+#else
+#define CFG_SHOW_FULL_MACADDR 0
+#define CFG_ENABLE_DEBUG_WRITE 0
+#endif
+
 static uint8_t raw_buf[RAW_MAX_BYTES * 5 + 10];
 extern UINT32 gBtDbgLevel;
 
