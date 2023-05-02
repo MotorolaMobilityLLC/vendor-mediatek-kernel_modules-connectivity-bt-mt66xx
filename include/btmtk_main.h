@@ -239,6 +239,14 @@
 #define LD_PATCH_TIME 0
 #endif
 
+#if BUILD_QA_DBG
+#define CFG_SHOW_FULL_MACADDR 1
+#define CFG_ENABLE_DEBUG_WRITE 1
+#else
+#define CFG_SHOW_FULL_MACADDR 0
+#define CFG_ENABLE_DEBUG_WRITE 0
+#endif
+
 enum {
 	RES_1 = 0,
 	RES_DOT_5,
