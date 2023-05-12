@@ -206,6 +206,10 @@ int bt_dbg_reg_read(int par1, int par2, int par3)
 /* Write BGF SYS address (controller view) by 0x18001104 & 0x18900000 */
 int bt_dbg_reg_write(int par1, int par2, int par3)
 {
+#if 0
+#if (CFG_BT_ATF_SUPPORT == 1)
+	SendAtfSmcCmd_dbg_write(SMC_BT_DBG_REG_WRITE, par2, par3);
+#else
 	uint32_t *dynamic_remap_addr = NULL;
 	uint32_t *dynamic_remap_value = NULL;
 
@@ -228,6 +232,8 @@ int bt_dbg_reg_write(int par1, int par2, int par3)
 		return -1;
 	}
 	iounmap(dynamic_remap_value);
+#endif
+#endif
 	return 0;
 
 }
@@ -256,6 +262,10 @@ int bt_dbg_ap_reg_read(int par1, int par2, int par3)
 
 int bt_dbg_ap_reg_write(int par1, int par2, int par3)
 {
+#if 0
+#if (CFG_BT_ATF_SUPPORT == 1)
+        SendAtfSmcCmd_dbg_write(SMC_BT_DBG_AP_REG_WRITE, par2, par3);
+#else
 	uint32_t *remap_addr = NULL;
 
 	/* TODO: */
@@ -268,6 +278,8 @@ int bt_dbg_ap_reg_write(int par1, int par2, int par3)
 	*remap_addr = par3;
 	BTMTK_INFO("%s: 0x%08x write value = [0x%08x]", __func__, par2, par3);
 	iounmap(remap_addr);
+#endif
+#endif
 	return 0;
 }
 
@@ -853,7 +865,7 @@ void bthost_debug_init(void)
 void bthost_debug_print(void)
 {
 	uint32_t i = 0;
-	uint32_t ret = 0;
+	int32_t ret = 0;
 	uint8_t *pos = NULL, *end = NULL;
 	uint8_t dump_buffer[700]={0};
 
@@ -861,7 +873,11 @@ void bthost_debug_print(void)
 	end = pos + 700 - 1;
 
 	ret = snprintf(pos, (end - pos + 1), "[bt host info] ");
-	pos += ret;
+	if (ret < 0 || ret >= (end - pos + 1)) {
+		BTMTK_ERR("snprintf [bt host info] fail");
+	} else {
+		pos += ret;
+	}
 
 	for (i = 0; i < BTHOST_INFO_MAX; i++){
 		if (bthost_info_table[i].id == 0){
