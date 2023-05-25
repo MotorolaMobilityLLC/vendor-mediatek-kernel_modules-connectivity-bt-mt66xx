@@ -344,7 +344,7 @@ static void bgfsys_cal_data_backup(
 	if (!conninfra_reg_readable()) {
 		int32_t ret = conninfra_is_bus_hang();
 		if (ret > 0)
-			BTMTK_ERR("%s: conninfra bus is hang, needs reset", __func__);
+			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
 		else
 			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
 		return;
@@ -389,7 +389,7 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 	if (!conninfra_reg_readable()) {
 		int32_t ret = conninfra_is_bus_hang();
 		if (ret > 0)
-			BTMTK_ERR("%s: conninfra bus is hang, needs reset", __func__);
+			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
 		else
 			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
 		return;
@@ -863,11 +863,18 @@ static int32_t _send_wmt_get_cal_data_cmd(
 
 	if (p_inter_cmd->result == WMT_EVT_SUCCESS)
 		ret = 0;
-	else {
+	else if (!conninfra_reg_readable()) {
+		ret = conninfra_is_bus_hang();
+		if (ret > 0)
+			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
+		else
+			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
+		ret = -EIO;
+	} else {
 		uint32_t offset = *p_start_addr & 0x00000FFF;
 		uint8_t *data = NULL;
 
-		if(offset > 0x1000)
+		if (offset > 0x1000)
 			BTMTK_ERR("Error calibration offset (%d)", offset);
 		else {
 			data = (uint8_t *)(CON_REG_INFRA_SYS_ADDR + offset);
