@@ -308,5 +308,12 @@ struct bt_cfg_struct {
 #define CHIP_ID	0x70010200
 #define FLAVOR	0x70010020
 
+/* ioctl */
+#define COMBO_IOC_MAGIC				0xb0
+#define COMBO_IOCTL_BT_HOST_DEBUG	_IOW(COMBO_IOC_MAGIC, 4, void*)
+#define COMBO_IOCTL_BT_INTTRX		_IOW(COMBO_IOC_MAGIC, 5, void*)
+#define IOCTL_BT_HOST_DEBUG_BUF_SIZE	(32)
+#define IOCTL_BT_HOST_INTTRX_SIZE		(128)
+
 
 #endif /* __BTMTK_DEFINE_H__ */
