@@ -25,11 +25,6 @@ MODULE_LICENSE("Dual BSD/GPL");
 */
 #define BT_BUFFER_SIZE				(2048)
 #define FTRACE_STR_LOG_SIZE			(256)
-#define COMBO_IOC_MAGIC				0xb0
-#define COMBO_IOCTL_BT_HOST_DEBUG	_IOW(COMBO_IOC_MAGIC, 4, void*)
-#define COMBO_IOCTL_BT_INTTRX		_IOW(COMBO_IOC_MAGIC, 5, void*)
-#define IOCTL_BT_HOST_DEBUG_BUF_SIZE	(32)
-#define IOCTL_BT_HOST_INTTRX_SIZE		(128)
 
 /*******************************************************************************
 *                             D A T A   T Y P E S
