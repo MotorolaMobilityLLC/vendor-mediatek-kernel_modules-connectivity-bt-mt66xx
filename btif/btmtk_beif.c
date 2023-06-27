@@ -405,16 +405,15 @@ static int beif_data_consummer(void)
 	int pop;
 	int retry = 0;
 
+	pop = EMI_READ32(&h->rx_pop);
 	do {
 		push = EMI_READ32(&f->tx_push);
-		pop = EMI_READ32(&h->rx_pop);
 		if (push > pop) {
 			data_size = (push - pop) > BEIF_TEMP_BUF_SIZE ? BEIF_TEMP_BUF_SIZE : push - pop;
 			memcpy_fromio(g_beif_rx_buf, BEIF_C2H_BUF_ADDR(pop), data_size);
 			g_rxd_in_cb = 1;
 			(*rx_cb)(g_beif_rx_buf, data_size);
 			g_rxd_in_cb = 0;
-			EMI_WRITE32(&h->rx_pop, pop + data_size);
 			beif_add_record(g_beif_rx_buf, pop, data_size, BEIF_DIR_RX);
 		} else if (push < pop) {
 			data_size = (g_c2h_buf_size - pop) > BEIF_TEMP_BUF_SIZE ?
@@ -423,16 +422,20 @@ static int beif_data_consummer(void)
 			g_rxd_in_cb = 1;
 			(*rx_cb)(g_beif_rx_buf, data_size);
 			g_rxd_in_cb = 0;
-			EMI_WRITE32(&h->rx_pop, 0);
 			beif_add_record(g_beif_rx_buf, pop, data_size, BEIF_DIR_RX);
 		} else
-			return 0;
+			break;
 
+		pop = (pop + data_size) % g_c2h_buf_size;
 		g_total_receive_bytes += data_size;
 		retry++;
 	} while(retry < 10);
 
-	return -1;
+	if (retry >= 8)
+		pr_info("%s retry time (%d)\n", __func__, retry);
+
+	EMI_WRITE32(&h->rx_pop, pop);
+	return 0;
 }
 
 int beif_receive_data(void)
