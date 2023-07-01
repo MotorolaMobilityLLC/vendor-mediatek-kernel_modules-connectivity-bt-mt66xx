@@ -177,7 +177,7 @@ int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v
 				goto end;
 		}
 
-		if(cif_dev->bt_state == FUNC_ON) {
+		if (cif_dev->bt_state == FUNC_ON) {
 			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, new_state);
 			cif_dev->blank_state = new_state;
 			btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, cif_dev->blank_state);
@@ -219,7 +219,7 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 			goto end;
 	}
 
-	if(cif_dev->bt_state == FUNC_ON) {
+	if (cif_dev->bt_state == FUNC_ON) {
 		BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, cif_dev->blank_state, new_state);
 		cif_dev->blank_state = new_state;
 		btmtk_intcmd_wmt_blank_status(g_sbdev->hdev, cif_dev->blank_state);
