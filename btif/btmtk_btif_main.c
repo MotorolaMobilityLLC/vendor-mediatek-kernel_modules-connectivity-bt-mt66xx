@@ -1520,14 +1520,16 @@ int btmtk_btif_internal_trx (uint8_t *buf, uint32_t count,
 									bool is_blocking)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	unsigned long flags = 0;
 
-	spin_lock_irqsave(&cif_dev->internal_trx.lock, cif_dev->internal_trx.flag);
+	spin_lock_irqsave(&cif_dev->internal_trx.lock, flags);
 	if (cif_dev->internal_trx.cb) {
 		BTMTK_ERR("unable to do internal trx before previous trx done");
+		spin_unlock_irqrestore(&cif_dev->internal_trx.lock, flags);
 		return -1;
 	}
 	cif_dev->internal_trx.cb = cb;
-	spin_unlock_irqrestore(&cif_dev->internal_trx.lock, cif_dev->internal_trx.flag);
+	spin_unlock_irqrestore(&cif_dev->internal_trx.lock, flags);
 
 	cif_dev->internal_trx.opcode = *(buf + 1) + (*(buf + 2) << 8);
 	cif_dev->internal_trx.send_to_stack = send_to_stack;
