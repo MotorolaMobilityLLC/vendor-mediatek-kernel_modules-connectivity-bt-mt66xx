@@ -341,16 +341,12 @@ static void bgfsys_cal_data_backup(
 		return;
 	}
 
-	if (!conninfra_reg_readable()) {
-		int32_t ret = conninfra_is_bus_hang();
-		if (ret > 0)
-			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
-		else
-			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
+	if (bgfsys_check_conninfra_ready())
 		return;
-	}
 
 	memcpy_fromio(cal_data, (const volatile void *)(CON_REG_INFRA_SYS_ADDR + start_offset), data_len);
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 }
 
 /* bgfsys_cal_data_restore
@@ -386,14 +382,8 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 		return;
 	}
 
-	if (!conninfra_reg_readable()) {
-		int32_t ret = conninfra_is_bus_hang();
-		if (ret > 0)
-			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
-		else
-			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
+	if (bgfsys_check_conninfra_ready())
 		return;
-	}
 #if (CFG_BT_ATF_SUPPORT == 1)
 	while (data_len) {
 		bgfsys_cal_data_restore_one_smc(SMC_BT_CAL_DATA_RESTORE_ONE, start_offset, *(u32 *)cal_data);
@@ -412,6 +402,8 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 	ready_status = REG_READL(CON_REG_INFRA_SYS_ADDR + ready_offset);
 	BTMTK_DBG("Ready pattern after restore cal=[0x%08x]", ready_status);
 #endif
+	/* release conn_infra force on */
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 }
 
 /* __download_patch_to_emi
@@ -883,14 +875,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 
 	if (p_inter_cmd->result == WMT_EVT_SUCCESS)
 		ret = 0;
-	else if (!conninfra_reg_readable()) {
-		ret = conninfra_is_bus_hang();
-		if (ret > 0)
-			BTMTK_ERR("%s: conninfra bus is hang, needs reset ret = %d", __func__, ret);
-		else
-			BTMTK_ERR("%s: conninfra not readable, but not bus hang ret = %d", __func__, ret);
-		ret = -EIO;
-	} else {
+	else if (bgfsys_check_conninfra_ready()) {
 		uint32_t offset = *p_start_addr & 0x00000FFF;
 		uint8_t *data = NULL;
 
@@ -905,6 +890,8 @@ static int32_t _send_wmt_get_cal_data_cmd(
 			else
 				BTMTK_ERR("get wrong calibration length [%d]", *p_data_len);
 		}
+		/* release conn_infra force on */
+		CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 		ret = -EIO;
 	}
 
