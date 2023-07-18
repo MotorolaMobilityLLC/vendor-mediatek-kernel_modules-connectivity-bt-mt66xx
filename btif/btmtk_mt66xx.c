@@ -1854,6 +1854,7 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 		up(&cif_dev->halt_sem);
 		return 0;
 	}
+	cif_dev->bt_state = TURNING_OFF;
 
 	/* 1. Send WMT cmd to set BT off */
 	btmtk_intcmd_wmt_power_off(hdev);
