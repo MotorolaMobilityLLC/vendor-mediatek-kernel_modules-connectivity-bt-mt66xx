@@ -3296,11 +3296,16 @@ static int bt_close(struct hci_dev *hdev)
 		return ret;
 	}
 
+	if (main_info.hif_hook.cif_mutex_lock) {
+		main_info.hif_hook.cif_mutex_lock(bdev);
+	}
+
 	fstate = btmtk_fops_get_state(bdev);
 	if (fstate != BTMTK_FOPS_STATE_OPENED) {
 		BTMTK_WARN("%s: fops is not allow close(%d)", __func__, fstate);
-		goto err;
+		goto unlock;
 	}
+
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_CLOSING);
 
 	state = btmtk_get_chip_state(bdev);
@@ -3312,13 +3317,10 @@ static int bt_close(struct hci_dev *hdev)
 		 * otherwise the below cif_mutex_lock will cause deadlock
 		 */
 		BTMTK_WARN("%s: not in working state and standby state(%d).", __func__, state);
-		goto exit;
+		goto unlock;
 	}
 
 	BTMTK_INFO("%s, enter", __func__);
-
-	if (main_info.hif_hook.cif_mutex_lock)
-		main_info.hif_hook.cif_mutex_lock(bdev);
 
 	if (!is_mt66xx(bdev->chip_id)) {
 		state = btmtk_get_chip_state(bdev);
@@ -3358,12 +3360,11 @@ static int bt_close(struct hci_dev *hdev)
 	main_info.hif_hook.close(hdev);
 
 unlock:
-	if (main_info.hif_hook.cif_mutex_unlock)
-		main_info.hif_hook.cif_mutex_unlock(bdev);
-exit:
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_CLOSED);
 
-err:
+	if (main_info.hif_hook.cif_mutex_unlock)
+		main_info.hif_hook.cif_mutex_unlock(bdev);
+
 	main_info.reset_stack_flag = HW_ERR_NONE;
 
 	BTMTK_INFO("%s: end, reset_stack_flag = %d", __func__, main_info.reset_stack_flag);
@@ -3397,6 +3398,10 @@ static int bt_open(struct hci_dev *hdev)
 		return -EFAULT;
 	}
 
+	if (main_info.hif_hook.cif_mutex_lock) {
+		main_info.hif_hook.cif_mutex_lock(bdev);
+	}
+
 	state = btmtk_get_chip_state(bdev);
 	if (state == BTMTK_STATE_INIT || state == BTMTK_STATE_DISCONNECT) {
 		ret = -EAGAIN;
@@ -3424,6 +3429,7 @@ static int bt_open(struct hci_dev *hdev)
 	}
 
 	BTMTK_INFO("%s", __func__);
+
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_OPENING);
 	ret = main_info.hif_hook.open(hdev);
 	if (ret < 0) {
@@ -3474,10 +3480,18 @@ static int bt_open(struct hci_dev *hdev)
 			btmtk_load_country_table(bdev);
 	}
 
+	if (main_info.hif_hook.cif_mutex_unlock) {
+		main_info.hif_hook.cif_mutex_unlock(bdev);
+	}
+
 	return 0;
 
 failed:
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_CLOSED);
+
+	if (main_info.hif_hook.cif_mutex_unlock) {
+		main_info.hif_hook.cif_mutex_unlock(bdev);
+	}
 
 	return ret;
 }
