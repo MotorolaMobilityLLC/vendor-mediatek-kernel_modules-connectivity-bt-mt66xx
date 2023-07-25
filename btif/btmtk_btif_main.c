@@ -42,6 +42,9 @@
 #define BTIF_IDLE_WAIT_TIME		32 /* ms */
 
 #define MAX_RESET_COUNT			(3)
+static DEFINE_MUTEX(btmtk_cif_mutex);
+#define ON_OFF_MUTEX_LOCK()	mutex_lock(&btmtk_cif_mutex)
+#define ON_OFF_MUTEX_UNLOCK()	mutex_unlock(&btmtk_cif_mutex)
 /*******************************************************************************
 *                             D A T A   T Y P E S
 ********************************************************************************
@@ -1791,6 +1794,8 @@ int btmtk_cif_register(void)
 	hook.log_deinit = btmtk_connsys_log_deinit;
 	hook.log_hold_sem = btmtk_connsys_log_hold_sem;
 	hook.log_release_sem = btmtk_connsys_log_release_sem;
+	hook.cif_mutex_lock = btmtk_btif_cif_mutex_lock;
+	hook.cif_mutex_unlock = btmtk_btif_cif_mutex_unlock;
 	btmtk_reg_hif_hook(&hook);
 
 #if (USE_DEVICE_NODE == 1)
@@ -2163,3 +2168,12 @@ void btmtk_connsys_log_release_sem(void)
 	up(&cif_dev->halt_sem);
 }
 
+void btmtk_btif_cif_mutex_lock(struct btmtk_dev *bdev)
+{
+	ON_OFF_MUTEX_LOCK();
+}
+
+void btmtk_btif_cif_mutex_unlock(struct btmtk_dev *bdev)
+{
+	ON_OFF_MUTEX_UNLOCK();
+}
