@@ -400,6 +400,8 @@ struct btmtk_btif_dev {
 #if (SUPPORT_BEIF == 0)
 	/* btif deep idle ctrl */
 	struct btif_deepidle_ctrl btif_dpidle_ctrl;
+#else
+	struct delayed_work normal_sleep_work;
 #endif
 };
 

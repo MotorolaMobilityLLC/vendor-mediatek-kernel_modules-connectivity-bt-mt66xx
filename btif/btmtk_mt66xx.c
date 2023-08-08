@@ -1685,7 +1685,11 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->psm.sleep_flag = FALSE;
 	cif_dev->psm.wakeup_flag = FALSE;
 	cif_dev->psm.result = 0;
+#if (SUPPORT_BEIF == 0)
 	cif_dev->psm.force_on = FALSE;
+#else
+	cif_dev->psm.force_on = TRUE;
+#endif
 
 #if (USE_DEVICE_NODE == 1)
 	btmtk_rx_flush();
@@ -1793,8 +1797,12 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	btmtk_intcmd_wmt_utc_sync();
 	btmtk_intcmd_wmt_blank_status(hdev, cif_dev->blank_state);
 
+#if (SUPPORT_BEIF == 0)
 	/* Set bt to sleep mode */
 	btmtk_set_sleep(hdev, TRUE);
+#else
+	schedule_delayed_work(&cif_dev->normal_sleep_work, msecs_to_jiffies(1000));
+#endif
 
 	return 0;
 
@@ -1860,6 +1868,10 @@ int32_t btmtk_set_power_off(struct hci_dev *hdev, u_int8_t for_precal)
 		up(&cif_dev->halt_sem);
 		return 0;
 	}
+
+#if SUPPORT_BEIF
+	cancel_delayed_work_sync(&cif_dev->normal_sleep_work);
+#endif
 
 	/* 1. Send WMT cmd to set BT off */
 	btmtk_intcmd_wmt_power_off(hdev);
