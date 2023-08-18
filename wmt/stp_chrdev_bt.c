@@ -654,7 +654,8 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 
 	if (retval == 0) {
 		if (rstflag != 2) {	/* Should never happen */
-			WARN(1, "Blocking read is waken up with no data but rstflag=%d\n", rstflag);
+			// WARN(1, "Blocking read is waken up with no data but rstflag=%d\n", rstflag);
+			BT_LOG_PRT_WARN("Blocking read is waken up with no data but rstflag = %d\n", rstflag);
 			retval = -EIO;
 			goto OUT;
 		} else {	/* Reset end, send Hardware Error event only once */
