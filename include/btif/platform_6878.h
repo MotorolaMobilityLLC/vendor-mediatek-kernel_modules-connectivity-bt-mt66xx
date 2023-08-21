@@ -139,7 +139,7 @@
 #define BGF_CON_CR_AHB_AUTO_DIS				BIT(31)
 
 #define BGF_MCCR_SET					(BGF_REG_BASE_ADDR + 0x0104)
-#define BGF_CON_CR_AHB_STOP				BIT(2)
+#define BGF_CON_CR_AHB_STOP				BIT(2) | BIT(8) | BIT(9)
 
 #define BGF_SW_IRQ_RESET_ADDR				(0x1803F014)
 #define BGF_SW_IRQ_STATUS				(0x1803F010)
@@ -151,7 +151,7 @@
 #define BGF_MCU_CFG_SW_DBG_CTL				(BGF_REG_BASE_ADDR + 0x016C)
 
 #define BGF_IP_VERSION					(BGF_REG_INFO_BASE_ADDR)
-#define BGF_IP_VER_ID					0x02080000
+#define BGF_IP_VER_ID					0x02090000
 
 #define BGF_MCUCIRQ 					(0x1803F00C)
 #define BGF_BTIF0_WAKEUP_OUT_B				BIT(0) | BIT(1)
@@ -182,7 +182,7 @@
 */
 #define BIN_NAME_MCU			"soc7_0_ram_mcu_1"
 #define BIN_NAME_BT			"soc7_0_ram_bt_1"
-#define CONN_INFRA_CFG_ID		(0x02050400)
+#define CONN_INFRA_CFG_ID		(0x02050401)
 
 #define MET_EMI_ADDR	(0x2BC00)
 #define BT_SSPM_TIMER	(0x1c011008)
@@ -1310,7 +1310,7 @@ static inline int32_t bgfsys_power_on(void)
 	/* clear con_cr_ahb_auto_dis */
 	CLR_BIT(BGF_MCCR, BGF_CON_CR_AHB_AUTO_DIS);
 
-	/* set con_cr_ahb_stop */
+	/* set con_cr_ahb_stop, con_cr_btif_stop[1:0] */
 	REG_WRITEL(BGF_MCCR_SET, BGF_CON_CR_AHB_STOP);
 
 	/* set mcu_mem_pdn_delay chain dummy cr for the timing */
