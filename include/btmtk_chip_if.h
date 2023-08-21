@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
- * Copyright (c) 2019 MediaTek Inc.
+ * Copyright (c) 2023 MediaTek Inc.
  */
 
 #ifndef __BTMTK_CHIP_IF_H__
@@ -34,6 +34,8 @@
 	#include "platform_6886.h"
 #elif (CONNAC20_CHIPID == 6897)
 	#include "platform_6897.h"
+#elif (CONNAC20_CHIPID == 6878)
+	#include "platform_6878.h"
 #endif
 #endif
 
