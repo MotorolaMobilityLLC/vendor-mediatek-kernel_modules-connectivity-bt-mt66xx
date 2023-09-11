@@ -385,7 +385,8 @@ static ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t
 
 	if (retval == 0) {
 		if (rstflag != CHIP_RESET_END) { /* Should never happen */
-			WARN(1, "Blocking read is waken up in unexpected case, rstflag=%d", rstflag);
+			// WARN(1, "Blocking read is waken up in unexpected case, rstflag=%d", rstflag);
+			BTMTK_WARN("Blocking read is waken up in unexpected case, rstflag = %d", rstflag);
 			retval = -EIO;
 			goto OUT;
 		} else { /* Reset end, send Hardware Error event only once */
