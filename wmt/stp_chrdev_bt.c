@@ -664,7 +664,7 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	BT_LOG_PRT_DBG("cmd: 0x%08x\n", cmd);
 
 	if (_IOC_TYPE(cmd) != COMBO_IOC_MAGIC) {
-		BT_LOG_PRT_ERR("Bad magic num:%c", _IOC_TYPE(cmd));
+		BT_LOG_PRT_ERR("Bad magic num: 0x%02x\n", cmd);
 		return -ENOTTY;
 	}
 
