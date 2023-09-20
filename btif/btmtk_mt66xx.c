@@ -1575,12 +1575,11 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
-	bool skip_up_sem = FALSE;
 	int sch_ret = -1;
+	bool skip_up_sem = FALSE;
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
-	bool is_wmt_power_on_error = false;
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
@@ -1762,7 +1761,6 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
 		skip_up_sem = TRUE;
-		is_wmt_power_on_error = true;
 		goto wmt_power_on_error;
 	}
 
@@ -1796,9 +1794,6 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-
-	if (!is_wmt_power_on_error)
-		up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;
