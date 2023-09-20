@@ -1777,8 +1777,10 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 
 wmt_power_on_error:
 	wake_up_interruptible(&cif_dev->tx_waitq);
-	kthread_stop(cif_dev->tx_thread);
-	cif_dev->tx_thread = NULL;
+	if (!IS_ERR_OR_NULL(cif_dev->tx_thread)) {
+		kthread_stop(cif_dev->tx_thread);
+		cif_dev->tx_thread = NULL;
+	}
 #if (DRIVER_CMD_CHECK == 1)
 	cmd_workqueue_exit();
 	cmd_list_destory();
