@@ -687,6 +687,11 @@ long BT_unlocked_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	uint8_t host_dbg_buff[32]; //arg: id[0:3], value[4:7], desc[8:31]
 	BT_LOG_PRT_DBG("cmd: 0x%08x\n", cmd);
 
+	if (_IOC_TYPE(cmd) != COMBO_IOC_MAGIC) {
+		BT_LOG_PRT_ERR("Bad magic num: 0x%02x\n", cmd);
+		return -ENOTTY;
+	}
+
 	switch (cmd) {
 	case COMBO_IOCTL_FW_ASSERT:
 		/* Trigger FW assert for debug */
