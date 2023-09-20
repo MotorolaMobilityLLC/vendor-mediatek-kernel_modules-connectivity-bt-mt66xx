@@ -1486,7 +1486,8 @@ int btmtk_btif_event_filter(struct btmtk_dev *bdev, struct sk_buff *skb)
 			return 1; // this event is filtered
 		} else {
 			// may be normal packet, continue put skb to rx queue
-			BTMTK_INFO("%s: may be normal packet!", __func__);
+			BTMTK_WARN("%s: may be normal packet!", __func__);
+			btmtk_cif_dump_rxd_backtrace();
 		}
 	}
 
