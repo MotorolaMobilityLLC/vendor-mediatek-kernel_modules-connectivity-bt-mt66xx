@@ -54,6 +54,9 @@
 #define BGF_OFF_PWR_ACK_B				BIT(24)
 #define BGF_OFF_PWR_ACK_S				BIT(0)
 
+#define CONN_INFRA_RGU_ON_SEMA_M1_SW_RST_B	(CONN_INFRA_RGU_START + 0x015C)
+#define SEMA_M1_SW_RST_B			BIT(0)
+
 /*
  * ConnInfra CFG Region
  * 0x18001000
@@ -139,7 +142,7 @@
 #define BGF_CON_CR_AHB_AUTO_DIS				BIT(31)
 
 #define BGF_MCCR_SET					(BGF_REG_BASE_ADDR + 0x0104)
-#define BGF_CON_CR_AHB_STOP				BIT(2) | BIT(8) | BIT(9)
+#define BGF_CON_CR_AHB_STOP				BIT(4) | BIT(5) | BIT(8)
 
 #define BGF_SW_IRQ_RESET_ADDR				(0x1803F014)
 #define BGF_SW_IRQ_STATUS				(0x1803F010)
@@ -1574,6 +1577,10 @@ static inline int32_t bgfsys_power_off(void)
 
 	for (addr = 0x18071200; addr <= 0x18071260; addr += 4)
 		bt_write_cr(addr, 0x1, TRUE);
+
+	/* release BTSYS semaphore (total 25 with 1 CR) */
+	CLR_BIT(CONN_INFRA_RGU_ON_SEMA_M1_SW_RST_B, SEMA_M1_SW_RST_B);
+	SET_BIT(CONN_INFRA_RGU_ON_SEMA_M1_SW_RST_B, SEMA_M1_SW_RST_B);
 
 	/* clear bt_emi_req */
 	addr = 0x18011118;
