@@ -1083,6 +1083,9 @@ static int32_t _check_wmt_evt_over_hci(
 	}
 
 	switch (opcode) {
+	case WMT_OPCODE_TSSI_CFG:
+		status = 0x00; // TODO: more check
+		break;
 	case WMT_OPCODE_FUNC_CTRL:
 		if (param_len != sizeof(p_wmt_evt->params.u.func_ctrl_evt)) {
 			BTMTK_ERR("Unexpected event param len %d for WMT OpCode 0x%x!",
