@@ -3620,6 +3620,11 @@ static void btmtk_rx_work(struct work_struct *work)
 
 	BTMTK_DBG("%s enter", __func__);
 
+	if (!skb_queue_len(&bdev->rx_q)) {
+		BTMTK_ERR("%s skb_queue_len is zero", __func__);
+		return;
+	}
+
 	while ((skb = skb_dequeue(&bdev->rx_q))) {
 		if (!is_mt66xx(bdev->chip_id)) {
 			/* BTMTK_DBG_RAW(skb->data, skb->len, "%s, recv evt", __func__); */
