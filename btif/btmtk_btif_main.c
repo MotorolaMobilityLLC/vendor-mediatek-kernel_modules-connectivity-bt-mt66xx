@@ -1973,10 +1973,10 @@ int32_t btmtk_tx_thread(void * arg)
 			 */
 #if (SUPPORT_BEIF == 0)
 			btmtk_btif_dpidle_ctrl(FALSE);
+			bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #else
 			bt_hold_wake_lock(&cif_dev->psm.wake_lock);
 #endif
-			bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 			wakeup_ret = btmtk_cif_fw_own_clr();
 			if (wakeup_ret) {
 				/*
@@ -1985,8 +1985,8 @@ int32_t btmtk_tx_thread(void * arg)
 				 * so we can assume that FW is asserted from driver view
 				 * and trigger reset directly
 				 */
-				bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #if (SUPPORT_BEIF == 0)
+				bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 				btmtk_btif_dpidle_ctrl(TRUE);
 #else
 				bt_release_wake_lock(&cif_dev->psm.wake_lock);
@@ -2121,8 +2121,8 @@ int32_t btmtk_tx_thread(void * arg)
 						BTMTK_WARN("%s bt_state [%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
 					break;
 				} else {
-					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #if (SUPPORT_BEIF == 0)
+					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 					btmtk_btif_dpidle_ctrl(TRUE);
 #else
 					bt_release_wake_lock(&cif_dev->psm.wake_lock);
