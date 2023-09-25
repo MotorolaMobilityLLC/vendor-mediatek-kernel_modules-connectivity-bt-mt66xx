@@ -649,12 +649,13 @@ static int32_t bt_hw_and_mcu_on(void)
 	//bgfsys_ack_sw_irq_fwlog();
 
 	/* Register all needed IRQs by MCU */
+#if (SUPPORT_BEIF == 0)
 	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 	if (ret)
 		goto request_irq_error;
 
 	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
-
+#endif
 	ret = bt_request_irq(BGF2AP_SW_IRQ);
 	if (ret)
 		goto request_irq_error2;
@@ -679,9 +680,11 @@ bus_operate_error:
 	bt_free_irq(BGF2AP_SW_IRQ);
 
 request_irq_error2:
+#if (SUPPORT_BEIF == 0)
 	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 
 request_irq_error:
+#endif
 power_on_error:
 	bgfsys_power_off();
 	return ret;
@@ -707,11 +710,15 @@ static void bt_hw_and_mcu_off(void)
 #endif
 
 	bt_disable_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
 	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
 
 	/* Free all registered IRQs */
 	bt_free_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
 	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
 
 	if (BT_SSPM_TIMER) {
 		bt_disable_irq(BT_CONN2AP_SW_IRQ);
