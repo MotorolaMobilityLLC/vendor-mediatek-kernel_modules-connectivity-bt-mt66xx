@@ -107,6 +107,7 @@ typedef enum wmt_pkt_dir {
 } WMT_PKT_DIR_T;
 
 typedef enum wmt_opcode {
+	WMT_OPCODE_TSSI_CFG = 0x02,
 	WMT_OPCODE_FUNC_CTRL = 0x06,
 	WMT_OPCODE_RF_CAL = 0x14,
 	WMT_OPCODE_0XF0 = 0xF0,
@@ -403,6 +404,10 @@ struct btmtk_btif_dev {
 #else
 	struct delayed_work normal_sleep_work;
 #endif
+
+	/* bt FW config */
+	uint8_t *fw_cfg;
+	uint32_t fw_cfg_len;
 };
 
 #define BTMTK_GET_DEV(bdev) (&bdev->pdev->dev)
