@@ -3351,12 +3351,6 @@ static int bt_close(struct hci_dev *hdev)
 	/* Flush RX works */
 	flush_work(&bdev->rx_work);
 
-	/* Drop queues */
-	skb_queue_purge(&bdev->rx_q);
-	if (!IS_ERR_OR_NULL(bdev->rx_skb))
-		kfree_skb(bdev->rx_skb);
-	bdev->rx_skb = NULL;
-
 	main_info.hif_hook.close(hdev);
 
 unlock:
@@ -3366,6 +3360,12 @@ unlock:
 		main_info.hif_hook.cif_mutex_unlock(bdev);
 
 	main_info.reset_stack_flag = HW_ERR_NONE;
+
+	/* Drop queues */
+	skb_queue_purge(&bdev->rx_q);
+	if (!IS_ERR_OR_NULL(bdev->rx_skb))
+		kfree_skb(bdev->rx_skb);
+	bdev->rx_skb = NULL;
 
 	BTMTK_INFO("%s: end, reset_stack_flag = %d", __func__, main_info.reset_stack_flag);
 	return 0;
