@@ -1068,33 +1068,25 @@ int32_t btmtk_intcmd_wmt_power_on(struct hci_dev *hdev)
 
 int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 {
-	#define BT_FW_CFG_FILE	"BT_FW.cfg"
-	#define BT_FW_CFG_TAG	"[driver_antenna]"
+	#define BT_ANT_CFG_TAG	"bt_antswap"
 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint32_t i = 0, len = 0, ret = 0;
-	uint8_t *p_img = NULL;
+	uint32_t i = 0, len = cif_dev->fw_cfg_len, ret = 0;
+	uint8_t p_img[1024] = {0};
 	uint8_t *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
 	uint8_t cmd[32] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
 
-	BTMTK_DBG("%s: load config [%s]", __func__, BT_FW_CFG_FILE);
-	btmtk_load_code_from_bin(&p_img, BT_FW_CFG_FILE, NULL, &len, 10);
-	if (p_img == NULL) {
-		BTMTK_WARN("%s: get config file fail!", __func__);
-		return 0;
-	}
-
-	/* find tag: [BT_FW_CFG_TAG][CONNAC20_CHIPID] */
-	if (snprintf(findTag, sizeof(findTag), "%s[%d] ", BT_FW_CFG_TAG, CONNAC20_CHIPID) < 0) {
+	memcpy(p_img, cif_dev->fw_cfg, len);
+	/* find tag: [BT_ANT_CFG_TAG] */
+	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANT_CFG_TAG) < 0) {
 		BTMTK_ERR("%s: snprintf error", __func__);
 		ret = -1;
 		goto done;
 	}
 
-	p_img[len - 1] = 0;
 	ptr = strstr(p_img, findTag);
 	if (ptr == NULL) {
 		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antenna setting", __func__);
@@ -1136,13 +1128,6 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 			break;
 	}
 
-	/* check input size and also boundary check */
-	if (cmd[10] != (i - 2) || cmd[10] > 25) {
-		BTMTK_ERR("input antenna parameter length incorrect len = %d", cmd[10]);
-		ret = -1;
-		goto done;
-	}
-
 	/* we only allocate 32 bytes cmd buffer, only 25 pins are allowed,
 	 * so total length won't more than a byte, cmd[7] is not neccessary to assign value */
 	cmd[6] = cmd[10] + 3;
@@ -1165,8 +1150,92 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	ret = p_inter_cmd->result;
 
 done:
-	if (p_img)
-		vfree(p_img);
+	return ret;
+}
+
+int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
+{
+	#define BT_ANTSWAP_CFG_TAG	"wifi_antswap"
+
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
+	uint32_t i = 0, len = cif_dev->fw_cfg_len, ret = 0;
+	uint8_t p_img[1024] = {0};
+	uint8_t *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
+	uint8_t cmd[32] = {0};
+	long val = 0;
+	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x02};
+
+	memcpy(p_img, cif_dev->fw_cfg, len);
+	/* find tag: [BT_ANTSWAP_CFG_TAG] */
+	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANTSWAP_CFG_TAG) < 0) {
+		BTMTK_ERR("%s: snprintf error", __func__);
+		ret = -1;
+		goto done;
+	}
+
+	ptr = strstr(p_img, findTag);
+	if (ptr == NULL) {
+		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antswap setting", __func__);
+		goto done;
+	}
+
+	memcpy(cmd, cmd_header, sizeof(cmd_header));
+
+	/*
+	 * command and event example
+	 *  0  1  2  3  4  5  6  7  8  9  A
+	 * 01 6F FC PP 01 55 LL LL 02 MM NN XX XX XX
+	 * PP : WMT length = LL + 4
+	 * LL LL : length = NN + 3
+	 * MM : ant swap mode
+	 * NN : ant pin num
+	 * XX XX : NN bytes data
+	 * 02 55 02 00 00 SS
+	 * SS : status
+	 */
+
+	/* parse parameter */
+	ptr += (int)strlen(findTag);
+
+	/* find line feed */
+	pRaw = ptr;
+	while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
+		pRaw++;
+	*pRaw = 0;
+
+	len = sizeof(cmd_header);
+	pRaw = ptr;
+	/* separate by space to get paramter */
+	for (i = 0; ; i++) {
+		ptr = strsep((char **)&pRaw, " ");
+		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
+			cmd[len++] = val;
+		else
+			break;
+	}
+
+	/* we only allocate 32 bytes cmd buffer, only 25 pins are allowed,
+	 * so total length won't more than a byte, cmd[7] is not neccessary to assign value */
+	cmd[3] = cmd[6] + 4;
+
+	BTMTK_DBG_RAW(cmd, len, "%s: Send: ", __func__);
+
+	down(&cif_dev->internal_cmd_sem);
+	cif_dev->event_intercept = TRUE;
+	p_inter_cmd->waiting_event = 0xE4;
+	p_inter_cmd->pending_cmd_opcode = 0xFC6F;
+	p_inter_cmd->wmt_opcode = WMT_OPCODE_ANT_EFEM;
+	p_inter_cmd->result = WMT_EVT_INVALID;
+
+	btmtk_main_send_cmd(g_sbdev, cmd, len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+
+	cif_dev->event_intercept  = FALSE;
+	up(&cif_dev->internal_cmd_sem);
+	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
+	ret = p_inter_cmd->result;
+
+done:
 	return ret;
 }
 
@@ -1361,6 +1430,97 @@ int32_t btmtk_intcmd_wmt_blank_status(struct hci_dev *hdev, int32_t blank)
 	return 0;
 }
 
+/* btmtk_intcmd_wmt_tssi_cfg()
+ *
+ *    Send bt_tssi_from_wifi command to FW for 6631
+ *
+ * Arguments:
+ *    N/A
+ *
+ * Return Value:
+ *    N/A
+ *
+ */
+int32_t btmtk_intcmd_wmt_tssi_cfg(void)
+{
+	#define BT_TSSI_FROM_WIFI_TAG	"bt_tssi_from_wifi"
+	#define BT_TSSI_TARGET_TAG	"bt_tssi_target"
+	#define TAG_NUM 2
+
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
+	uint32_t i = 0, j = 0, len = cif_dev->fw_cfg_len, ret = 0;
+	uint8_t p_img[1024] = {0};
+	uint8_t *ptr = NULL, *pRaw = NULL, *tag_ptr[TAG_NUM], tag[TAG_NUM][32] = {0};
+	uint8_t cmd[32] = {0};
+	long val = 0;
+	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x08, 0x01, 0x02, 0x04, 0x00, 0x10};	/* Connac1 Adie setting */
+
+	BTMTK_INFO("[InternalCmd] %s", __func__);
+	memset(tag_ptr, 0, TAG_NUM * sizeof(tag_ptr[0]));
+	memcpy(p_img, cif_dev->fw_cfg, len);
+	/* find tag: BT_TSSI_CFG_TAG */
+	if (snprintf(tag[0], sizeof(tag[0]), "%s: ", BT_TSSI_FROM_WIFI_TAG) < 0 ||
+		snprintf(tag[1], sizeof(tag[1]), "%s: ", BT_TSSI_TARGET_TAG) < 0)  {
+		BTMTK_ERR("%s: snprintf error", __func__);
+		ret = -1;
+		goto done;
+	}
+
+	tag_ptr[0] = strstr(p_img, tag[0]);
+	tag_ptr[1] = strstr(p_img, tag[1]);
+	if (tag_ptr[0] == NULL || tag_ptr[1] == NULL) {
+		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore tssi setting", __func__);
+		goto done;
+	}
+
+	memcpy(cmd, cmd_header, sizeof(cmd_header));
+	for (len = sizeof(cmd_header); j < TAG_NUM; j++) {
+		/* parse parameter */
+		ptr = tag_ptr[j] + (int)strlen(tag[j]);
+
+		/* find line feed */
+		pRaw = ptr;
+		while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
+			pRaw++;
+		*pRaw = 0;
+
+		/* separate by space to get paramter */
+		for (i = 0, pRaw = ptr; ; i++) {
+			ptr = strsep((char **)&pRaw, " ");
+			if (ptr != NULL && osal_strtol(ptr, 10, &val) == 0) {
+				if (val & 0xFF00) {
+					cmd[len++] = (val & 0x00FF) >> 0;
+					cmd[len++] = (val & 0xFF00) >> 8;
+				}
+				else
+					cmd[len++] = val;
+			}
+			else
+				break;
+		}
+	}
+
+	BTMTK_DBG_RAW(cmd, len, "%s: Send: ", __func__);
+
+	down(&cif_dev->internal_cmd_sem);
+	cif_dev->event_intercept = TRUE;
+	p_inter_cmd->waiting_event = 0xE4;
+	p_inter_cmd->pending_cmd_opcode = 0xFC6F;
+	p_inter_cmd->wmt_opcode = WMT_OPCODE_TSSI_CFG;
+	p_inter_cmd->result = WMT_EVT_INVALID;
+
+	btmtk_main_send_cmd(g_sbdev, cmd, len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+
+	cif_dev->event_intercept  = FALSE;
+	up(&cif_dev->internal_cmd_sem);
+	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
+	ret = p_inter_cmd->result;
+
+done:
+	return ret;
+}
+
 /* btmtk_intcmd_wmt_utc_sync
  *
  *    Send time sync command to FW to synchronize time
@@ -1474,6 +1634,23 @@ int32_t btmtk_intcmd_set_fw_log(uint8_t flag)
 		BTMTK_ERR("Send F/W log cmd failed!\n");
 		return ret;
 	}
+	return 0;
+}
+
+int32_t btmtk_load_fw_cfg(void)
+{
+	#define BT_FW_CFG_FILE	"BT_FW.cfg"
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+
+	BTMTK_INFO("%s: load config [%s]", __func__, BT_FW_CFG_FILE);
+	btmtk_load_code_from_bin(&cif_dev->fw_cfg, BT_FW_CFG_FILE, NULL, &cif_dev->fw_cfg_len, 10);
+
+	if (cif_dev->fw_cfg == NULL) {
+		BTMTK_ERR("%s: get config file fail!", __func__);
+		return 1;
+	}
+	cif_dev->fw_cfg[cif_dev->fw_cfg_len - 1] = 0;
+
 	return 0;
 }
 
@@ -1609,6 +1786,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
 	int sch_ret = -1;
+	unsigned int adie_ver;
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -1764,21 +1942,41 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_count = 0;
 	cif_dev->rst_flag = FALSE;
 
-	/* 9.5 send connfem command before BT on */
+	/* 10. load BT_FW.cfg file */
+	btmtk_load_fw_cfg();
+
+	/* 10.1 send connfem command before BT on */
 	ret = btmtk_intcmd_send_connfem_cmd();
 	if (ret) {
 		BTMTK_ERR("btmtk_send_confem_cmd fail");
 		//goto wmt_power_on_error;
 	}
 
-	/* 9.6 send antenna command before BT on */
+	/* 10.2 send bt antenna command before BT on */
 	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev);
 	if (ret) {
-		BTMTK_ERR("btmtk_send_wmt_antenna_cmd fail");
+		BTMTK_WARN("btmtk_send_wmt_antenna_cmd fail");
 		//goto wmt_power_on_error;
 	}
 
-	/* 10. send WMT cmd to set BT on */
+	/* 10.3 send wifi antswap command before BT on */
+	ret = btmtk_intcmd_wmt_send_antswap_cmd(hdev);
+	if (ret) {
+		BTMTK_WARN("btmtk_send_wmt_antswap_cmd fail");
+		//goto wmt_power_on_error;
+	}
+
+	/* 10.4 send tssi command before BT on for 6631 */
+	adie_ver = conninfra_get_ic_info(CONNSYS_ADIE_CHIPID);
+	if (adie_ver == 0x6631) {
+		btmtk_intcmd_wmt_tssi_cfg();
+	}
+
+	/* 10.5 free BT_FW.cfg file */
+	if (cif_dev->fw_cfg)
+		vfree(cif_dev->fw_cfg);
+
+	/* 11. send WMT cmd to set BT on */
 	ret = btmtk_intcmd_wmt_power_on(hdev);
 	up(&cif_dev->halt_sem);
 
