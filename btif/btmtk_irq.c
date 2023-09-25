@@ -39,7 +39,9 @@ unsigned long long irq_timer[12] = {0};
 ********************************************************************************
 */
 extern struct btmtk_dev *g_sbdev;
+#if (SUPPORT_BEIF == 0)
 static struct bt_irq_ctrl bgf2ap_btif_wakeup_irq = {.name = "BTIF_WAKEUP_IRQ"};
+#endif
 static struct bt_irq_ctrl bgf2ap_sw_irq = {.name = "BGF_SW_IRQ"};
 static struct bt_irq_ctrl bt_conn2ap_sw_irq = {.name = "BUS_SW_IRQ"};
 static struct bt_irq_ctrl *bt_irq_table[BGF2AP_IRQ_MAX];
@@ -230,6 +232,7 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 	irq_timer[0] = sched_clock();
 #endif
+#if (SUPPORT_BEIF == 0)
 	if (irq == bgf2ap_btif_wakeup_irq.irq_num) {
 		if (cif_dev->rst_level == RESET_LEVEL_NONE) {
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
@@ -251,6 +254,9 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		}
 		return IRQ_HANDLED;
 	} else if (irq == bgf2ap_sw_irq.irq_num) {
+#else
+	if (irq == bgf2ap_sw_irq.irq_num) {
+#endif
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 		irq_timer[8] = sched_clock();
 #endif
@@ -302,6 +308,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 	struct device_node *node = NULL;
 
 	switch (irq_type) {
+#if (SUPPORT_BEIF == 0)
 	case BGF2AP_BTIF_WAKEUP_IRQ:
 		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 		if (node) {
@@ -314,6 +321,7 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		irq_flags = IRQF_TRIGGER_HIGH | IRQF_SHARED;
 		pirq = &bgf2ap_btif_wakeup_irq;
 		break;
+#endif
 	case BGF2AP_SW_IRQ:
 		node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 		if (node) {
