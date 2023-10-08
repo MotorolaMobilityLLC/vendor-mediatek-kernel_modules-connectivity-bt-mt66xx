@@ -3352,6 +3352,9 @@ static int bt_close(struct hci_dev *hdev)
 
 	/* Drop queues */
 	skb_queue_purge(&bdev->rx_q);
+	if (!IS_ERR_OR_NULL(bdev->rx_skb))
+		kfree_skb(bdev->rx_skb);
+	bdev->rx_skb = NULL;
 
 	main_info.hif_hook.close(hdev);
 

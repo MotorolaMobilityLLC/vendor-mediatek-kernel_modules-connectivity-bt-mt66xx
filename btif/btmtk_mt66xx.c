@@ -1575,12 +1575,11 @@ int32_t btmtk_intcmd_send_connfem_cmd(void)
 int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
-	bool skip_up_sem = FALSE;
 	int sch_ret = -1;
+	bool skip_up_sem = FALSE;
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
-	bool is_wmt_power_on_error = false;
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_PWR_ON, 0, 0, NULL);
@@ -1762,7 +1761,6 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
 		skip_up_sem = TRUE;
-		is_wmt_power_on_error = true;
 		goto wmt_power_on_error;
 	}
 
@@ -1777,8 +1775,10 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 
 wmt_power_on_error:
 	wake_up_interruptible(&cif_dev->tx_waitq);
-	kthread_stop(cif_dev->tx_thread);
-	cif_dev->tx_thread = NULL;
+	if (!IS_ERR_OR_NULL(cif_dev->tx_thread)) {
+		kthread_stop(cif_dev->tx_thread);
+		cif_dev->tx_thread = NULL;
+	}
 #if (DRIVER_CMD_CHECK == 1)
 	cmd_workqueue_exit();
 	cmd_list_destory();
@@ -1794,9 +1794,6 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-
-	if (!is_wmt_power_on_error)
-		up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;
