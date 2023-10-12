@@ -122,7 +122,9 @@ enum wmt_blank_state {
 };
 
 enum bt_irq_type {
+#if (DTS_REORDERED == 0)
 	BGF2AP_BTIF_WAKEUP_IRQ,
+#endif
 	BGF2AP_SW_IRQ,
 	BT_CONN2AP_SW_IRQ,
 	BGF2AP_IRQ_MAX
