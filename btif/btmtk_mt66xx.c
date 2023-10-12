@@ -1943,7 +1943,11 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_flag = FALSE;
 
 	/* 10. load BT_FW.cfg file */
-	btmtk_load_fw_cfg();
+	ret = btmtk_load_fw_cfg();
+	if (ret) {
+		BTMTK_ERR("skip antenna & tssi settings");
+		goto load_fw_cfg_error;
+	}
 
 	/* 10.1 send connfem command before BT on */
 	ret = btmtk_intcmd_send_connfem_cmd();
@@ -1972,6 +1976,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		btmtk_intcmd_wmt_tssi_cfg();
 	}
 
+load_fw_cfg_error:
 	/* 10.5 free BT_FW.cfg file */
 	if (cif_dev->fw_cfg)
 		vfree(cif_dev->fw_cfg);
