@@ -1072,14 +1072,19 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint32_t i = 0, len = cif_dev->fw_cfg_len, ret = 0;
-	uint8_t p_img[1024] = {0};
-	uint8_t *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
+	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
+	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
 	uint8_t cmd[32] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
 
-	memcpy(p_img, cif_dev->fw_cfg, len);
+	p_img = vmalloc(sizeof(uint8_t) * len);
+	if (p_img == NULL) {
+		BTMTK_WARN("%s: p_img is NULL, vmalloc fail. Ignore antenna setting", __func__);
+		return -1;
+	}
+	memcpy(p_img, cif_dev->fw_cfg, len - 1);
+	p_img[len - 1] = 0;
 	/* find tag: [BT_ANT_CFG_TAG] */
 	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANT_CFG_TAG) < 0) {
 		BTMTK_ERR("%s: snprintf error", __func__);
@@ -1150,6 +1155,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	ret = p_inter_cmd->result;
 
 done:
+	vfree(p_img);
 	return ret;
 }
 
@@ -1159,14 +1165,19 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint32_t i = 0, len = cif_dev->fw_cfg_len, ret = 0;
-	uint8_t p_img[1024] = {0};
-	uint8_t *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
+	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
+	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
 	uint8_t cmd[32] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x02};
 
-	memcpy(p_img, cif_dev->fw_cfg, len);
+	p_img = vmalloc(sizeof(uint8_t) * len);
+	if (p_img == NULL) {
+		BTMTK_WARN("%s: p_img is NULL, vmalloc fail. Ignore antswap setting", __func__);
+		return -1;
+	}
+	memcpy(p_img, cif_dev->fw_cfg, len - 1);
+	p_img[len - 1] = 0;
 	/* find tag: [BT_ANTSWAP_CFG_TAG] */
 	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANTSWAP_CFG_TAG) < 0) {
 		BTMTK_ERR("%s: snprintf error", __func__);
@@ -1236,6 +1247,7 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 	ret = p_inter_cmd->result;
 
 done:
+	vfree(p_img);
 	return ret;
 }
 
@@ -1449,16 +1461,21 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint32_t i = 0, j = 0, len = cif_dev->fw_cfg_len, ret = 0;
-	uint8_t p_img[1024] = {0};
-	uint8_t *ptr = NULL, *pRaw = NULL, *tag_ptr[TAG_NUM], tag[TAG_NUM][32] = {0};
+	uint32_t i = 0, j = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
+	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, *tag_ptr[TAG_NUM], tag[TAG_NUM][32] = {0};
 	uint8_t cmd[32] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x08, 0x01, 0x02, 0x04, 0x00, 0x10};	/* Connac1 Adie setting */
 
 	BTMTK_INFO("[InternalCmd] %s", __func__);
 	memset(tag_ptr, 0, TAG_NUM * sizeof(tag_ptr[0]));
-	memcpy(p_img, cif_dev->fw_cfg, len);
+	p_img = vmalloc(sizeof(uint8_t) * len);
+	if (p_img == NULL) {
+		BTMTK_WARN("%s: p_img is NULL, vmalloc fail. Ignore tssi setting", __func__);
+		return -1;
+	}
+	memcpy(p_img, cif_dev->fw_cfg, len - 1);
+	p_img[len - 1] = 0;
 	/* find tag: BT_TSSI_CFG_TAG */
 	if (snprintf(tag[0], sizeof(tag[0]), "%s: ", BT_TSSI_FROM_WIFI_TAG) < 0 ||
 		snprintf(tag[1], sizeof(tag[1]), "%s: ", BT_TSSI_TARGET_TAG) < 0)  {
@@ -1518,6 +1535,7 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 	ret = p_inter_cmd->result;
 
 done:
+	vfree(p_img);
 	return ret;
 }
 
@@ -1649,8 +1667,6 @@ int32_t btmtk_load_fw_cfg(void)
 		BTMTK_ERR("%s: get config file fail!", __func__);
 		return 1;
 	}
-	cif_dev->fw_cfg[cif_dev->fw_cfg_len - 1] = 0;
-
 	return 0;
 }
 
