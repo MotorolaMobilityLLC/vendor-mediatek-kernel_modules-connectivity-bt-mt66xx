@@ -54,6 +54,10 @@
  * Maximum rom patch file name length
  */
 #define MAX_BIN_FILE_NAME_LEN 64
+/**
+ * Maximum wmt command length
+ */
+#define MAX_CMD_LEN 32
 
 /**
  * Type definition

@@ -1074,7 +1074,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
 
@@ -1125,7 +1125,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	len = sizeof(cmd_header);
 	pRaw = ptr;
 	/* separate by space to get paramter */
-	for (i = 0; ; i++) {
+	for (i = 0; len < MAX_CMD_LEN; i++) {
 		ptr = strsep((char **)&pRaw, " ");
 		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
 			cmd[len++] = val;
@@ -1167,7 +1167,7 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x02};
 
@@ -1218,7 +1218,7 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 	len = sizeof(cmd_header);
 	pRaw = ptr;
 	/* separate by space to get paramter */
-	for (i = 0; ; i++) {
+	for (i = 0; len < MAX_CMD_LEN; i++) {
 		ptr = strsep((char **)&pRaw, " ");
 		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
 			cmd[len++] = val;
@@ -1463,7 +1463,7 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, j = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, *tag_ptr[TAG_NUM], tag[TAG_NUM][32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x08, 0x01, 0x02, 0x04, 0x00, 0x10};	/* Connac1 Adie setting */
 
@@ -1503,7 +1503,7 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 		*pRaw = 0;
 
 		/* separate by space to get paramter */
-		for (i = 0, pRaw = ptr; ; i++) {
+		for (i = 0, pRaw = ptr; len < MAX_CMD_LEN; i++) {
 			ptr = strsep((char **)&pRaw, " ");
 			if (ptr != NULL && osal_strtol(ptr, 10, &val) == 0) {
 				if (val & 0xFF00) {
