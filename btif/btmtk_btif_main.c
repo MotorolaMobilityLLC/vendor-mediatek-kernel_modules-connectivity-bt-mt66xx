@@ -1998,7 +1998,7 @@ int32_t btmtk_tx_thread(void * arg)
 				 * resetting b/w subsys reset & whole chip reset
 				 */
 				if (cif_dev->bt_state == FUNC_ON) {
-					BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_clr error!! going to reset", state_tag);
+					BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_clr error!! going to reset", state_tag);
 					bt_trigger_reset();
 				} else
 					BTMTK_WARN("%s bt_state[%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
@@ -2040,6 +2040,7 @@ int32_t btmtk_tx_thread(void * arg)
 				    skb->data[2] == 0xFD && skb->data[3] == 0x00) {
 					kfree_skb(skb);
 					skb_queue_purge(&cif_dev->tx_queue);
+					BTMTK_ERR("%s [BT_DRV assert] host trigger!! going to reset", state_tag);
 					bt_trigger_reset();
 					break;
 				}
@@ -2118,7 +2119,7 @@ int32_t btmtk_tx_thread(void * arg)
 				sleep_ret = btmtk_cif_fw_own_set();
 				if (sleep_ret) {
 					if (cif_dev->bt_state == FUNC_ON) {
-						BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_set error!! going to reset", state_tag);
+						BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_set error!! going to reset", state_tag);
 						bt_trigger_reset();
 					} else
 						BTMTK_WARN("%s bt_state [%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
