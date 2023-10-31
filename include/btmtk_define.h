@@ -60,6 +60,11 @@
 #define MAX_CMD_LEN 32
 
 /**
+ * Maximum fw version string length
+ */
+#define MAX_FW_VER_STR_LEN 128
+
+/**
  * Type definition
  */
 #ifndef TRUE
