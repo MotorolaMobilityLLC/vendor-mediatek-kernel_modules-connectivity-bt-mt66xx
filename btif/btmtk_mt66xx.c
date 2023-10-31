@@ -594,6 +594,31 @@ int32_t bgfsys_bt_patch_dl(void)
 	return bgfsys_bt_ram_code_dl(&g_fwp_info);
 }
 
+#if (SUPPORT_BIN2IMG == 1)
+int32_t btmtk_get_fw_version(struct btmtk_dev *bdev)
+{
+	phys_addr_t emi_ap_phy_base;
+	uint32_t fw_version_addr = 0;
+
+	if (!bdev) {
+		BTMTK_ERR("%s: bdev null pointer", __func__);
+		return -1;
+	}
+
+	conninfra_get_phy_addr(&emi_ap_phy_base, NULL);
+	fw_version_addr = bt_read_cr(emi_ap_phy_base + FW_VERSION_OFFSET_ADDRESS);
+	BTMTK_DBG("fw_version_addr = %0x8X", fw_version_addr);
+
+	memset(bdev->fw_version_str, 0, MAX_FW_VER_STR_LEN);
+	if (fw_version_addr)
+		bt_read_remap_region(emi_ap_phy_base + fw_version_addr, bdev->fw_version_str, MAX_FW_VER_STR_LEN);
+	bdev->fw_version_str[MAX_FW_VER_STR_LEN - 1] = 0;
+	BTMTK_INFO("FW version: [%s]", bdev->fw_version_str);
+
+	return 0;
+}
+#endif
+
 /* bt_hw_and_mcu_on
  *
  *    BT HW / MCU / HAL poweron/init flow
@@ -630,6 +655,10 @@ static int32_t bt_hw_and_mcu_on(void)
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		goto power_on_error;
+
+	ret = btmtk_get_fw_version(g_sbdev);
+	if (ret)
+		BTMTK_WARN("%s: unable to get fw version", __func__);
 #endif
 
 
