@@ -498,6 +498,8 @@ struct btmtk_dev {
 	/* single sku */
 	unsigned char		*country_file_name;
 	u8 opcode_usr[2];
+
+	unsigned char	fw_version_str[MAX_FW_VER_STR_LEN];
 };
 
 typedef int (*cif_bt_init_ptr)(void);
