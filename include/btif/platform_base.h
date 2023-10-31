@@ -174,6 +174,7 @@ extern struct bt_base_addr bt_reg;
 #define POS_POLLING_RTY_LMT		100
 #define IDLE_LOOP_RTY_LMT		100
 #define CAL_READY_BIT_PATTERN		0x5AD02EA5
+#define FW_VERSION_OFFSET_ADDRESS	0xB48024
 
 /*********************************************************************
 *
@@ -216,6 +217,24 @@ static void inline bt_write_cr(uint32_t addr, uint32_t value, bool is_set_bit)
 			*base |= value; // set bit to CR
 		else
 			*base = value; // directly write value to CR
+		iounmap(base);
+	}
+}
+
+static void inline bt_read_remap_region(uint32_t addr, uint8_t *buffer, const uint32_t len)
+{
+	uint8_t *base = NULL;
+
+	if (!len) {
+		BTMTK_ERR("%s: invalid len (%d) in reading memory region", __func__, len);
+		return;
+	}
+
+	base = ioremap(addr, len);
+	if (base == NULL) {
+		BTMTK_ERR("%s: remapping 0x%08x fail", __func__, addr);
+	} else {
+		memcpy_fromio(buffer, base, len);
 		iounmap(base);
 	}
 }
