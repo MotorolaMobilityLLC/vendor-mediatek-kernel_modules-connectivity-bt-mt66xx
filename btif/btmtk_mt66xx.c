@@ -791,7 +791,7 @@ static int32_t _send_wmt_power_cmd(struct hci_dev *hdev, u_int8_t is_on)
 
 	ret = btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
 	if (ret <= 0 && is_on) {
-		BTMTK_ERR("%s: Unable to get event in time, start dump and reset!", __func__);
+		BTMTK_ERR("[BT_DRV assert] unable to get wmt event in time!! going to reset");
 		bt_trigger_reset();
 	}
 
@@ -862,7 +862,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 	ret = btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
 
 	if (ret <= 0) {
-		BTMTK_ERR("Unable to get calibration event in time, start dump and reset!");
+		BTMTK_ERR("[BT_DRV assert] unable to get calibration event in time!! going to reset");
 		// TODO: FW request dump & reset, need apply to all internal cmdå
 		bt_trigger_reset();
 		up(&cif_dev->internal_cmd_sem);

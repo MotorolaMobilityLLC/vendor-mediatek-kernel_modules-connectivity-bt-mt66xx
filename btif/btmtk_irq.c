@@ -149,8 +149,10 @@ void bt_bgf2ap_irq_handler(void)
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
-		else
+		else {
+			BTMTK_ERR("[BT_FW assert] fw trigger");
 			schedule_work(&rst_trigger_work);
+		}
 		goto end;
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
@@ -193,6 +195,7 @@ void bt_conn2ap_irq_handler(void)
 	/* release conn_infra force on */
         CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
+	BTMTK_ERR("[BT_DRV assert] bgf bus hang");
 	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
 	bt_trigger_reset();
 }
