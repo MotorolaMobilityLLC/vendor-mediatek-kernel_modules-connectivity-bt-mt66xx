@@ -153,6 +153,7 @@ int bt_dbg_hwver_get(int par1, int par2, int par3)
 
 int bt_dbg_chip_rst(int par1, int par2, int par3)
 {
+	BTMTK_INFO("[BT_DRV assert] adb trigger");
 	if(par2 == 0)
 		bt_trigger_reset();
 	else
