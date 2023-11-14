@@ -3284,6 +3284,7 @@ static int bt_close(struct hci_dev *hdev)
 	int state = BTMTK_STATE_INIT;
 	unsigned char fstate = BTMTK_FOPS_STATE_INIT;
 	struct btmtk_dev *bdev = NULL;
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	if (!hdev) {
 		BTMTK_ERR("%s: invalid parameters!", __func__);
@@ -3301,7 +3302,7 @@ static int bt_close(struct hci_dev *hdev)
 	}
 
 	fstate = btmtk_fops_get_state(bdev);
-	if (fstate != BTMTK_FOPS_STATE_OPENED) {
+	if (fstate != BTMTK_FOPS_STATE_OPENED && cif_dev->bt_state != RESET_START) {
 		BTMTK_WARN("%s: fops is not allow close(%d)", __func__, fstate);
 		goto unlock;
 	}
