@@ -1095,7 +1095,7 @@ int32_t btmtk_intcmd_wmt_power_on(struct hci_dev *hdev)
 	return ret;
 }
 
-int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
+int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev, unsigned int chip_id, unsigned int adie_id)
 {
 	#define BT_ANT_CFG_TAG	"bt_antswap"
 
@@ -1105,7 +1105,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
 	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
-	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
+	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00, 0x00, 0x00};
 
 	p_img = vmalloc(sizeof(uint8_t) * len);
 	if (p_img == NULL) {
@@ -1114,21 +1114,16 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	}
 	memcpy(p_img, cif_dev->fw_cfg, len - 1);
 	p_img[len - 1] = 0;
-	/* find tag: [BT_ANT_CFG_TAG] */
-	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANT_CFG_TAG) < 0) {
+	BTMTK_INFO("%s CHIP_ID: %x, ADIE_ID: %x", __func__, chip_id, adie_id);
+	/* find tag: [BT_ANT_CFG_TAG][CHIP_ID][ADIE_ID] */
+	if (snprintf(findTag, sizeof(findTag), "%s[%x][%x]: ", BT_ANT_CFG_TAG, chip_id, adie_id) < 0) {
 		BTMTK_ERR("%s: snprintf error", __func__);
 		ret = -1;
 		goto done;
 	}
 
 	ptr = strstr(p_img, findTag);
-	if (ptr == NULL) {
-		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antenna setting", __func__);
-		goto done;
-	}
-
 	memcpy(cmd, cmd_header, sizeof(cmd_header));
-
 	/*
 	 * command and event example
 	 *  0  1  2  3  4  5  6  7  8  9  A
@@ -1141,25 +1136,30 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	 * 02 55 02 00 00 SS
 	 * SS : status
 	 */
+	if (ptr == NULL) {
+		BTMTK_INFO("%s: ptr is NULL, do not get corresponding tag. Use default antenna setting", __func__);
+		len = sizeof(cmd_header);
+	} else {
+		/* parse parameter */
+		ptr += (int)strlen(findTag);
 
-	/* parse parameter */
-	ptr += (int)strlen(findTag);
+		/* find line feed */
+		pRaw = ptr;
+		while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
+			pRaw++;
+		*pRaw = 0;
 
-	/* find line feed */
-	pRaw = ptr;
-	while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
-		pRaw++;
-	*pRaw = 0;
-
-	len = sizeof(cmd_header);
-	pRaw = ptr;
-	/* separate by space to get paramter */
-	for (i = 0; len < MAX_CMD_LEN; i++) {
-		ptr = strsep((char **)&pRaw, " ");
-		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
-			cmd[len++] = val;
-		else
-			break;
+		/* overwrite default value */
+		len = sizeof(cmd_header) - 2;
+		pRaw = ptr;
+		/* separate by space to get paramter */
+		for (i = 0; len < MAX_CMD_LEN; i++) {
+			ptr = strsep((char **)&pRaw, " ");
+			if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
+				cmd[len++] = val;
+			else
+				break;
+		}
 	}
 
 	/* we only allocate 32 bytes cmd buffer, only 25 pins are allowed,
@@ -1831,7 +1831,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
 	int sch_ret = -1;
-	unsigned int adie_ver;
+	unsigned int chip_id = 0, adie_id = 0;
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -1987,7 +1987,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_count = 0;
 	cif_dev->rst_flag = FALSE;
 
-	/* 10. load BT_FW.cfg file */
+	/* 10. get chip, adie id and load BT_FW.cfg file */
+	chip_id = conninfra_get_ic_info(CONNSYS_SOC_CHIPID);
+	adie_id = conninfra_get_ic_info(CONNSYS_ADIE_CHIPID);
 	ret = btmtk_load_fw_cfg();
 	if (ret) {
 		BTMTK_ERR("skip antenna & tssi settings");
@@ -2002,7 +2004,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	}
 
 	/* 10.2 send bt antenna command before BT on */
-	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev);
+	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev, chip_id, adie_id);
 	if (ret) {
 		BTMTK_WARN("btmtk_send_wmt_antenna_cmd fail");
 		//goto wmt_power_on_error;
@@ -2016,10 +2018,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	}
 
 	/* 10.4 send tssi command before BT on for 6631 */
-	adie_ver = conninfra_get_ic_info(CONNSYS_ADIE_CHIPID);
-	if (adie_ver == 0x6631) {
+	if (adie_id == 0x6631)
 		btmtk_intcmd_wmt_tssi_cfg();
-	}
 
 load_fw_cfg_error:
 	/* 10.5 free BT_FW.cfg file */
