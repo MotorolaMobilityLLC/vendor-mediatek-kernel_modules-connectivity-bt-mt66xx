@@ -1794,6 +1794,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	int ret;
 	int sch_ret = -1;
 	unsigned int chip_id = 0, adie_id = 0;
+	bool is_wmt_power_on_fail = FALSE;
+
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -2007,6 +2009,7 @@ load_fw_cfg_error:
 		return -EIO;
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
+		is_wmt_power_on_fail = TRUE;
 		goto wmt_power_on_error;
 	}
 
@@ -2042,7 +2045,9 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-	up(&cif_dev->halt_sem);
+
+	if (!is_wmt_power_on_fail)
+		up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;
