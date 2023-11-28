@@ -1846,6 +1846,9 @@ int btmtk_cif_register(void)
 	if (ret)
 		return -1;
 #endif
+	ret = btmtk_irq_register();
+	if (ret)
+		return -1;
 	btmtk_reset_init();
 
 	BTMTK_INFO("%s: Done", __func__);
@@ -1872,6 +1875,7 @@ int btmtk_cif_deregister(void)
 	platform_driver_unregister(&mtkbt_btif_driver);
 	platform_device_unregister(mtkbt_btif_device);
 #endif
+	btmtk_irq_deregister();
 
 	return 0;
 }

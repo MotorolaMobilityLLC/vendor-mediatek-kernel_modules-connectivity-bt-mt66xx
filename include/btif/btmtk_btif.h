@@ -436,6 +436,8 @@ void btmtk_cif_dump_fw_no_rsp(unsigned int flag);
 void btmtk_cif_dump_rxd_backtrace(void);
 void btmtk_reset_init(void);
 void bt_notify_state(void);
+int32_t btmtk_irq_register(void);
+void btmtk_irq_deregister(void);
 int32_t btmtk_intcmd_query_thermal(void);
 
 static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
