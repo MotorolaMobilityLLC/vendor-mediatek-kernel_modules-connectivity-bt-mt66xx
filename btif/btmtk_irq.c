@@ -291,6 +291,84 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 	return IRQ_NONE;
 }
 
+/* btmtk_irq_deregister()
+ *
+ *	Free All IRQ BT Driver needed
+ *
+ * Arguments:
+ *	N/A
+ *
+ * Return Value:
+ *	N/A
+ *
+ */
+void btmtk_irq_deregister(void)
+{
+	bt_disable_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
+	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+
+	/* Free all registered IRQs */
+	bt_free_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
+	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+
+	if (BT_SSPM_TIMER) {
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+		bt_free_irq(BT_CONN2AP_SW_IRQ);
+	}
+}
+
+/* btmtk_irq_register()
+ *
+ *	Request All IRQ BT Driver needed
+ *
+ * Arguments:
+ *	N/A
+ *
+ * Return Value:
+ *	0 if success, otherwise error code
+ *
+ */
+int32_t btmtk_irq_register(void)
+{
+	int ret = -1;
+	/* Register all needed IRQs by MCU */
+#if (SUPPORT_BEIF == 0)
+	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+	if (ret)
+		goto request_irq_error;
+
+	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+	ret = bt_request_irq(BGF2AP_SW_IRQ);
+	if (ret)
+		goto request_irq_error2;
+
+	bt_disable_irq(BGF2AP_SW_IRQ);
+
+	if (BT_SSPM_TIMER) {
+		ret = bt_request_irq(BT_CONN2AP_SW_IRQ);
+		if (ret)
+			goto bus_operate_error;
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+	}
+	return 0;
+
+bus_operate_error:
+	bt_free_irq(BGF2AP_SW_IRQ);
+
+request_irq_error2:
+#if (SUPPORT_BEIF == 0)
+	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+
+request_irq_error:
+#endif
+	return ret;
+}
+
 /* bt_request_irq()
  *
  *    Request IRQ
