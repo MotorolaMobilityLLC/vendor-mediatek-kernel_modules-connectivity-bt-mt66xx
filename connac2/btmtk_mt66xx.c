@@ -1514,6 +1514,7 @@ int32_t btmtk_send_calibration_cmd(struct hci_dev *hdev)
 	uint32_t cal_data_ready_addr = 0;
 	uint16_t cal_data_len = 0;
 	uint8_t *p_cal_data = NULL;
+	int ret = 0;
 
 	if (bdev->cal_data.p_cache_buf) {
 		BTMTK_DBG("calibration cache has data, no need to recal");
@@ -1530,9 +1531,10 @@ int32_t btmtk_send_calibration_cmd(struct hci_dev *hdev)
 	 */
 
 	/* Get calibration data reference for backup */
-	if (btmtk_get_cal_data_ref(hdev, &cal_data_start_addr,
+	ret = btmtk_get_cal_data_ref(hdev, &cal_data_start_addr,
 				    &cal_data_ready_addr,
-				    &cal_data_len))
+				    &cal_data_len);
+	if (ret)
 		BTMTK_ERR("Get cal data ref failed!");
 	else {
 		BTMTK_DBG(
@@ -1554,7 +1556,7 @@ int32_t btmtk_send_calibration_cmd(struct hci_dev *hdev)
 			BTMTK_ERR(
 				"Abnormal cal data length! something error with F/W!");
 	}
-	return 0;
+	return ret;
 }
 
 

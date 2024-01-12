@@ -630,9 +630,10 @@ int btmtk_load_code_from_bin(u8 **image, char *bin_name,
 
 int btmtk_calibration_flow(struct hci_dev *hdev)
 {
-	btmtk_send_calibration_cmd(hdev);
+	int ret = 0;
+	ret = btmtk_send_calibration_cmd(hdev);
 	BTMTK_INFO("%s done", __func__);
-	return 0;
+	return ret;
 }
 
 #if ENABLESTP
