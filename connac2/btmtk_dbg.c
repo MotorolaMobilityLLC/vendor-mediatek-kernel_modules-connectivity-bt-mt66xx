@@ -389,7 +389,7 @@ exit:
 	return ret;
 }
 
-int osal_strtol(const char *str, unsigned int adecimal, long *res)
+int bt_osal_strtol(const char *str, unsigned int adecimal, long *res)
 {
 	if (sizeof(long) == 4)
 		return kstrtou32(str, adecimal, (unsigned int *) res);
@@ -453,7 +453,7 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 		}
 		ptr = strsep(&pRaw, " ");
 		if (ptr != NULL) {
-			osal_strtol(ptr, 16, &tmp);
+			bt_osal_strtol(ptr, 16, &tmp);
 			hci_cmd[len++] = (unsigned char)tmp;
 		}
 	}
@@ -525,7 +525,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 	pBuf = buf;
 	pToken = strsep(&pBuf, pDelimiter);
 	if (pToken != NULL) {
-		osal_strtol(pToken, 16, &res);
+		bt_osal_strtol(pToken, 16, &res);
 		x = (int)res;
 	} else {
 		x = 0;
@@ -533,7 +533,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 
 	pToken = strsep(&pBuf, "\t\n ");
 	if (pToken != NULL) {
-		osal_strtol(pToken, 16, &res);
+		bt_osal_strtol(pToken, 16, &res);
 		y = (int)res;
 		BTMTK_INFO("%s: y = 0x%08x\n\r", __func__, y);
 	} else {
@@ -545,7 +545,7 @@ ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count,
 
 	pToken = strsep(&pBuf, "\t\n ");
 	if (pToken != NULL) {
-		osal_strtol(pToken, 16, &res);
+		bt_osal_strtol(pToken, 16, &res);
 		z = (int)res;
 	} else {
 		z = 10;

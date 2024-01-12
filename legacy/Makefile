@@ -5,8 +5,8 @@ MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ###############################################################################
 # Necessary Check
 
-ifeq ($(AUTOCONF_H),)
-    $(error AUTOCONF_H is not defined)
+ifneq ($(KERNEL_OUT),)
+    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
 endif
 
 ifndef TOP
@@ -19,8 +19,6 @@ ifneq ($(CFG_BT_PM_QOS_CONTROL),)
 else
     ccflags-y += -D PM_QOS_CONTROL=0
 endif
-
-ccflags-y += -imacros $(AUTOCONF_H)
 
 # Force build fail on modpost warning
 KBUILD_MODPOST_FAIL_ON_WARNINGS := y

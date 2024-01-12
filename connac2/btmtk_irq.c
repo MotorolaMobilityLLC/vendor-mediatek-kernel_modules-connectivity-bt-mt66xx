@@ -127,7 +127,7 @@ void bt_trigger_reset(void)
  */
 void bt_bgf2ap_irq_handler(void)
 {
-	int32_t ret, mailbox_status = 0, bgf_status = 0;
+	int32_t ret, bgf_status = 0;
 
 	g_bdev->bgf2ap_ind = FALSE;
 	/* 1. Check conninfra bus before accessing BGF's CR */

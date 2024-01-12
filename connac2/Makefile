@@ -5,8 +5,8 @@ MTK_PLATFORM := $(subst ",,$(CONFIG_MTK_PLATFORM))
 ###############################################################################
 # Necessary Check
 
-ifeq ($(AUTOCONF_H),)
-    $(error AUTOCONF_H is not defined)
+ifneq ($(KERNEL_OUT),)
+    ccflags-y += -imacros $(KERNEL_OUT)/include/generated/autoconf.h
 endif
 
 $(warning connac20 bt driver: _MTK_BT_CHIP = $(_MTK_BT_CHIP))
@@ -29,7 +29,7 @@ endif
 USE_DEVICE_NODE := y
 #CUSTOMER_FW_UPDATE := y
 
-ccflags-y += -imacros $(AUTOCONF_H) -DCHIP_IF_BTIF
+ccflags-y += -DCHIP_IF_BTIF
 
 # Customized feature, load 1b fw bin
 #ccflags-y += -D BT_CUS_FEATURE

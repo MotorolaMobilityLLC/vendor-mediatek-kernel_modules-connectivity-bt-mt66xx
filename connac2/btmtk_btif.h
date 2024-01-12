@@ -406,8 +406,8 @@ static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
 		plock->ws = wakeup_source_register(NULL, plock->name);
 		if (!plock->ws)
 			BTMTK_ERR("ERROR NO MEM\n");
-		else
 #if (PM_QOS_CONTROL == 1)
+		else
 			pm_qos_add_request(&plock->qos_req, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 #endif
 	}
