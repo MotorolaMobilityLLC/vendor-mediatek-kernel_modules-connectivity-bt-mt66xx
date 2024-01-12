@@ -45,14 +45,14 @@
 #define ON  0xff
 
 #define PFX                     "[MTK-BT]"
-#define BT_LOG_DBG              3
-#define BT_LOG_INFO             2
-#define BT_LOG_WARN             1
-#define BT_LOG_ERR              0
+#define BT_LOG_DBG              4
+#define BT_LOG_INFO             3
+#define BT_LOG_WARN             2
+#define BT_LOG_ERR              1
 #define RAW_MAX_BYTES           30
 
 static uint8_t raw_buf[RAW_MAX_BYTES * 5 + 10];
-static UINT32 gDbgLevel = BT_LOG_INFO;
+extern UINT32 gDbgLevel;
 
 #define BT_LOG_PRT_DBG(fmt, arg...)	\
 	do { if (gDbgLevel >= BT_LOG_DBG) pr_info(PFX "%s: " fmt, __func__, ##arg); } while (0)
@@ -65,6 +65,24 @@ static UINT32 gDbgLevel = BT_LOG_INFO;
 #define BT_LOG_PRT_INFO_RATELIMITED(fmt, arg...)	\
 	do { if (gDbgLevel >= BT_LOG_ERR) pr_info_ratelimited(PFX "%s: " fmt, __func__, ##arg); } while (0)
 
+#define BT_LOG_PRT_DBG_RAW(p, l, fmt, ...)						\
+			do {	\
+				if (gDbgLevel >= BT_LOG_DBG) { \
+					int cnt_ = 0;	\
+					int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
+					const unsigned char *ptr = p;	\
+					for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
+						snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]);	\
+					}	\
+					raw_buf[5*cnt_] = '\0'; \
+					if (l <= RAW_MAX_BYTES) {	\
+						pr_info(PFX" "fmt"%s\n", ##__VA_ARGS__, raw_buf);	\
+					} else {	\
+						pr_info(PFX" "fmt"%s (prtail)\n", ##__VA_ARGS__, raw_buf); \
+					}	\
+				}	\
+			} while (0)
+
 #define BT_LOG_PRT_INFO_RAW(p, l, fmt, ...)						\
 		do {	\
 			if (gDbgLevel >= BT_LOG_INFO) {	\
@@ -76,9 +94,9 @@ static UINT32 gDbgLevel = BT_LOG_INFO;
 				}	\
 				raw_buf[5*cnt_] = '\0'; \
 				if (l <= RAW_MAX_BYTES) {	\
-					pr_cont(PFX" "fmt"%s\n", ##__VA_ARGS__, raw_buf);	\
+					pr_info(PFX" "fmt"%s\n", ##__VA_ARGS__, raw_buf);	\
 				} else {	\
-					pr_cont(PFX" "fmt"%s (prtail)\n", ##__VA_ARGS__, raw_buf); \
+					pr_info(PFX" "fmt"%s (prtail)\n", ##__VA_ARGS__, raw_buf); \
 				}	\
 			}	\
 		} while (0)
