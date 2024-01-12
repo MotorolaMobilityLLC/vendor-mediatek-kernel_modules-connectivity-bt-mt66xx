@@ -8,6 +8,10 @@ ifeq ($(AUTOCONF_H),)
     $(error AUTOCONF_H is not defined)
 endif
 
+ifndef TOP
+    TOP := $(srctree)/..
+endif
+
 ccflags-y += -imacros $(AUTOCONF_H) -DCHIP_IF_BTIF
 
 # Force build fail on modpost warning
