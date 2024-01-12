@@ -299,12 +299,12 @@ static int32_t btmtk_cif_fw_own_clr(void)
 		 * wait maximum total 7ms to query status
 		 */
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
-			if ((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32) &&
+			if (((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32)) &&
 				((retry & 0x1F) == 0)) {
-				BTMTK_WARN("FW own clear failed in %d us, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
+				BTMTK_WARN("[DRV_OWN] failed in %d ms, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
 				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
-				BTMTK_WARN("FW own clear dump after write:");
+				BTMTK_WARN("[DRV_OWN] dump after write:");
 				bt_dump_cif_own_cr();
 			} else
 				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
@@ -321,7 +321,7 @@ static int32_t btmtk_cif_fw_own_clr(void)
 	} while (retry > 0);
 
 	if (retry == 0) {
-		BTMTK_ERR("FW own clear (Wakeup) failed!");
+		BTMTK_ERR("[DRV_OWN] (Wakeup) failed!");
 		bt_dump_cif_own_cr();
 
 		/* dump cpupcr, 10 times with 1ms interval */
@@ -329,7 +329,7 @@ static int32_t btmtk_cif_fw_own_clr(void)
 		return -1;
 	}
 
-	BTMTK_DBG("FW own clear (Wakeup) succeed");
+	BTMTK_DBG("[DRV_OWN] (Wakeup) success, retry[%d]", retry);
 	return 0;
 }
 
@@ -351,12 +351,12 @@ static int32_t btmtk_cif_fw_own_set(void)
 
 	do {
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
-			if ((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32) &&
+			if (((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32)) &&
 				((retry & 0x1F) == 0)) {
-				BTMTK_WARN("FW own set failed in %d us, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
+				BTMTK_WARN("[FW_OWN] failed in %d ms, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
 				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
-				BTMTK_WARN("FW own set dump after write:");
+				BTMTK_WARN("[FW_OWN] dump after write:");
 				bt_dump_cif_own_cr();
 			} else
 				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
@@ -383,7 +383,7 @@ static int32_t btmtk_cif_fw_own_set(void)
 	} while (retry > 0);
 
 	if (retry == 0) {
-		BTMTK_ERR("FW own set (Sleep) failed!");
+		BTMTK_ERR("[FW_OWN] (Sleep) failed!");
 		bt_dump_cif_own_cr();
 
 		/* dump cpupcr, 10 times with 1ms interval */
@@ -391,7 +391,7 @@ static int32_t btmtk_cif_fw_own_set(void)
 		return -1;
 	}
 
-	BTMTK_DBG("FW own set (Sleep) succeed");
+	BTMTK_DBG("[FW_OWN] (Sleep) success, retry[%d]", retry);
 	return 0;
 }
 
