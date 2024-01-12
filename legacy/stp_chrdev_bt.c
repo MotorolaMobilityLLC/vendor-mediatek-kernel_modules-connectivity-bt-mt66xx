@@ -527,11 +527,9 @@ long BT_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 #if (PM_QOS_CONTROL == 1)
 static void pm_qos_release(struct work_struct *pwork)
 {
-	down(&qos_ctrl.sem);
 	pm_qos_update_request(&qos_req, PM_QOS_DEFAULT_VALUE);
 	qos_ctrl.is_hold = FALSE;
 	BT_LOG_PRT_INFO("[qos] is_hold[%d]\n", qos_ctrl.is_hold);
-	up(&qos_ctrl.sem);
 }
 #endif
 
@@ -618,7 +616,7 @@ static int BT_close(struct inode *inode, struct file *file)
 	if(qos_ctrl.task != NULL) {
 		BT_LOG_PRT_INFO("[qos] cancel delayed work\n");
 		cancel_delayed_work(&qos_ctrl.work);
-		//flush_workqueue(qos_ctrl.task);
+		flush_workqueue(qos_ctrl.task);
 		destroy_workqueue(qos_ctrl.task);
 		qos_ctrl.task = NULL;
 	}

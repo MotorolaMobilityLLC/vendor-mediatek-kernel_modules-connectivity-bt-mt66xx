@@ -12,7 +12,7 @@ LOCAL_REQUIRED_MODULES := wmt_drv.ko
 
 include $(MTK_KERNEL_MODULE)
 
-ifeq ($(MTK_BT_CHIP), $(filter $(MTK_BT_CHIP), MTK_CONSYS_MT6873))
+ifeq ($(MTK_BT_CHIP), $(filter $(MTK_BT_CHIP), MTK_CONSYS_MT6873 MTK_CONSYS_MT6853))
   BT_OPTS += CFG_BT_PM_QOS_CONTROL=y
 endif
 $(linked_module): OPTS += $(BT_OPTS)
