@@ -447,7 +447,7 @@ void btmtk_hci_snoop_print_to_log(void)
 
 static unsigned int btmtk_hci_snoop_get_microseconds(void)
 {
-	struct timespec64 now;
+	struct timespec64 now = {0, 0};
 
 	btmtk_do_gettimeofday(&now);
 	return now.tv_sec * 1000000 + now.tv_nsec/1000;
@@ -1904,7 +1904,7 @@ void btmtk_release_dev(struct btmtk_dev *bdev)
 
 struct btmtk_dev *btmtk_allocate_dev_memory(struct device *dev)
 {
-	struct btmtk_dev *bdev;
+	struct btmtk_dev *bdev = NULL;
 	size_t len = sizeof(*bdev);
 
 	BTMTK_INFO("%s", __func__);
