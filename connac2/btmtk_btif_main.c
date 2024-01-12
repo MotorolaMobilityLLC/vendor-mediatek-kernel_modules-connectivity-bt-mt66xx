@@ -11,7 +11,6 @@
  *  See http://www.gnu.org/licenses/gpl-2.0.html for more details.
  */
 
-#include <linux/spinlock_types.h>
 #include <linux/kthread.h>
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
