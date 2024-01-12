@@ -280,8 +280,16 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 	}
 
-	hang_ret = conninfra_is_bus_hang();
-	BTMTK_ERR("Conninfra is not readable, hang ret=%d", hang_ret);
+	/* Check conninfra bus */
+	if (!conninfra_reg_readable()) {
+		hang_ret = conninfra_is_bus_hang();
+		if (hang_ret > 0) {
+			BTMTK_ERR("conninfra bus is hang, needs reset");
+			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+		}
+		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+	}
+
 	return -1;
 }
 
@@ -760,29 +768,10 @@ host_csr_only:
 
 static inline int32_t bgfsys_get_sw_irq_status(void)
 {
-	int32_t ret = 0, value = 0, i = 0;
+	int32_t value = 0;
 
 	/* wake up conn_infra off */
-	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-
-	/* polling conninfra version id */
-	for (i = 0; i < 5; i++) {
-		value = REG_READL(CONN_INFRA_CFG_VERSION);
-		if (value == CONN_INFRA_CFG_ID)
-			break;
-		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
-	}
-
-	/* Check conninfra bus */
-	if (!conninfra_reg_readable()) {
-		ret = conninfra_is_bus_hang();
-		if (ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
-			return RET_SWIRQ_ST_FAIL;
-		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
-	}
+	bgfsys_check_conninfra_ready();
 
 	/* Check bgf bus status */
 	if (bt_is_bgf_bus_timeout()) {
@@ -792,6 +781,14 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 
 	/* read sw irq status*/
 	value = bt_read_cr(BGF_SW_IRQ_STATUS);
+
+	if (value & BGF_SUBSYS_CHIP_RESET){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
+	} else if (value & BGF_FW_LOG_NOTIFY){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
+	} else if (value &  BGF_WHOLE_CHIP_RESET){
+		bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_WHOLE_CHIP_RESET, TRUE);
+	}
 
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
