@@ -14,6 +14,7 @@
 
 #include "bt.h"
 #include <linux/pm_wakeup.h>
+#include <linux/version.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -598,7 +599,11 @@ static int BT_init(void)
 	/* Initialize wait queue */
 	init_waitqueue_head(&(inq));
 	/* Initialize wake lock */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 83)
+	bt_wakelock = wakeup_source_register(NULL, "bt_drv");
+#else
 	bt_wakelock = wakeup_source_register("bt_drv");
+#endif
 	if(!bt_wakelock) {
 		BT_LOG_PRT_ERR("%s: init bt_wakelock failed!\n", __func__);
 	}
