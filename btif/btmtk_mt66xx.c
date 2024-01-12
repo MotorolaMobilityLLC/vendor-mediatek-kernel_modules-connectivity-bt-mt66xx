@@ -1129,7 +1129,7 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	cif_dev->event_intercept  = FALSE;
 	up(&cif_dev->internal_cmd_sem);
 	BTMTK_INFO("[InternalCmd] %s done, result = %s", __func__, _internal_evt_result(p_inter_cmd->result));
-	return p_inter_cmd->result;
+	ret = p_inter_cmd->result;
 
 done:
 	if (p_img)
