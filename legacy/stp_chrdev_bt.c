@@ -645,7 +645,8 @@ static int BT_init(void)
 	/* Initialize wait queue */
 	init_waitqueue_head(&(inq));
 	/* Initialize wake lock */
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 19, 83)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 14, 149)
+	BT_LOG_PRT_INFO("wakeup_source_register() with kernel-4.14.149\n");
 	bt_wakelock = wakeup_source_register(NULL, "bt_drv");
 #else
 	bt_wakelock = wakeup_source_register("bt_drv");
