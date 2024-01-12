@@ -44,20 +44,21 @@
 */
 #define HCI_EVT_PREAMBLE_SIZE   2
 
-#define HCI_CMD_HDR_LEN        (HCI_CMD_PREAMBLE_SIZE + 1)
-#define HCI_EVT_HDR_LEN        (HCI_EVT_PREAMBLE_SIZE)
+#define HCI_CMD_HDR_LEN			(HCI_CMD_PREAMBLE_SIZE + 1)
+#define HCI_EVT_HDR_LEN			(HCI_EVT_PREAMBLE_SIZE)
 
 /* WMT Event */
-#define WMT_EVT_OFFSET  (HCI_EVT_HDR_LEN)
-#define WMT_EVT_HDR_LEN (4)
+#define WMT_EVT_OFFSET			(HCI_EVT_HDR_LEN)
+#define WMT_EVT_HDR_LEN			(4)
 
-#define WAKE_LOCK_NAME_SIZE (16)
+#define WAKE_LOCK_NAME_SIZE		(16)
 
 
-#define MT_BGF2AP_BTIF_WAKEUP_IRQ_ID 312 /* temp */
-#define MT_BGF2AP_SW_IRQ_ID          271 /* temp */
+#define MT_BGF2AP_BTIF_WAKEUP_IRQ_ID 	312 /* temp */
+#define MT_BGF2AP_SW_IRQ_ID          	271 /* temp */
 
-#define IRQ_NAME_SIZE (20)
+#define IRQ_NAME_SIZE			(20)
+#define MAX_STATE_MONITORS		(2)
 
 enum wmt_evt_result {
 	WMT_EVT_SUCCESS,
@@ -127,6 +128,8 @@ struct bt_psm_ctrl {
 	struct bt_wake_lock wake_lock;
 	u_int8_t quick_ps;
 };
+
+typedef void (*BT_STATE_CHANGE_CB) (enum bt_state state);
 
 struct wmt_pkt_param {
 	/* Extensible union */
@@ -237,16 +240,14 @@ struct btmtk_dev {
 	struct sk_buff		*evt_skb;
 	wait_queue_head_t	p_wait_event_q;
 
-#if ENABLESTP
-	u8			stp_pad[6];
-	u8			stp_cursor;
-	u16			stp_dlen;
-#endif
 	/* cif info */
 	struct platform_device	*pdev;
 
 	/* coredump handle */
 	void 			*coredump_handle;
+
+	/* state change callback */
+	BT_STATE_CHANGE_CB	state_change_cb[MAX_STATE_MONITORS];
 };
 
 #define BTMTK_GET_DEV(bdev) (&bdev->pdev->dev)
@@ -270,11 +271,11 @@ void btmtk_reset_init(void);
 
 static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
 {
-	if (plock)
+	if (plock) {
 		plock->ws = wakeup_source_register(plock->name);
-
-	if (!plock->ws)
-		BTMTK_ERR("ERROR NO MEM\n");
+		if (!plock->ws)
+			BTMTK_ERR("ERROR NO MEM\n");
+	}
 }
 
 static inline void bt_wake_lock_deinit(struct bt_wake_lock *plock)
@@ -304,7 +305,7 @@ static inline void bt_release_wake_lock(struct bt_wake_lock *plock)
 static inline void bt_psm_init(struct bt_psm_ctrl *psm)
 {
 	init_completion(&psm->comp);
-	strcpy(psm->wake_lock.name, "bt_psm");
+	strncpy(psm->wake_lock.name, "bt_psm", 6);
 	bt_wake_lock_init(&psm->wake_lock);
 }
 

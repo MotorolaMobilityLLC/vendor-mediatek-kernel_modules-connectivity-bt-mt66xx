@@ -604,6 +604,9 @@ int32_t btmtk_tx_thread(void * arg)
 			 */
 			 while(!skb_queue_empty(&bdev->tx_queue)) {
 				skb = skb_dequeue(&bdev->tx_queue);
+				if(skb == NULL)
+					continue;
+
 				/*
 				 * make a copy of skb->len ot prevent skb being
 				 * free after sending and recv event from FW
@@ -761,10 +764,10 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 
 int32_t bt_request_irq(enum bt_irq_type irq_type)
 {
-	uint32_t irq_num;
-	int32_t ret;
-	unsigned long irq_flags;
-	struct bt_irq_ctrl *pirq;
+	uint32_t irq_num = 0;
+	int32_t ret = 0;
+	unsigned long irq_flags = 0;
+	struct bt_irq_ctrl *pirq = NULL;
 #ifdef CONFIG_OF
 	struct device_node *node = NULL;
 #endif
