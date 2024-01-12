@@ -280,7 +280,7 @@ ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
 	INT32 retval = 0;
 	size_t count = iov_iter_count(from);
 
-	ftrace_print("%s get called, count %zd", __func__, count);
+	ftrace_print("%s get called, count %zu", __func__, count);
 	down(&wr_mtx);
 
 	BT_LOG_PR_DBG("count %zd", count);
@@ -315,7 +315,7 @@ ssize_t BT_write(struct file *filp, const char __user *buf, size_t count, loff_t
 {
 	INT32 retval = 0;
 
-	ftrace_print("%s get called, count %zd", __func__, count);
+	ftrace_print("%s get called, count %zu", __func__, count);
 	down(&wr_mtx);
 
 	BT_LOG_PR_DBG("count %zd pos %lld\n", count, *f_pos);
@@ -350,7 +350,7 @@ ssize_t BT_read(struct file *filp, char __user *buf, size_t count, loff_t *f_pos
 {
 	INT32 retval = 0;
 
-	ftrace_print("%s get called, count %zd", __func__, count);
+	ftrace_print("%s get called, count %zu", __func__, count);
 	down(&rd_mtx);
 
 	BT_LOG_PR_DBG("count %zd pos %lld\n", count, *f_pos);
