@@ -1623,6 +1623,17 @@ int btmtk_cif_send_calibration(struct btmtk_dev *bdev)
 	return btmtk_intcmd_wmt_calibration(bdev->hdev);
 }
 
+#if SUPPORT_BEIF
+static void btmtk_set_normal_sleep(struct work_struct *work)
+{
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+	if (cif_dev->bt_state != FUNC_OFF) {
+		cif_dev->psm.force_on = FALSE;
+		btmtk_set_sleep(g_sbdev->hdev, FALSE);
+	}
+}
+#endif
+
 /* btmtk_cif_probe
  *
  *     Probe function of BT driver with BTIF HAL, initialize variable after
@@ -1699,6 +1710,11 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 
 	/* 11. Init internal trx work */
 	INIT_WORK(&internal_trx_work, btmtk_btif_internal_trx_work);
+
+#if SUPPORT_BEIF
+	/* 12. Init normal sleep work */
+	INIT_DELAYED_WORK(&cif_dev->normal_sleep_work, btmtk_set_normal_sleep);
+#endif
 
 	/* Register callbacks to conninfra driver */
 	conninfra_sub_drv_ops_register(CONNDRV_TYPE_BT, &bt_drv_cbs);
