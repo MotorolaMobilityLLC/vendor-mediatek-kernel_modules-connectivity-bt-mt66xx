@@ -420,7 +420,7 @@ void add_dump_packet(const uint8_t *buffer,const uint32_t length, enum bt_direct
 		copysize = length;
 
 	ktime_get_real_ts64(&p_packet->time);
-	ktime_get_ts(&p_packet->kerneltime);
+	ktime_get_ts64(&p_packet->kerneltime);
 	memcpy(p_packet->data,buffer,copysize);
 	p_packet->data_length = length;
 	p_packet->direction_type = type;
@@ -443,7 +443,7 @@ void print_dump_packet(struct bt_dump_packet *p_packet){
 	ksec = p_packet->kerneltime.tv_sec;
 	knsec = p_packet->kerneltime.tv_nsec;
 
-	rtc_time_to_tm(sec, &tm);
+	rtc_time64_to_tm(sec, &tm);
 
 	if (p_packet->data_length > MAX_DUMP_DATA_SIZE)
 		copysize = MAX_DUMP_DATA_SIZE;

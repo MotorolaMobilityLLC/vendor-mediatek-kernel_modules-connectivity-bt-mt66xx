@@ -230,7 +230,8 @@ static void fwp_update_info(struct fwp_info *info) {
 
 	do_gettimeofday(&time);
 	local_time = (uint32_t)(time.tv_sec - (sys_tz.tz_minuteswest * 60));
-	rtc_time_to_tm(local_time, &tm);
+	rtc_time64_to_tm(local_time, &tm);
+
 	if (snprintf(info->update_time, EMI_DATETIME_LEN, "%04d%02d%02d%02d%02d%02d",
 			tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec) < 0) {
 		BTMTK_INFO("%s: snprintf error", __func__);
@@ -338,7 +339,7 @@ int fwp_if_get_bt_patch_path(char *buf, int max_len)
  */
 void bgfsys_ccif_on(void)
 {
-	uint8_t *ccif_base = ioremap_nocache(0x10003300, 0x100);
+	uint8_t *ccif_base = ioremap(0x10003300, 0x100);
 
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
@@ -370,7 +371,7 @@ void bgfsys_ccif_off(void)
 {
 	uint8_t *ccif_base = NULL, *bgf2md_base = NULL;
 
-	ccif_base = ioremap_nocache(0x10003300, 0x100);
+	ccif_base = ioremap(0x10003300, 0x100);
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
@@ -383,7 +384,7 @@ void bgfsys_ccif_off(void)
 	iounmap(ccif_base);
 
 
-	bgf2md_base = ioremap_nocache(0x1025C000, 0x100);
+	bgf2md_base = ioremap(0x1025C000, 0x100);
 	if (bgf2md_base == NULL) {
 		BTMTK_ERR("%s: remapping bgf2md_base fail", __func__);
 		return;
@@ -549,7 +550,7 @@ static void bgfsys_dump_uart_pta_pready_status(void)
 	BTMTK_INFO("0x18001A00 = [0x%08x]",
 		REG_READL(CON_REG_INFRA_CFG_ADDR + 0xA00));
 
-	base = ioremap_nocache(0x1800C00C, 4);
+	base = ioremap(0x1800C00C, 4);
 	if (base == NULL) {
 		BTMTK_ERR("%s: remapping 0x18001A00 fail", __func__);
 		return;
@@ -1000,12 +1001,12 @@ static int32_t __download_patch_to_emi(
 
 	if ((patch_emi_offset >= emi_start) &&
 	    (patch_emi_offset + patch_size < emi_start + emi_size)) {
-		remap_addr = ioremap_nocache(emi_ap_phy_base + patch_emi_offset, patch_size);
+		remap_addr = ioremap(emi_ap_phy_base + patch_emi_offset, patch_size);
 		if (remap_addr) {
 			memcpy_toio(remap_addr, p_buf, patch_size);
 			iounmap(remap_addr);
 		} else {
-			BTMTK_ERR("ioremap_nocache fail!");
+			BTMTK_ERR("ioremap fail!");
 			ret = -EFAULT;
 		}
 	} else {
@@ -1016,12 +1017,12 @@ static int32_t __download_patch_to_emi(
 	}
 
 #if SUPPORT_COREDUMP
-	remap_addr = ioremap_nocache(emi_ap_phy_base + fwdate_offset, sizeof(p_patch_hdr->date_time));
+	remap_addr = ioremap(emi_ap_phy_base + fwdate_offset, sizeof(p_patch_hdr->date_time));
 	if (remap_addr) {
 		memcpy_toio(remap_addr, p_patch_hdr->date_time, sizeof(p_patch_hdr->date_time));
 		iounmap(remap_addr);
 	} else
-		BTMTK_ERR("ioremap_nocache coredump data field fail");
+		BTMTK_ERR("ioremap coredump data field fail");
 #endif
 
 done:

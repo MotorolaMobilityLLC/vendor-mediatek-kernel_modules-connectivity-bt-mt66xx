@@ -168,7 +168,7 @@ struct bt_dump_packet {
 	enum bt_direction_type 	direction_type;
 	u_int16_t 				data_length;
 	u_int8_t 				data[MAX_DUMP_DATA_SIZE];
-	struct timespec 		kerneltime;
+	struct timespec64 		kerneltime;
 	struct timespec64		time;
 };
 
