@@ -1820,6 +1820,7 @@ int btmtk_cif_register(void)
 	if (ret)
 		return -1;
 #endif
+	btmtk_reset_init();
 
 	BTMTK_INFO("%s: Done", __func__);
 	return 0;
