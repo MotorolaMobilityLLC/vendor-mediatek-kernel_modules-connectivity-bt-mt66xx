@@ -51,8 +51,7 @@ static unsigned char g_log_on = OFF;
 static unsigned char g_log_level = DEFAULT_LEVEL;
 static unsigned char g_log_current = OFF;
 
-#define BT_LOG_BUFFER_SIZE  2048
-static INT32 i_buf[BT_LOG_BUFFER_SIZE];
+#define BT_LOG_BUFFER_SIZE  512
 
 static struct cdev log_cdev;
 #if CREATE_NODE_DYNAMIC
@@ -202,10 +201,8 @@ static ssize_t fw_log_bt_write(struct file *filp, const char __user *buf, size_t
 	ssize_t retval = 0;
 	UINT8 tmp_buf[BT_LOG_BUFFER_SIZE] = {0};
 	UINT8 hci_cmd[BT_LOG_BUFFER_SIZE] = {0};
-	UINT8 val[BT_LOG_BUFFER_SIZE] = {0};
-	UINT8 tmp = 0;
+	UINT8 tmp = 0, tmp_h = 0;
 	size_t i = 0, j = 0, k = 0;
-	int retry = 0;
 
 	if(count >= BT_LOG_BUFFER_SIZE) {
 		BT_LOG_PR_ERR("write count %zd exceeds max buffer size %d", count, BT_LOG_BUFFER_SIZE);
@@ -226,12 +223,11 @@ static ssize_t fw_log_bt_write(struct file *filp, const char __user *buf, size_t
 				else if(tmp_buf[i] == '\r' || tmp_buf[i] =='\n') // get 0x0a('\n') or 0x0d('\r')
 					break;
 				// Two input char should turn to one byte
-				if (ascii_to_hex(tmp_buf[i], &val[j]) == 0) {
+				if (ascii_to_hex(tmp_buf[i], &tmp) == 0) {
 					if (j%2 == 0)
-						tmp = val[j];
+						tmp_h = tmp;
 					else {
-						tmp = tmp * 16 + val[j];
-						hci_cmd[k] = tmp;
+						hci_cmd[k] = tmp_h * 16 + tmp;
 						BT_LOG_PR_DBG("hci_cmd[%zd] = 0x%02x\n", k, hci_cmd[k]);
 						k++;
 					 }
