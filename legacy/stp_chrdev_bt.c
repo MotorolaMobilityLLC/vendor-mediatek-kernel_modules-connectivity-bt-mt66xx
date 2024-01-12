@@ -69,7 +69,7 @@ static DECLARE_WAIT_QUEUE_HEAD(BT_wq);
 static INT32 flag;
 static INT32 bt_ftrace_flag;
 static bool btonflag = 0;
-UINT32 gDbgLevel = BT_LOG_INFO;
+UINT32 gBtDbgLevel = BT_LOG_INFO;
 struct bt_dbg_st g_bt_dbg_st;
 #if (PM_QOS_CONTROL == 1)
 static struct pm_qos_request qos_req;
