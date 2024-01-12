@@ -271,7 +271,7 @@ static inline void bgfsys_ccif_off(void)
  */
 static int32_t bgfsys_check_conninfra_ready(void)
 {
-	int32_t retry = POS_POLLING_RTY_LMT;
+	//int32_t retry = POS_POLLING_RTY_LMT;
 	uint32_t value = 0;
 
 	/* wake up conn_infra off */
@@ -1253,7 +1253,7 @@ static inline int32_t bgfsys_power_off(void)
 	// 0x18005128	WR	0x18005128[0] == 1'b1/1'b0
 	// 0x18005128	POLLING 0x18005128[1] == 1'b0
 	addr = 0x18005128;
-	remap_addr = ioremap_nocache(addr, 4);
+	remap_addr = ioremap(addr, 4);
 	if (remap_addr) {
 		CLR_BIT(remap_addr, BIT(0));
 		retry = POS_POLLING_RTY_LMT;
