@@ -283,12 +283,28 @@ static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
 *
 **********************************************************************
 */
+#define _BIN_NAME_POSTFIX 			".bin"
+#define _BIN_NAME_UPDATE_POSTFIX 	"-u.bin"
 
 #if (CONNAC20_CHIPID == 6885)
+#ifdef BT_CUS_FEATURE
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1b_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1b_1_hdr"
+#else
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1_1_hdr"
+#endif
 	#define CONN_INFRA_CFG_ID		(0x20010000)
 #elif (CONNAC20_CHIPID == 6893)
+	#define _BIN_NAME_MCU			"soc3_0_ram_mcu_1a_1_hdr"
+	#define _BIN_NAME_BT			"soc3_0_ram_bt_1a_1_hdr"
 	#define CONN_INFRA_CFG_ID		(0x20010101)
 #endif
+
+#define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
+#define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
+#define BIN_NAME_MCU_U 	(_BIN_NAME_MCU _BIN_NAME_UPDATE_POSTFIX)
+#define BIN_NAME_BT_U 	(_BIN_NAME_BT _BIN_NAME_UPDATE_POSTFIX)
 
 /* bt_dump_cpucpr
  *

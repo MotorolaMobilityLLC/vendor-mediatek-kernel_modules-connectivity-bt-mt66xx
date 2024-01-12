@@ -31,6 +31,9 @@ USE_DEVICE_NODE := y
 
 ccflags-y += -imacros $(AUTOCONF_H) -DCHIP_IF_BTIF
 
+# Customized feature, load 1b fw bin
+ccflags-y += -D BT_CUS_FEATURE
+
 # Force build fail on modpost warning
 KBUILD_MODPOST_FAIL_ON_WARNINGS := y
 ###############################################################################

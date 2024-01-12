@@ -730,7 +730,7 @@ static int bt_open(struct hci_dev *hdev)
 
 	if (test_bit(HCI_RUNNING, &hdev->flags)) {
 		BTMTK_WARN("BT already on!\n");
-		return 0;
+		return -EIO;
 	}
 
 #if BLUEDROID

@@ -100,13 +100,13 @@ static const uint8_t WMT_OVER_HCI_CMD_HDR[] = { 0x01, 0x6F, 0xFC, 0x00 };
 #if (CUSTOMER_FW_UPDATE == 1)
 static bool g_fwp_update_enable = FALSE;
 static uint8_t *g_fwp_names[PATCH_FILE_NUM][2] = {
-	{"soc3_0_ram_mcu_e1_hdr.bin", "soc3_0_ram_mcu_e1_hdr-u.bin"},
-	{"soc3_0_ram_bt_1_1_hdr.bin", "soc3_0_ram_bt_1_1_hdr-u.bin"},
+	{BIN_NAME_MCU, BIN_NAME_MCU_U},
+	{BIN_NAME_BT, BIN_NAME_BT_U},
 };
 #else
 static uint8_t *g_fwp_names[PATCH_FILE_NUM][1] = {
-	{"soc3_0_ram_mcu_e1_hdr.bin"},
-	{"soc3_0_ram_bt_1_1_hdr.bin"},
+	{BIN_NAME_MCU},
+	{BIN_NAME_BT},
 };
 #endif
 static struct fwp_info g_fwp_info;
@@ -946,6 +946,7 @@ static int32_t __download_patch_to_emi(
 	phys_addr_t emi_ap_phy_base;
 	uint8_t *remap_addr;
 
+	BTMTK_INFO("%s: load binary [%s]", __func__, patch_name);
 	/*  Read Firmware patch content */
 	btmtk_load_code_from_bin(&p_img, patch_name, NULL, &patch_size, 10);
 	if (p_img == NULL || patch_size < sizeof(struct fw_patch_emi_hdr)) {
