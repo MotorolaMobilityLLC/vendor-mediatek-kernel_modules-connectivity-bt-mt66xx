@@ -23,8 +23,6 @@
 #elif defined(CHIP_IF_UART)
 #include "btmtk_uart.h"
 #elif defined(CHIP_IF_BTIF)
-#undef SUPPORT_BT_THREAD
-#define SUPPORT_BT_THREAD	(1)
 #include "btmtk_btif.h"
 #endif
 

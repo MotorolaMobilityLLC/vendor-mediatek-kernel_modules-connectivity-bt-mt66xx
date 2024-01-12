@@ -17,8 +17,11 @@
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
+#include <linux/workqueue.h>
 
+#include "conninfra.h"
 #include "btmtk_define.h"
+
 
 /*******************************************************************************
 *                              C O N S T A N T S
@@ -59,6 +62,19 @@
 
 #define IRQ_NAME_SIZE			(20)
 #define MAX_STATE_MONITORS		(2)
+#define RING_BUFFER_SIZE		(16384)
+
+#define MAX_DUMP_DATA_SIZE		(20)
+#define MAX_DUMP_QUEUE_SIZE		(100)
+
+
+#undef SUPPORT_BT_THREAD
+#define SUPPORT_BT_THREAD	(1)
+#define SUPPORT_COREDUMP	(1)
+
+#define DRIVER_CMD_CHECK	(1)
+
+typedef void (*BT_RX_EVENT_CB) (void);
 
 enum wmt_evt_result {
 	WMT_EVT_SUCCESS,
@@ -74,6 +90,7 @@ typedef enum wmt_pkt_dir {
 typedef enum wmt_opcode {
 	WMT_OPCODE_FUNC_CTRL = 0x06,
 	WMT_OPCODE_RF_CAL = 0x14,
+	WMT_OPCODE_0XF0 = 0xF0,
 	WMT_OPCODE_MAX
 } WMT_OPCODE_T;
 
@@ -98,6 +115,13 @@ struct bt_irq_ctrl {
 	u_int8_t active;
 	spinlock_t lock;
 	unsigned long flags;
+};
+
+struct btif_deepidle_ctrl {
+	struct semaphore sem;
+	struct workqueue_struct *task;
+	struct delayed_work work;
+	u_int8_t is_dpidle;
 };
 
 enum bt_reset_level {
@@ -126,7 +150,47 @@ struct bt_psm_ctrl {
 	struct completion comp; /* request completion */
 	u_int8_t result; /* request result */
 	struct bt_wake_lock wake_lock;
-	u_int8_t quick_ps;
+	u_int8_t force_on;
+};
+
+enum bt_direction_type {
+	NONE,
+	TX,
+	RX
+};
+
+struct bt_dump_packet {
+	enum bt_direction_type 	direction_type;
+	u_int16_t 				data_length;
+	u_int8_t 				data[MAX_DUMP_DATA_SIZE];
+	struct timespec 		kerneltime;
+	struct timeval 			time;
+};
+
+struct bt_dump_queue {
+	struct bt_dump_packet	queue[MAX_DUMP_QUEUE_SIZE];
+	int32_t 				index;
+	bool 					full;
+	spinlock_t				lock;
+};
+
+
+#define BT_BTIF_DUMP_OWN_CR		0x01
+#define BT_BTIF_DUMP_REG		0x02
+#define BT_BTIF_DUMP_LOG		0x04
+#define BT_BTIF_DUMP_ALL		0x07
+
+struct sched_param {
+	int sched_priority;
+};
+
+struct bt_dbg_st {
+	bool rt_thd_enable;
+	bool trx_enable;
+	uint16_t trx_opcode;
+	struct completion trx_comp;
+	void(*trx_cb) (char *buf, int len);
+	uint8_t rx_buf_ctrl;
 };
 
 typedef void (*BT_STATE_CHANGE_CB) (enum bt_state state);
@@ -161,6 +225,8 @@ struct wmt_pkt_param {
 			uint8_t data_len[2];   /* cal data length, little endian */
 			uint8_t ready_addr[4]; /* ready bit address, little endian */
 		} rf_cal_evt;
+
+		uint8_t evt_buf[16];
 	} u;
 };
 
@@ -169,6 +235,13 @@ struct bt_rf_cal_data_backup {
 	uint32_t ready_addr; /* ready bit address on sysram to mark calibration data is ready */
 	uint8_t *p_cache_buf; /* buffer to cache the calibration data */
 	uint16_t cache_len; /* cached data length */
+};
+
+struct bt_ring_buffer_mgmt {
+	uint8_t buf[RING_BUFFER_SIZE];
+	uint32_t write_idx;
+	uint32_t read_idx;
+	spinlock_t lock;
 };
 
 /*
@@ -199,6 +272,18 @@ struct bt_internal_cmd {
 	struct wmt_pkt_param wmt_event_params;
 };
 
+#if (DRIVER_CMD_CHECK == 1)
+struct bt_cmd_node {
+	uint16_t opcode;
+	struct bt_cmd_node *next;
+};
+
+struct bt_cmd_queue {
+	uint8_t size;
+	struct bt_cmd_node *head, *tail;
+	spinlock_t lock;
+};
+#endif
 
 struct btmtk_dev {
 	struct hci_dev		*hdev;
@@ -216,6 +301,8 @@ struct btmtk_dev {
 	enum bt_reset_level	rst_level;
 	u_int8_t		rst_count;
 
+	u_int8_t		do_recal;
+	enum bt_state		bt_precal_state;
 	struct bt_rf_cal_data_backup cal_data;
 
 	 unsigned long		tx_state;
@@ -229,7 +316,11 @@ struct btmtk_dev {
 #endif
 	/* For rx queue */
 	struct sk_buff		*rx_skb;
+#if (USE_DEVICE_NODE == 1)
+	struct bt_ring_buffer_mgmt rx_buffer;
+#endif
 	u_int8_t		rx_ind; /* RX indication from Firmware */
+	u_int8_t		bgf2ap_ind; /* FW log / reset indication */
 
 	/* context for current pending command */
 	struct bt_internal_cmd	internal_cmd;
@@ -239,7 +330,14 @@ struct btmtk_dev {
 	/* event queue */
 	struct sk_buff		*evt_skb;
 	wait_queue_head_t	p_wait_event_q;
-
+#if (DRIVER_CMD_CHECK == 1)
+	/* command response queue */
+	struct bt_cmd_queue 	cmd_queue;
+	uint8_t			cmd_timeout_count;
+	bool			cmd_timeout_check;
+#endif
+	/* driver dump queue*/
+	struct bt_dump_queue	dump_queue;
 	/* cif info */
 	struct platform_device	*pdev;
 
@@ -248,6 +346,19 @@ struct btmtk_dev {
 
 	/* state change callback */
 	BT_STATE_CHANGE_CB	state_change_cb[MAX_STATE_MONITORS];
+
+	/* call back to notify upper layer RX data is available */
+	BT_RX_EVENT_CB		rx_event_cb;
+
+	/* sempaphore to control close */
+	struct semaphore halt_sem;
+	struct semaphore internal_cmd_sem;
+
+	/* blank status */
+	int32_t		blank_state;
+
+	/* btif deep idle ctrl */
+	struct btif_deepidle_ctrl btif_dpidle_ctrl;
 };
 
 #define BTMTK_GET_DEV(bdev) (&bdev->pdev->dev)
@@ -257,17 +368,32 @@ int bt_request_irq(enum bt_irq_type irq_type);
 void bt_enable_irq(enum bt_irq_type irq_type);
 void bt_disable_irq(enum bt_irq_type irq_type);
 void bt_free_irq(enum bt_irq_type irq_type);
+void bt_trigger_reset(void);
+int bt_chip_reset_flow(enum bt_reset_level rst_level,
+			     enum consys_drv_type drv,
+			     char *reason);
+
+
+void bt_bgf2ap_irq_handler(void);
+int32_t bgfsys_check_conninfra_ready(void);
+
 
 /* external functions */
 int32_t btmtk_btif_open(void);
 int32_t btmtk_btif_close(void);
 int32_t btmtk_tx_thread(void * arg);
 int32_t btmtk_cif_dispatch_event(struct hci_dev *hdev, struct sk_buff *skb);
-
-
+void btmtk_cif_dump_fw_no_rsp(unsigned int flag);
+void btmtk_cif_dump_rxd_backtrace(void);
 void btmtk_reset_init(void);
 
-
+static void inline bt_notify_state(struct btmtk_dev *bdev)
+{
+	int32_t i = 0;
+	for(i = 0; i < MAX_STATE_MONITORS; i++)
+		if (bdev->state_change_cb[i])
+			bdev->state_change_cb[i](bdev->bt_state);
+}
 
 static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
 {
@@ -326,5 +452,40 @@ int btmtk_cif_send_calibration(struct hci_dev *hdev);
 
 int btmtk_cif_send_cmd(struct hci_dev *hdev, const uint8_t *cmd,
 		const int32_t cmd_len, int32_t retry, int32_t endpoint, uint64_t tx_state);
+
+
+/**
+ * FW log init/deinit APIs
+ */
+int fw_log_bt_init(struct hci_dev *hdev);
+void fw_log_bt_exit(void);
+
+
+#if (USE_DEVICE_NODE == 1)
+void rx_queue_initialize(void);
+void rx_queue_destroy(void);
+
+uint8_t is_rx_queue_empty(void);
+int32_t rx_skb_enqueue(struct sk_buff *skb);
+void rx_dequeue(uint8_t *buffer, uint32_t size, uint32_t *plen);
+void rx_queue_flush(void);
+#endif
+
+#if (DRIVER_CMD_CHECK == 1)
+void cmd_list_initialize(void);
+bool cmd_list_check(uint16_t opcode);
+bool cmd_list_remove(uint16_t opcode);
+bool cmd_list_append (uint16_t opcode);
+void cmd_list_destory(void);
+bool cmd_list_isempty(void);
+
+bool cmd_workqueue_init(void);
+void cmd_workqueue_exit(void);
+void update_command_response_workqueue(void);
+#endif
+
+void dump_queue_initialize(void);
+void add_dump_packet(const uint8_t *buffer, const uint32_t length, enum bt_direction_type type);
+void show_all_dump_packet(void);
 
 #endif

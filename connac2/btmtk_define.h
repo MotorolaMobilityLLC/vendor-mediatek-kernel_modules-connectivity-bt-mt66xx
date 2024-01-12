@@ -70,9 +70,33 @@
 	#define UNUSED(x) (void)(x)
 #endif
 
+#ifndef ALIGN_4
+#define ALIGN_4(_value)             (((_value) + 3) & ~3u)
+#endif /* ALIGN_4 */
+
+#ifndef ALIGN_8
+#define ALIGN_8(_value)             (((_value) + 7) & ~7u)
+#endif /* ALIGN_4 */
+
+/* This macro check the DW alignment of the input value.
+ * _value - value of address need to check
+ */
+#ifndef IS_ALIGN_4
+#define IS_ALIGN_4(_value)          (((_value) & 0x3) ? FALSE : TRUE)
+#endif /* IS_ALIGN_4 */
+
+#ifndef IS_NOT_ALIGN_4
+#define IS_NOT_ALIGN_4(_value)      (((_value) & 0x3) ? TRUE : FALSE)
+#endif /* IS_NOT_ALIGN_4 */
+
 #define MIN(a, b) (((a) < (b)) ? (a) : (b))
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+#undef container_of
+#define container_of(ptr, type, member) ({			\
+	const typeof(((type *)0)->member) *__mptr = (ptr);	\
+	(type *)((char *)__mptr - offsetof(type, member));	\
+})
 
 
 /**
@@ -83,10 +107,10 @@
 #define BTMTK_LOG_LVL_INFO	3
 #define BTMTK_LOG_LVL_DBG	4
 #define BTMTK_LOG_LVL_MAX	BTMTK_LOG_LVL_DBG
-//#define BTMTK_LOG_LVL_DEF	BTMTK_LOG_LVL_INFO	/* default setting */
-#define BTMTK_LOG_LVL_DEF	BTMTK_LOG_LVL_MAX	/* default setting */
+#define BTMTK_LOG_LVL_DEF	BTMTK_LOG_LVL_INFO	/* default setting */
+#define RAW_MAX_BYTES		30
 
-
+static uint8_t raw_buf[RAW_MAX_BYTES * 5 + 10];
 extern uint8_t btmtk_log_lvl;
 
 #define BTMTK_ERR(fmt, ...)	 \
@@ -99,29 +123,39 @@ extern uint8_t btmtk_log_lvl;
 	do { if (btmtk_log_lvl >= BTMTK_LOG_LVL_DBG) pr_info("[btmtk_dbg] "fmt"\n", ##__VA_ARGS__); } while (0)
 
 #define BTMTK_INFO_RAW(p, l, fmt, ...)						\
-	do {									\
-		if (btmtk_log_lvl >= BTMTK_LOG_LVL_INFO) {			\
-			int raw_count = 0;					\
-			const unsigned char *ptr = p;				\
-			pr_cont("[btmtk_info] "fmt, ##__VA_ARGS__);		\
-			for (raw_count = 0; raw_count < l; ++raw_count) {	\
-				pr_cont(" 0x%02X", ptr[raw_count]);		\
-			}							\
-			pr_cont("\n");						\
-		}								\
+	do {	\
+		if (btmtk_log_lvl >= BTMTK_LOG_LVL_INFO) {	\
+			int cnt_ = 0;	\
+			int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
+			const unsigned char *ptr = p;	\
+			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
+				snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]);	\
+			}	\
+			raw_buf[5*cnt_] = '\0';	\
+			if (l <= RAW_MAX_BYTES) {	\
+				pr_cont("[btmtk_info] "fmt"%s\n", ##__VA_ARGS__, raw_buf);	\
+			} else {	\
+				pr_cont("[btmtk_info] "fmt"%s (prtail)\n", ##__VA_ARGS__, raw_buf);	\
+			}	\
+		}	\
 	} while (0)
 
 #define BTMTK_DBG_RAW(p, l, fmt, ...)						\
-	do {									\
-		if (btmtk_log_lvl >= BTMTK_LOG_LVL_DBG) {			\
-			int raw_count = 0;					\
-			const unsigned char *ptr = p;				\
-			pr_cont("[btmtk_debug] "fmt, ##__VA_ARGS__);		\
-			for (raw_count = 0; raw_count < l; ++raw_count) {	\
-				pr_cont(" %02X", ptr[raw_count]);		\
-			}							\
-			pr_cont("\n");						\
-		}								\
+	do {	\
+		if (btmtk_log_lvl >= BTMTK_LOG_LVL_DBG) {	\
+			int cnt_ = 0;	\
+			int len_ = (l <= RAW_MAX_BYTES ? l : RAW_MAX_BYTES);	\
+			const unsigned char *ptr = p;	\
+			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
+				snprintf(raw_buf+5*cnt_, 6, "0x%02X ", ptr[cnt_]);	\
+			}	\
+			raw_buf[5*cnt_] = '\0';	\
+			if (l <= RAW_MAX_BYTES) {	\
+				pr_cont("[btmtk_debug] "fmt"%s\n", ##__VA_ARGS__, raw_buf);	\
+			} else {	\
+				pr_cont("[btmtk_debug] "fmt"%s (prtail)\n", ##__VA_ARGS__, raw_buf); \
+			}	\
+		}	\
 	} while (0)
 
 #define FN_ENTER(fmt, ...) \

@@ -27,14 +27,34 @@ int btmtk_dispatch_acl(struct hci_dev *hdev, struct sk_buff *skb);
 int btmtk_send_init_cmds(struct hci_dev *hdev);
 int btmtk_send_deinit_cmds(struct hci_dev *hdev);
 int btmtk_main_send_cmd(struct hci_dev *hdev, const uint8_t *cmd, const int cmd_len, const int tx_state);
-int btmtk_send_wmt_reset(struct hci_dev *hdev);
-int btmtk_send_wmt_power_on_cmd(struct hci_dev *hdev);
-int btmtk_send_wmt_power_off_cmd(struct hci_dev *hdev);
-void btmtk_load_code_from_bin(u8 **image, char *bin_name,
-					 struct device *dev, u32 *code_len);
-int32_t btmtk_set_sleep(struct hci_dev*);
-int32_t btmtk_set_power_on(struct hci_dev*);
-int32_t btmtk_set_power_off(struct hci_dev*);
+uint8_t *_internal_evt_result(u_int8_t wmt_evt_result);
+int btmtk_load_code_from_bin(u8 **image, char *bin_name,
+					 struct device *dev, u32 *code_len, u8 retry);
+int btmtk_calibration_flow(struct hci_dev *hdev);
+
+
+/**
+  * HW Common commands
+  */
+int32_t btmtk_set_sleep(struct hci_dev*, u_int8_t need_wait);
+int32_t btmtk_set_power_on(struct hci_dev*, u_int8_t for_precal);
+int32_t btmtk_set_power_off(struct hci_dev*, u_int8_t for_precal);
+int32_t btmtk_send_wmt_reset(struct hci_dev *hdev);
+int32_t btmtk_send_wmt_power_on_cmd(struct hci_dev *hdev);
+int32_t btmtk_send_wmt_power_off_cmd(struct hci_dev *hdev);
+int32_t btmtk_send_calibration_cmd(struct hci_dev *hdev);
+int32_t btmtk_send_blank_status_cmd(struct hci_dev *hdev, int32_t blank);
+
+
+#if (USE_DEVICE_NODE == 1)
+uint8_t btmtk_rx_data_valid(void);
+int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count);
+int32_t btmtk_receive_data(struct hci_dev * hdev,uint8_t * buf,uint32_t count);
+void btmtk_rx_flush(void);
+void btmtk_register_rx_event_cb(struct btmtk_dev *bdev, BT_RX_EVENT_CB cb);
+int main_driver_init(void);
+void main_driver_exit(void);
+#endif
 
 //static inline struct sk_buff *mtk_add_stp(struct btmtk_dev *bdev, struct sk_buff *skb);
 
