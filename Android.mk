@@ -1,5 +1,7 @@
 LOCAL_PATH := $(call my-dir)
 
+ifeq ($(MTK_BT_SUPPORT),yes)
+
 include $(CLEAR_VARS)
 LOCAL_MODULE := bt_drv.ko
 LOCAL_PROPRIETARY_MODULE := true
@@ -9,3 +11,4 @@ LOCAL_REQUIRED_MODULES := wmt_drv.ko
 
 include $(MTK_KERNEL_MODULE)
 
+endif
