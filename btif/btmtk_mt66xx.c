@@ -760,7 +760,11 @@ static int32_t _send_wmt_power_cmd(struct hci_dev *hdev, u_int8_t is_on)
 	p_inter_cmd->wmt_opcode = WMT_OPCODE_FUNC_CTRL;
 	p_inter_cmd->result = WMT_EVT_INVALID;
 
-	btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+	ret = btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
+	if (ret <= 0 && is_on) {
+		BTMTK_ERR("%s: Unable to get event in time, start dump and reset!", __func__);
+		bt_trigger_reset();
+	}
 
 	ret = (p_inter_cmd->result == WMT_EVT_SUCCESS) ? 0 : -EIO;
 	cif_dev->event_intercept = FALSE;
