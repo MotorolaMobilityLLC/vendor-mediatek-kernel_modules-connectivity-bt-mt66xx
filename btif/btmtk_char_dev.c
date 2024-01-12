@@ -586,6 +586,7 @@ void BT_exit(void) {
 
 
 #ifdef MTK_WCN_REMOVE_KERNEL_MODULE
+/* build-in mode */
 int mtk_wcn_stpbt_drv_init(void)
 {
 	return main_driver_init();
