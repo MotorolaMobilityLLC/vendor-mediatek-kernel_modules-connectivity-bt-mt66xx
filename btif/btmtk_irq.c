@@ -8,6 +8,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_address.h>
 #include <linux/of.h>
+#include <linux/sched/clock.h>
 
 #include "btmtk_chip_if.h"
 #include "conninfra.h"

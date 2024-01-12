@@ -553,8 +553,11 @@ int BT_init(void)
 	cdv_err = cdev_add(&BT_cdev, dev, BT_devs);
 	if (cdv_err)
 		goto cdv_error;
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0))
+	BT_class = class_create(BT_DRIVER_NODE_NAME);
+#else
 	BT_class = class_create(THIS_MODULE, BT_DRIVER_NODE_NAME);
+#endif
 	if (IS_ERR(BT_class))
 		goto create_node_error;
 	BT_dev = device_create(BT_class, NULL, dev, NULL, BT_DRIVER_NODE_NAME);

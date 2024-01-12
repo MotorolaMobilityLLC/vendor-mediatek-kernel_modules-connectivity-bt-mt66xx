@@ -917,7 +917,11 @@ static int BT_init(void)
 		goto error;
 
 #if CREATE_NODE_DYNAMIC /* mknod replace */
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0))
+        stpbt_class = class_create("stpbt");
+#else
 	stpbt_class = class_create(THIS_MODULE, "stpbt");
+#endif
 	if (IS_ERR(stpbt_class))
 		goto error;
 	stpbt_dev = device_create(stpbt_class, NULL, dev, NULL, "stpbt");
