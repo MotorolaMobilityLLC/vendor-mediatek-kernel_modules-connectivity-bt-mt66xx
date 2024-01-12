@@ -790,6 +790,7 @@ static inline int32_t bgfsys_get_sw_irq_status(void)
 	return value;
 }
 
+/*
 static inline void bgfsys_ack_sw_irq_fwlog(void)
 {
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
@@ -799,6 +800,7 @@ static inline void bgfsys_ack_sw_irq_reset(void)
 {
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
 }
+*/
 
 /* bgfsys_power_on_dump_cr
  *
@@ -1186,10 +1188,6 @@ static inline int32_t bgfsys_power_off(void)
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		return ret;
-
-	/* ack sw irq and check conninfra ready and force on conninfra*/
-	g_sw_irq_status = bgfsys_get_sw_irq_status();
-	BTMTK_INFO("BGF_SW_IRQ_STATUS = 0x%08x", g_sw_irq_status);
 
 	bgfsys_dump_uart_pta_pready_status();
 
