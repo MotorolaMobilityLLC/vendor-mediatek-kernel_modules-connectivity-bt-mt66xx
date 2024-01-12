@@ -1244,14 +1244,15 @@ static u_int8_t bt_tx_wait_for_msg(struct btmtk_dev *bdev)
 	if (bdev->bt_state == RESET_START)
 		return kthread_should_stop();
 	else {
-		BTMTK_DBG("skb [%d], rx_ind [%d], bgf2ap_ind [%d], sleep_flag [%d], wakeup_flag [%d]",
+		BTMTK_DBG("skb [%d], rx_ind [%d], bgf2ap_ind [%d], sleep_flag [%d], wakeup_flag [%d], force_on [%d]",
 				skb_queue_empty(&bdev->tx_queue), bdev->rx_ind,
 				bdev->bgf2ap_ind, bdev->psm.sleep_flag,
-				bdev->psm.wakeup_flag);
+				bdev->psm.wakeup_flag,
+				bdev->psm.force_on);
 		return (!skb_queue_empty(&bdev->tx_queue)
 			|| bdev->rx_ind
 			|| bdev->bgf2ap_ind
-			|| bdev->psm.sleep_flag
+			|| (!bdev->psm.force_on && bdev->psm.sleep_flag) // only check sleep_flag if force_on is FALSE
 			|| bdev->psm.wakeup_flag
 			|| kthread_should_stop());
 	}

@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
+#include <linux/kthread.h>
 #include <linux/io.h>
 #include <linux/uaccess.h>
 #include <linux/proc_fs.h>
@@ -63,6 +64,7 @@ static int bt_dbg_setlog_level(int par1, int par2, int par3);
 static int bt_dbg_set_rt_thread(int par1, int par2, int par3);
 static int bt_dbg_get_bt_state(int par1, int par2, int par3);
 static int bt_dbg_rx_buf_control(int par1, int par2, int par3);
+static int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3);
 static void bt_dbg_user_trx_proc(char *cmd_raw);
 static void bt_dbg_user_trx_cb(char *buf, int len);
 
@@ -106,6 +108,7 @@ static const tBT_DEV_DBG_STRUCT bt_dev_dbg_struct[] = {
 	[0xd] = {bt_dbg_set_rt_thread,		TRUE},
 	[0xe] = {bt_dbg_get_bt_state,		TRUE},
 	[0xf] = {bt_dbg_rx_buf_control,		TRUE},
+	[0x10] = {bt_dbg_set_rt_thread_runtime,		FALSE},
 };
 
 /*******************************************************************************
@@ -245,6 +248,28 @@ int bt_dbg_setlog_level(int par1, int par2, int par3)
 int bt_dbg_set_rt_thread(int par1, int par2, int par3)
 {
 	g_bt_dbg_st.rt_thd_enable = par2;
+	return 0;
+}
+
+int bt_dbg_set_rt_thread_runtime(int par1, int par2, int par3)
+{
+	struct sched_param params;
+	int policy = 0;
+	int ret = 0;
+
+	/* reference parameter:
+		- normal: 0x10 0x01(SCHED_FIFO) 0x01
+		- normal: 0x10 0x01(SCHED_FIFO) 0x50(MAX_RT_PRIO - 20)
+	*/
+	if (par2 > SCHED_DEADLINE || par3 > MAX_RT_PRIO) {
+		BTMTK_INFO("%s: parameter not allow!", __func__);
+		return 0;
+	}
+	policy = par2;
+	params.sched_priority = par3;
+	ret = sched_setscheduler(g_bdev->tx_thread, policy, &params);
+	BTMTK_INFO("%s: ret[%d], policy[%d], sched_priority[%d]", __func__, ret, policy, params.sched_priority);
+
 	return 0;
 }
 
@@ -542,7 +567,7 @@ int bt_dev_dbg_init(void)
 	g_bt_dbg_st.rt_thd_enable = FALSE;
 	g_bt_dbg_st.trx_enable = FALSE;
 	g_bt_dbg_st.trx_cb = bt_dbg_user_trx_cb;
-	g_bt_dbg_st.rx_buf_ctrl = 0;
+	g_bt_dbg_st.rx_buf_ctrl = TRUE;
 	init_completion(&g_bt_dbg_st.trx_comp);
 
 	g_bt_dbg_entry = proc_create(BT_DBG_PROCNAME, 0664, NULL, &bt_dbg_fops);
