@@ -95,12 +95,17 @@ static INT32 ftrace_print(const PINT8 str, ...)
 {
 #ifdef CONFIG_TRACING
 	va_list args;
+	int ret = 0;
 	INT8 temp_string[FTRACE_STR_LOG_SIZE];
 
 	if (bt_ftrace_flag) {
 		va_start(args, str);
-		vsnprintf(temp_string, FTRACE_STR_LOG_SIZE, str, args);
+		ret = vsnprintf(temp_string, FTRACE_STR_LOG_SIZE, str, args);
 		va_end(args);
+		if (ret < 0) {
+			BT_LOG_PRT_ERR("error return value in vsnprintf ret = [%d]\n", ret);
+			return 0;
+		}
 		trace_printk("%s\n", temp_string);
 	}
 #endif

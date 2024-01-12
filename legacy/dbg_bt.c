@@ -127,9 +127,10 @@ int _osal_strtol(const char *str, unsigned int adecimal, long *res)
 void bt_dbg_user_trx_cb(char *buf, int len)
 {
 	unsigned char *ptr = g_bt_dbg_st.rx_buf;
-	int i = 0, evt_len = 0;
+	unsigned int i = 0, evt_len = 0;
+	int ret = 0;
 
-	/* 1. bluedroid use partial read, this callback will enter several times 
+	/* 1. bluedroid use partial read, this callback will enter several times
 	   2. this function read and parse the command_complete event */
 	memcpy(&g_bt_dbg_st.rx_buf[g_bt_dbg_st.rx_len], buf, len);
 	g_bt_dbg_st.rx_len += len;
@@ -147,13 +148,19 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 
 	// desire rx event is received, write to read buffer as string
 	evt_len = g_bt_dbg_st.rx_len;
-	BT_LOG_PRT_INFO_RAW(g_bt_dbg_st.rx_buf, evt_len, "%s: len[%d], RxEvt: ", __func__, evt_len);
+	BT_LOG_PRT_INFO_RAW(g_bt_dbg_st.rx_buf, evt_len, "%s: len[%ud], RxEvt: ", __func__, evt_len);
 	if(evt_len * 5 > BT_DBG_DUMP_BUF_SIZE)
 		return;
 
 	_bt_dbg_reset_dump_buf();
-	for (i = 0; i < evt_len; i++)
-		snprintf(g_bt_dump_buf + 5*i, 6, "0x%02X ", ptr[i]);
+	for (i = 0; i < evt_len; i++) {
+		ret = snprintf(g_bt_dump_buf + 5*i, 6, "0x%02X ", ptr[i]);
+		if (ret < 0)  {
+			BT_LOG_PRT_ERR("error snprintf return value = [%d]\n", ret);
+			return;
+		}
+	}
+
 	g_bt_dump_buf[5*evt_len] = '\n';
 	g_bt_dump_buf[5*evt_len + 1] = '\0';
 	g_bt_dump_buf_len = 5*evt_len + 1;
@@ -165,7 +172,7 @@ void bt_dbg_user_trx_cb(char *buf, int len)
 void bt_dbg_user_trx_proc(char *cmd_raw)
 {
 	unsigned char hci_cmd[64];
-	int len = 0;
+	unsigned int len = 0;
 	long tmp = 0;
 	char *ptr = NULL, *pRaw = NULL;
 
@@ -185,7 +192,7 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 	g_bt_dbg_st.rx_len = 0;
 	g_bt_dbg_st.trx_opcode = hci_cmd[1] + (hci_cmd[2] << 8);
 	memset(g_bt_dbg_st.rx_buf, 0, sizeof(g_bt_dbg_st.rx_buf));
-	BT_LOG_PRT_INFO_RAW(hci_cmd, len, "%s: len[%d], TxCmd: ", __func__, len);
+	BT_LOG_PRT_INFO_RAW(hci_cmd, len, "%s: len[%ud], TxCmd: ", __func__, len);
 
 	// Send command and wait for command_complete event
 	g_bt_dbg_st.trx_enable = TRUE;
