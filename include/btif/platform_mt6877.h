@@ -1,4 +1,4 @@
-/* SPDX-License-Identifier: GPL-2.0 */  
+/* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2019 MediaTek Inc.
  */
@@ -171,26 +171,11 @@
 *
 **********************************************************************
 */
-#define _BIN_NAME_POSTFIX 			".bin"
-#define _BIN_NAME_UPDATE_POSTFIX 	"-u.bin"
-
-#define _BIN_NAME_MCU			"soc5_0_ram_mcu_1_1_hdr"
-#define _BIN_NAME_BT			"soc5_0_ram_bt_1_1_hdr"
-/* SISO Project define */
-#define _BIN_NAME_MCU_SISO		"soc5_0_ram_mcu_1_1c_hdr"
-#define _BIN_NAME_BT_SISO		"soc5_0_ram_bt_1_1c_hdr"
+#define BIN_NAME_MCU			"soc5_0_ram_mcu_1"
+#define BIN_NAME_BT			"soc5_0_ram_bt_1"
 #define CONN_INFRA_CFG_ID		(0x02060002)
 
-#define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
-#define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
-#define BIN_NAME_MCU_U 	(_BIN_NAME_MCU _BIN_NAME_UPDATE_POSTFIX)
-#define BIN_NAME_BT_U 	(_BIN_NAME_BT _BIN_NAME_UPDATE_POSTFIX)
-/* SISO Project define */
-#define BIN_NAME_MCU_SISO 	(_BIN_NAME_MCU_SISO _BIN_NAME_POSTFIX)
-#define BIN_NAME_BT_SISO 	(_BIN_NAME_BT_SISO _BIN_NAME_POSTFIX)
-#define BIN_NAME_MCU_SISO_U 	(_BIN_NAME_MCU_SISO _BIN_NAME_UPDATE_POSTFIX)
-#define BIN_NAME_BT_SISO_U 	(_BIN_NAME_BT_SISO _BIN_NAME_UPDATE_POSTFIX)
-
+#define FLAVOR_NONE	'0'
 #define MET_EMI_ADDR	(0x2BC00)
 
 /*********************************************************************
@@ -1303,7 +1288,7 @@ static inline int32_t bgfsys_power_off(void)
 
 		if (retry == 0)
 			ret = -1;
-		iounmap(remap_addr);		
+		iounmap(remap_addr);
 	} else {
 		BTMTK_ERR("ioremap [0x%08x] fail", addr);
 		ret = -1;
@@ -1316,7 +1301,7 @@ static inline int32_t bgfsys_power_off(void)
 	/* reset semaphore, 20210308 update */
 	for (addr = 0x18071200; addr <= 0x18071260; addr += 4)
 		bt_write_cr(addr, 0x1, FALSE);
- 
+
 	/* clear bt_emi_req */
 	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
 	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
@@ -1344,44 +1329,46 @@ static inline int32_t bgfsys_power_off(void)
 	return ret;
 }
 
-static inline int fwp_is_siso_project(void)
+static inline int fwp_has_flavor_bin(uint8_t *flavor)
 {
 	#define TARGET_KEY "flavor_bin"
- 	int ret = FALSE;
+	int ret = FALSE;
 	const char *str;
 	struct device_node *node = NULL;
-
 	node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
 	if (node) {
 		if (of_property_read_string(node, TARGET_KEY, &str)) {
 			BTMTK_INFO("%s: get %s: fail", __func__, TARGET_KEY);
 		} else {
-			BTMTK_INFO("%s: get %s: %s", __func__, TARGET_KEY, str);
+			*flavor = *str;
+			BTMTK_INFO("%s: get %s: %c", __func__, TARGET_KEY, *flavor);
 			ret = TRUE;
 		}
 	} else
 		BTMTK_INFO("%s: get dts[mediatek,bt] fail!", __func__);
-
 	return ret;
 }
 
 static inline void fwp_get_patch_names(void)
 {
-	if (fwp_is_siso_project()) {
-		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU_SISO);
-		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT_SISO);
+	uint8_t flavor = FLAVOR_NONE;
+	int32_t has_flavor = fwp_has_flavor_bin(&flavor);
+
+	if (has_flavor) {
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s%c_1_hdr.bin", BIN_NAME_MCU, flavor);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s%c_1_hdr.bin", BIN_NAME_BT, flavor);
 	} else  {
-		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU);
-		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT);
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s_1_hdr.bin", BIN_NAME_MCU);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s_1_hdr.bin", BIN_NAME_BT);
 	}
 
 #if (CUSTOMER_FW_UPDATE == 1)
-	if (fwp_is_siso_project()) {
-		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s", BIN_NAME_MCU_SISO_U);
-		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s", BIN_NAME_BT_SISO_U);
+	if (has_flavor) {
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s%c_1_hdr-u.bin", BIN_NAME_MCU, flavor);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s%c_1_hdr-u.bin", BIN_NAME_BT, flavor);
 	} else  {
-		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s", BIN_NAME_MCU_U);
-		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s", BIN_NAME_BT_U);
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s_1_hdr.bin", BIN_NAME_MCU);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s_1_hdr.bin", BIN_NAME_BT);
 	}
 #endif
 }
