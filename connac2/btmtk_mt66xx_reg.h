@@ -723,6 +723,9 @@ static inline void bt_dump_cif_own_cr(void)
 		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x41C);
 		BTMTK_INFO("0x1800141C = [0x%08x]", value);
 
+		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x420);
+		BTMTK_INFO("0x18001420 = [0x%08x]", value);
+
 		value = 0x87654321;
 		REG_WRITEL(CON_REG_INFRA_CFG_ADDR + 0x10, value);
 		value = REG_READL(CON_REG_INFRA_CFG_ADDR + 0x10);
@@ -765,6 +768,9 @@ static inline void bt_dump_cif_own_cr(void)
 host_csr_only:
 	value = REG_READL(BGF_LPCTL);
 	BTMTK_INFO("0x18060030 = [0x%08x]", value);
+
+	value = REG_READL(BGF_IRQ_STAT2);
+	BTMTK_INFO("0x1806003C = [0x%08x]", value);
 
 	value = 0x12345678;
 	REG_WRITEL(CON_REG_SPM_BASE_ADDR + 0x188, value);

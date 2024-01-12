@@ -183,7 +183,8 @@ struct bt_dump_queue {
 #define BT_BTIF_DUMP_OWN_CR		0x01
 #define BT_BTIF_DUMP_REG		0x02
 #define BT_BTIF_DUMP_LOG		0x04
-#define BT_BTIF_DUMP_ALL		0x07
+#define BT_BTIF_DUMP_DMA		0x08
+#define BT_BTIF_DUMP_ALL		0x0F
 
 struct sched_param {
 	int sched_priority;

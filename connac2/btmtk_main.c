@@ -719,8 +719,6 @@ static int bt_setup(struct hci_dev *hdev)
 	/* Set bt to sleep mode */
 	btmtk_set_sleep(hdev, TRUE);
 
-	/* Set current blank state */
-	btmtk_send_blank_status_cmd(hdev, bdev->blank_state);
 	return 0;
 }
 

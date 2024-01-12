@@ -47,7 +47,6 @@
 
 #define LPCR_POLLING_RTY_LMT		4096 /* 16*n */
 #define LPCR_MASS_DUMP_LMT		4000
-
 #define BTIF_IDLE_WAIT_TIME		32 /* ms */
 
 #define MAX_RESET_COUNT			(3)
@@ -241,6 +240,10 @@ void btmtk_cif_dump_fw_no_rsp(unsigned int flag)
 
 		if (flag & BT_BTIF_DUMP_LOG)
 			mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_LOG);
+
+		if (flag & BT_BTIF_DUMP_DMA)
+			mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_DMA_VFIFO);
+
 	}
 }
 
@@ -296,15 +299,15 @@ static int32_t btmtk_cif_fw_own_clr(void)
 		 * wait maximum total 7ms to query status
 		 */
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
-			REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
-			if (retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) {
-				BTMTK_WARN("FW own clear failed in %d us, write again, rety = %d", 500 << 4, retry);
-				if ((retry & 0x1F) == 0) /* retry % 32 == 0 */
-					bt_dump_cif_own_cr();
-			} else if (retry == 2048) {
-				BTMTK_WARN("FW own clear failed at 1s");
+			if ((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32) &&
+				((retry & 0x1F) == 0)) {
+				BTMTK_WARN("FW own clear failed in %d us, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
-			}
+				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
+				BTMTK_WARN("FW own clear dump after write:");
+				bt_dump_cif_own_cr();
+			} else
+				REG_WRITEL(BGF_LPCTL, BGF_HOST_CLR_FW_OWN_B);
 		}
 
 		lpctl_cr = REG_READL(BGF_LPCTL);
@@ -348,15 +351,15 @@ static int32_t btmtk_cif_fw_own_set(void)
 
 	do {
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
-			REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
-			if (retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) {
-				BTMTK_WARN("FW own set failed in %d us, write again, rety = %d", 500 << 4, retry);
-				if ((retry & 0x1F) == 0) /* retry % 32 == 0 */
-					bt_dump_cif_own_cr();
-			} else if (retry == 2048) {
-				BTMTK_WARN("FW own set failed at 1s");
+			if ((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32) &&
+				((retry & 0x1F) == 0)) {
+				BTMTK_WARN("FW own set failed in %d us, retry[%d]", (LPCR_POLLING_RTY_LMT - retry) / 2, retry);
 				bt_dump_cif_own_cr();
-			}
+				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
+				BTMTK_WARN("FW own set dump after write:");
+				bt_dump_cif_own_cr();
+			} else
+				REG_WRITEL(BGF_LPCTL, BGF_HOST_SET_FW_OWN_B);
 		}
 
 		/*
@@ -400,6 +403,10 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	uint8_t retry = 15;
 	int32_t dump_property = 0; /* default = 0 */
 	int32_t ret = 0;
+
+	/* dump debug message */
+	show_all_dump_packet();
+	btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_ALL);
 
 	g_bdev->rst_count++;
 	while (g_bdev->rst_level != RESET_LEVEL_NONE && retry > 0) {
@@ -1346,11 +1353,10 @@ int32_t btmtk_tx_thread(void * arg)
 				 * resetting b/w subsys reset & whole chip reset
 				 */
 				if (bdev->bt_state == FUNC_ON) {
-					BTMTK_ERR("FATAL: bgfsys_fw_own_clr error!! going to reset");
+					BTMTK_ERR("(PSM_ST_SLEEP) FATAL: btmtk_cif_fw_own_clr error!! going to reset");
 					bt_trigger_reset();
 				} else
-					BTMTK_WARN("bt_state [%d] is not FUNC_ON, skip reset", bdev->bt_state);
-
+					BTMTK_WARN("(PSM_ST_SLEEP) bt_state [%d] is not FUNC_ON, skip reset", bdev->bt_state);
 				break;
 			} else {
 				/* BGFSYS is awake and ready for data transmission */
@@ -1389,7 +1395,6 @@ int32_t btmtk_tx_thread(void * arg)
 				    skb->data[2] == 0xFD && skb->data[3] == 0x00) {
 					kfree_skb(skb);
 					skb_queue_purge(&bdev->tx_queue);
-					btmtk_cif_dump_fw_no_rsp(BT_BTIF_DUMP_ALL);
 					bt_trigger_reset();
 					break;
 				}
@@ -1441,7 +1446,11 @@ int32_t btmtk_tx_thread(void * arg)
 				BTMTK_DBG("%s: btif_pending_data[%d]", __func__, btif_pending_data);
 
 				if (sleep_ret) {
-					BTMTK_ERR("FATAL: bgfsys_fw_own_set error!! remain on NORMAL_TR state");
+					if (bdev->bt_state == FUNC_ON) {
+						BTMTK_ERR("(PSM_ST_NORMAL_TR) FATAL: btmtk_cif_fw_own_set error!! going to reset");
+						bt_trigger_reset();
+					} else
+						BTMTK_WARN("(PSM_ST_NORMAL_TR) bt_state [%d] is not FUNC_ON, skip reset", bdev->bt_state);
 					break;
 				} else {
 					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
