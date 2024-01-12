@@ -174,6 +174,7 @@ int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v
 				new_state = WMT_PARA_SCREEN_OFF;
 				break;
 			default:
+				BTMTK_INFO("%s: end", __func__);
 				goto end;
 		}
 
@@ -185,6 +186,7 @@ int btmtk_disp_notify_cb(struct notifier_block *nb, unsigned long value, void *v
 			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, cif_dev->blank_state, new_state);
 			cif_dev->blank_state = new_state;
 		}
+        	BTMTK_INFO("%s: end", __func__);
 	}
 end:
 	BTMTK_DBG("%s: end", __func__);
@@ -608,7 +610,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 
 		dump_msg_addr = ioremap(emi_ap_phy_base + 0x3B000, 0x100);
 		if (dump_msg_addr) {
-			memcpy(msg, dump_msg_addr, 0xFF);
+			memcpy_fromio(msg, dump_msg_addr, 0xFF);
 			iounmap(dump_msg_addr);
 			msg[0xFF] = 0;
 			BTMTK_INFO("FW Coredump Msg: [%s]", msg);
