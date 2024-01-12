@@ -189,7 +189,6 @@ static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
 #define CONN_INFRA_CFG_START			CON_REG_INFRA_CFG_ADDR
 
 #define CONN_INFRA_CFG_VERSION			(CONN_INFRA_CFG_START)
-#define CONN_INFRA_CFG_ID			(0x20010000)
 
 #define CONN_INFRA_CONN2BT_GALS_SLP_CTL		(CONN_INFRA_CFG_START + 0x0610)
 #define CONN2BT_SLP_PROT_TX_EN_B		BIT(0)
@@ -277,6 +276,19 @@ static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
 	 reason != CONNINFRA_AP2CONN_RX_SLP_PROT_ERR && \
 	 reason != CONNINFRA_AP2CONN_TX_SLP_PROT_ERR && \
 	 reason != CONNINFRA_AP2CONN_CLK_ERR)
+
+/*********************************************************************
+*
+* CR/Constant value for specific project
+*
+**********************************************************************
+*/
+
+#if (CONNAC20_CHIPID == 6885)
+	#define CONN_INFRA_CFG_ID		(0x20010000)
+#elif (CONNAC20_CHIPID == 6893)
+	#define CONN_INFRA_CFG_ID		(0x20010101)
+#endif
 
 /* bt_dump_cpucpr
  *
