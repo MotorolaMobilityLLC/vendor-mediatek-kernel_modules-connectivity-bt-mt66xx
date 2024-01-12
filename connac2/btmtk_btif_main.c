@@ -805,14 +805,14 @@ int32_t btmtk_btif_close()
 	}
 
 #if SUPPORT_BT_THREAD
-	down(&g_bdev->btif_dpidle_ctrl.sem);
 	if(&g_bdev->btif_dpidle_ctrl.task != NULL) {
 		cancel_delayed_work(&g_bdev->btif_dpidle_ctrl.work);
 		flush_workqueue(g_bdev->btif_dpidle_ctrl.task);
+		down(&g_bdev->btif_dpidle_ctrl.sem);
 		destroy_workqueue(g_bdev->btif_dpidle_ctrl.task);
+		up(&g_bdev->btif_dpidle_ctrl.sem);
 		g_bdev->btif_dpidle_ctrl.task = NULL;
 	}
-	up(&g_bdev->btif_dpidle_ctrl.sem);
 #endif
 
 	ret = mtk_wcn_btif_close(g_btif_id);
