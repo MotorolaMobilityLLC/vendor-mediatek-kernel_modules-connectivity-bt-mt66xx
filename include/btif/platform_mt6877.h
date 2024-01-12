@@ -939,6 +939,13 @@ static void bgfsys_dump_conn_wt_slp_ctrl_reg(void)
 {
 	uint8_t *base = NULL;
 	uint32_t i = 0;
+	int32_t ret = 0;
+
+	if (!conninfra_reg_readable()) {
+		ret = conninfra_is_bus_hang();
+		BTMTK_ERR("%s: conninfra bus is not readable, conninfra_is_bus_hang = %d", __func__, ret);
+		return;
+	}
 
 	base = ioremap(0x18005100, 0x100);
 	if (base) {
