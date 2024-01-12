@@ -160,8 +160,10 @@ static int bt_fb_notifier_callback(struct notifier_block
 	switch (blank) {
 	case FB_BLANK_UNBLANK:
 	case FB_BLANK_POWERDOWN:
-		BT_LOG_PRT_INFO("blank state [%ld]", blank);
-		bt_read_cr("HOST_MAILBOX_BT_ADDR", 0x18007124);
+		if(btonflag) {
+			BT_LOG_PRT_INFO("blank state [%ld]", blank);
+			bt_read_cr("HOST_MAILBOX_BT_ADDR", 0x18007124);
+		}
 		break;
 	default:
 		break;
