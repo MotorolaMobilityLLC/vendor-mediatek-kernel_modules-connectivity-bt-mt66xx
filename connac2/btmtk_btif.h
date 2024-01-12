@@ -18,6 +18,7 @@
 #include <linux/interrupt.h>
 #include <linux/irqreturn.h>
 #include <linux/workqueue.h>
+#include <linux/pm_qos.h>
 
 #include "conninfra.h"
 #include "btmtk_define.h"
@@ -136,6 +137,9 @@ enum bt_reset_level {
 struct bt_wake_lock {
 	struct wakeup_source *ws;
 	uint8_t name[WAKE_LOCK_NAME_SIZE];
+#if (PM_QOS_CONTROL == 1)
+	struct pm_qos_request qos_req;
+#endif
 };
 
 enum bt_psm_state {
@@ -402,31 +406,51 @@ static inline void bt_wake_lock_init(struct bt_wake_lock *plock)
 		plock->ws = wakeup_source_register(NULL, plock->name);
 		if (!plock->ws)
 			BTMTK_ERR("ERROR NO MEM\n");
+		else
+#if (PM_QOS_CONTROL == 1)
+			pm_qos_add_request(&plock->qos_req, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
+#endif
 	}
 }
 
 static inline void bt_wake_lock_deinit(struct bt_wake_lock *plock)
 {
-	if (plock && plock->ws)
+	if (plock && plock->ws) {
 		wakeup_source_unregister(plock->ws);
+#if (PM_QOS_CONTROL == 1)
+		pm_qos_remove_request(&plock->qos_req);
+#endif
+	}
 }
 
 static inline void bt_hold_wake_lock(struct bt_wake_lock *plock)
 {
-	if (plock && plock->ws)
+	if (plock && plock->ws) {
 		__pm_stay_awake(plock->ws);
+#if (PM_QOS_CONTROL == 1)
+		pm_qos_update_request(&plock->qos_req, 1000);
+#endif
+	}
 }
 
 static inline void bt_hold_wake_lock_timeout(struct bt_wake_lock *plock, uint32_t ms)
 {
-	if (plock && plock->ws)
+	if (plock && plock->ws) {
 		__pm_wakeup_event(plock->ws, ms);
+#if (PM_QOS_CONTROL == 1)
+		//pm_qos_update_request_timeout(&plock->qos_req, 1000, ms * 1000);
+#endif
+	}
 }
 
 static inline void bt_release_wake_lock(struct bt_wake_lock *plock)
 {
-	if (plock && plock->ws)
+	if (plock && plock->ws) {
 		__pm_relax(plock->ws);
+#if (PM_QOS_CONTROL == 1)
+		pm_qos_update_request(&plock->qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
+	}
 }
 
 static inline void bt_psm_init(struct bt_psm_ctrl *psm)
