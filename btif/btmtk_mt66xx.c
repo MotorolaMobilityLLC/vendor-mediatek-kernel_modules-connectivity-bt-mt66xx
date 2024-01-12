@@ -333,10 +333,10 @@ static void bgfsys_cal_data_backup(
 	 * should be 0x7C05XXXX from F/W's point of view (locate at ConnInfra sysram region),
 	 * treat the low 3 bytes as offset to our remapped virtual base.
 	 */
-	start_offset = start_addr & 0x0000FFFF;
-	if (start_offset > 0x1000) {
-		BTMTK_ERR("Error sysram offset address start=[0x%08x]",
-								start_addr);
+	start_offset = start_addr & 0x00000FFF;
+	if (start_offset + data_len > 0x1000) {
+		BTMTK_ERR("Error sysram offset address start=[0x%08x], len = [%d]",
+								start_addr, data_len);
 		return;
 	}
 
