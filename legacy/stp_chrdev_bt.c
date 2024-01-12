@@ -16,6 +16,8 @@
 #include <linux/pm_wakeup.h>
 #include <linux/version.h>
 #include <linux/pm_qos.h>
+#include <linux/notifier.h>
+#include <linux/fb.h>
 
 MODULE_LICENSE("Dual BSD/GPL");
 
@@ -36,6 +38,7 @@ MODULE_LICENSE("Dual BSD/GPL");
 
 #define BT_BUFFER_SIZE              2048
 #define FTRACE_STR_LOG_SIZE         256
+#define REG_READL(addr) readl((volatile uint32_t *)(addr))
 
 /*******************************************************************************
 *                            P U B L I C   D A T A
@@ -126,6 +129,65 @@ static size_t bt_report_hw_error(char *buf, size_t count, loff_t *f_pos)
 	*f_pos += bytes_read;
 
 	return bytes_read;
+}
+
+static uint32_t inline bt_read_cr(unsigned char *cr_name, uint32_t addr)
+{
+	uint32_t value = 0;
+	uint8_t *base = ioremap_nocache(addr, 0x10);
+
+	if (base == NULL) {
+		BT_LOG_PRT_WARN("remapping 0x%08x fail\n", addr);
+	} else {
+		value = REG_READL(base);
+		iounmap(base);
+		BT_LOG_PRT_INFO("%s[0x%08x], read[0x%08x]\n", cr_name, addr, value);
+	}
+	return value;
+}
+
+static struct notifier_block bt_fb_notifier;
+static int bt_fb_notifier_callback(struct notifier_block
+				*self, unsigned long event, void *data)
+{
+	struct fb_event *evdata = data;
+	int32_t blank = 0;
+
+	if ((event != FB_EVENT_BLANK))
+		return 0;
+
+	blank = *(int32_t *)evdata->data;
+	switch (blank) {
+	case FB_BLANK_UNBLANK:
+	case FB_BLANK_POWERDOWN:
+		BT_LOG_PRT_INFO("blank state [%ld]", blank);
+		bt_read_cr("HOST_MAILBOX_BT_ADDR", 0x18007124);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+static int bt_fb_notify_register(void)
+{
+	int32_t ret;
+
+	bt_fb_notifier.notifier_call = bt_fb_notifier_callback;
+
+	ret = fb_register_client(&bt_fb_notifier);
+	if (ret)
+		BT_LOG_PRT_WARN("Register bt_fb_notifier failed:%d\n", ret);
+	else
+		BT_LOG_PRT_DBG("Register bt_fb_notifier succeed\n");
+
+	return ret;
+}
+
+static void bt_fb_notify_unregister(void)
+{
+	fb_unregister_client(&bt_fb_notifier);
 }
 
 /*******************************************************************
@@ -595,6 +657,7 @@ static int BT_open(struct inode *inode, struct file *file)
 	INIT_DELAYED_WORK(&qos_ctrl.work, pm_qos_release);
 	up(&qos_ctrl.sem);
 #endif
+	bt_fb_notify_register();
 
 	return 0;
 }
@@ -603,6 +666,7 @@ static int BT_close(struct inode *inode, struct file *file)
 {
 	BT_LOG_PRT_INFO("major %d minor %d (pid %d)\n", imajor(inode), iminor(inode), current->pid);
 
+	bt_fb_notify_unregister();
 	bt_dev_dbg_set_state(FALSE);
 #ifdef CONFIG_MTK_CONNSYS_DEDICATED_LOG_PATH
 	bt_state_notify(OFF);

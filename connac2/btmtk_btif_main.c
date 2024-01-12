@@ -165,6 +165,7 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 {
 	struct fb_event *evdata = data;
 	int32_t blank = 0;
+	int32_t val = 0;
 
 	if ((event != FB_EVENT_BLANK))
 		return 0;
@@ -177,6 +178,9 @@ static int btmtk_fb_notifier_callback(struct notifier_block
 			BTMTK_INFO("%s: blank state [%ld]->[%ld], and send cmd", __func__, g_bdev->blank_state, blank);
 			g_bdev->blank_state = blank;
 			btmtk_send_blank_status_cmd(g_bdev->hdev, blank);
+
+			val = REG_READL(CON_REG_SPM_BASE_ADDR + 0x26C);
+			BTMTK_INFO("%s: HOST_MAILBOX_BT_ADDR[0x1806026C] read[0x%08x]", __func__, val);
 		} else {
 			BTMTK_INFO("%s: blank state [%ld]->[%ld]", __func__, g_bdev->blank_state, blank);
 			g_bdev->blank_state = blank;
