@@ -176,12 +176,21 @@
 
 #define _BIN_NAME_MCU			"soc5_0_ram_mcu_1_1_hdr"
 #define _BIN_NAME_BT			"soc5_0_ram_bt_1_1_hdr"
+/* SISO Project define */
+#define _BIN_NAME_MCU_SISO		"soc5_0_ram_mcu_1_1c_hdr"
+#define _BIN_NAME_BT_SISO		"soc5_0_ram_bt_1_1c_hdr"
 #define CONN_INFRA_CFG_ID		(0x02060002)
 
 #define BIN_NAME_MCU 	(_BIN_NAME_MCU _BIN_NAME_POSTFIX)
 #define BIN_NAME_BT 	(_BIN_NAME_BT _BIN_NAME_POSTFIX)
 #define BIN_NAME_MCU_U 	(_BIN_NAME_MCU _BIN_NAME_UPDATE_POSTFIX)
 #define BIN_NAME_BT_U 	(_BIN_NAME_BT _BIN_NAME_UPDATE_POSTFIX)
+/* SISO Project define */
+#define BIN_NAME_MCU_SISO 	(_BIN_NAME_MCU_SISO _BIN_NAME_POSTFIX)
+#define BIN_NAME_BT_SISO 	(_BIN_NAME_BT_SISO _BIN_NAME_POSTFIX)
+#define BIN_NAME_MCU_SISO_U 	(_BIN_NAME_MCU_SISO _BIN_NAME_UPDATE_POSTFIX)
+#define BIN_NAME_BT_SISO_U 	(_BIN_NAME_BT_SISO _BIN_NAME_UPDATE_POSTFIX)
+
 #define MET_EMI_ADDR	(0x2BC00)
 
 /*********************************************************************
@@ -1335,4 +1344,45 @@ static inline int32_t bgfsys_power_off(void)
 	return ret;
 }
 
+static inline int fwp_is_siso_project(void)
+{
+	#define TARGET_KEY "flavor_bin"
+ 	int ret = FALSE;
+	const char *str;
+	struct device_node *node = NULL;
+
+	node = of_find_compatible_node(NULL, NULL, "mediatek,bt");
+	if (node) {
+		if (of_property_read_string(node, TARGET_KEY, &str)) {
+			BTMTK_INFO("%s: get %s: fail", __func__, TARGET_KEY);
+		} else {
+			BTMTK_INFO("%s: get %s: %s", __func__, TARGET_KEY, str);
+			ret = TRUE;
+		}
+	} else
+		BTMTK_INFO("%s: get dts[mediatek,bt] fail!", __func__);
+
+	return ret;
+}
+
+static inline void fwp_get_patch_names(void)
+{
+	if (fwp_is_siso_project()) {
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU_SISO);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT_SISO);
+	} else  {
+		snprintf(g_fwp_names[0][0], FW_NAME_LEN, "%s", BIN_NAME_MCU);
+		snprintf(g_fwp_names[1][0], FW_NAME_LEN, "%s", BIN_NAME_BT);
+	}
+
+#if (CUSTOMER_FW_UPDATE == 1)
+	if (fwp_is_siso_project()) {
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s", BIN_NAME_MCU_SISO_U);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s", BIN_NAME_BT_SISO_U);
+	} else  {
+		snprintf(g_fwp_names[0][1], FW_NAME_LEN, "%s", BIN_NAME_MCU_U);
+		snprintf(g_fwp_names[1][1], FW_NAME_LEN, "%s", BIN_NAME_BT_U);
+	}
+#endif
+}
 #endif
