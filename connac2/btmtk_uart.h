@@ -63,14 +63,6 @@ struct btmtk_dev {
 
 #define N_MTK        (15+1)
 /**
- * Upper layeard IOCTL
- */
-#define HCIUARTSETPROTO _IOW('U', 200, int)
-#define HCIUARTSETBAUD _IOW('U', 201, int)
-#define HCIUARTGETBAUD _IOW('U', 202, int)
-#define HCIUARTSETSTP _IOW('U', 203, int)
-#define HCIUARTLOADPATCH _IOW('U', 204, int)
-/**
  * Send cmd dispatch evt
  */
 #define RETRY_TIMES 10
