@@ -504,7 +504,11 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
  */
 static int bt_pre_chip_rst_handler(enum consys_drv_type drv, char *reason)
 {
-	return bt_chip_reset_flow(RESET_LEVEL_0, drv, reason);
+	// skip reset flow if bt is not on
+	if (g_bdev->bt_state == FUNC_OFF)
+		return 0;
+	else
+		return bt_chip_reset_flow(RESET_LEVEL_0, drv, reason);
 }
 
 /* bt_post_chip_rst_handler()
