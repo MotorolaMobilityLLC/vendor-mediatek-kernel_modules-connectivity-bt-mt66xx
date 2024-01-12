@@ -18,7 +18,11 @@
 #include "btmtk_chip_if.h"
 #include "btmtk_dbg_tp_evt_if.h"
 #include "conninfra.h"
+#if SUPPORT_BEIF
+#include "btmtk_beif.h"
+#else
 #include "mtk_btif_exp.h"
+#endif
 #include "connectivity_build_in_adapter.h"
 #include "connsys_debug_utility.h"
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
@@ -57,8 +61,10 @@ uint8_t *p_bgfsys_base_addr;
 extern bool g_bt_trace_pt;
 extern struct btmtk_dev *g_sbdev;
 
+#if (SUPPORT_BEIF == 0)
 static unsigned long g_btif_id; /* The user identifier to operate btif */
 struct task_struct *g_btif_rxd_thread;
+#endif
 struct btmtk_btif_dev g_btif_dev;
 struct bt_dbg_st g_bt_dbg_st;
 static struct work_struct internal_trx_work;
@@ -315,12 +321,14 @@ static void btmtk_pm_notify_unregister(void)
 void btmtk_cif_dump_fw_no_rsp(unsigned int flag)
 {
 	BTMTK_WARN("%s! [%u]", __func__, flag);
+#if (SUPPORT_BEIF == 0)
 	if (!g_btif_id) {
 		BTMTK_ERR("NULL BTIF ID reference!");
 	} else {
 		if (flag & BT_BTIF_DUMP_OWN_CR)
+#endif
 			bt_dump_cif_own_cr();
-
+#if (SUPPORT_BEIF == 0)
 		if (flag & BT_BTIF_DUMP_REG)
 			mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_BTIF_REG);
 
@@ -330,15 +338,21 @@ void btmtk_cif_dump_fw_no_rsp(unsigned int flag)
 		if (flag & BT_BTIF_DUMP_DMA)
 			mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_DMA_VFIFO);
 	}
+#endif
 }
 
 
 void btmtk_cif_dump_rxd_backtrace(void)
 {
+#if SUPPORT_BEIF
+	beif_dump_tx_last_data(EMI_DUMP_LEN);
+	beif_dump_rx_last_data(EMI_DUMP_LEN);
+#else
 	if (!g_btif_rxd_thread)
 		BTMTK_ERR("g_btif_rxd_thread == NULL");
 	else
 		KERNEL_show_stack(g_btif_rxd_thread, NULL);
+#endif
 }
 
 
@@ -356,11 +370,17 @@ void btmtk_cif_dump_rxd_backtrace(void)
 void btmtk_cif_dump_btif_tx_no_rsp(void)
 {
 	BTMTK_INFO("%s", __func__);
+#if SUPPORT_BEIF
+	beif_check_header();
+	beif_print_tx_log();
+	beif_print_rx_log();
+#else
 	if (!g_btif_id) {
 		BTMTK_ERR("NULL BTIF ID reference!");
 	} else {
 		mtk_wcn_btif_dbg_ctrl(g_btif_id, BTIF_DUMP_BTIF_IRQ);
 	}
+#endif
 }
 
 /*
@@ -823,6 +843,7 @@ static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_RD_CB, 0, count, buf);
+	// beif_print_rx_log();
 	BTMTK_DBG_RAW(buf, count, "%s: len[%d] RX: ", __func__, count);
 	add_dump_packet(buf, count, RX);
 	cif_dev->psm.sleep_flag = FALSE;
@@ -911,7 +932,7 @@ void bt_pwrctrl_register_evt(void)
 *                        B T I F  F U N C T I O N S
 ********************************************************************************
 */
-#if SUPPORT_BT_THREAD
+#if SUPPORT_BT_THREAD && (SUPPORT_BEIF == 0)
 static void btmtk_btif_enter_deep_idle(struct work_struct *pwork)
 {
 	int32_t ret = 0;
@@ -1195,7 +1216,30 @@ int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count)
 	wake_up_interruptible(&cif_dev->tx_waitq);
 	return count;
 }
+#if SUPPORT_BEIF
+static int32_t btmtk_notify_fw(void)
+{
+	// ap2conn_btif0_wakeup_out_b
+	btmtk_set_beif_reg();
+	return 0;
+}
 
+int32_t btmtk_wcn_beif_init(void)
+{
+	struct beif_info_t s_info;
+	phys_addr_t emi_ap_phy_base;
+	conninfra_get_phy_addr(&emi_ap_phy_base, NULL);
+	if (emi_ap_phy_base != 0) {
+		s_info.rx_cb = bt_receive_data_cb;
+		s_info.notify_fw_cb = btmtk_notify_fw;
+		s_info.addr = emi_ap_phy_base + BEIF_EMI_OFFSET;
+		s_info.size = BEIF_EMI_SIZE;
+		beif_init(&s_info);
+	} else
+		pr_info("%s emi_ap_phy_base is NULL", __func__);
+	return 0;
+}
+#endif
 /* btmtk_wcn_btif_open
 
  *
@@ -1209,6 +1253,14 @@ int32_t btmtk_send_data(struct hci_dev *hdev, uint8_t *buf, uint32_t count)
 int32_t btmtk_wcn_btif_open(void)
 {
 	int32_t ret = 0;
+#if SUPPORT_BEIF
+	ret = beif_reset();
+	if (ret) {
+		BTMTK_ERR("BT open BEIF failed(%d)", ret);
+		return -1;
+	}
+	BTMTK_DBG("BT open BEIF OK");
+#else
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct btif_deepidle_ctrl *idle_ctrl = &cif_dev->btif_dpidle_ctrl;
 
@@ -1248,8 +1300,8 @@ int32_t btmtk_wcn_btif_open(void)
 		return -1;
 	}
 #endif
-
 	BTMTK_DBG("BT open BTIF OK");
+#endif
 	return 0;
 }
 
@@ -1266,6 +1318,14 @@ int32_t btmtk_wcn_btif_open(void)
 int32_t btmtk_wcn_btif_close(void)
 {
 	int32_t ret = 0;
+#if SUPPORT_BEIF
+	ret = beif_deinit();
+	if (ret) {
+		BTMTK_ERR("BT close BEIF failed(%d)", ret);
+		return -1;
+	}
+	BTMTK_DBG("BT close BEIF OK");
+#else
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	if (!g_btif_id) {
@@ -1293,6 +1353,7 @@ int32_t btmtk_wcn_btif_close(void)
 		return -1;
 	}
 	BTMTK_DBG("BT close BTIF OK");
+#endif
 	return 0;
 
 }
@@ -1388,11 +1449,12 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 
 	BTMTK_DBG_RAW(cmd, cmd_len, "%s: len[%d] TX: ", __func__, cmd_len);
 
+#if (SUPPORT_BEIF == 0)
 	if (!g_btif_id) {
 		BTMTK_ERR("NULL BTIF ID reference!");
 		return -1;
 	}
-
+#endif
 	add_dump_packet(cmd, cmd_len, TX);
 
 #if (DRIVER_CMD_CHECK == 1)
@@ -1415,12 +1477,20 @@ int btmtk_btif_send_cmd(struct btmtk_dev *bdev, struct sk_buff *skb, int delay, 
 	while (tx_len > 0 && _retry < retry) {
 		if (_retry++ > 0)
 			usleep_range(USLEEP_5MS_L, USLEEP_5MS_H);
-
+#if SUPPORT_BEIF
+		ret = beif_send_data(cmd, tx_len);
+		if (ret < 0) {
+			// beif_print_tx_log();
+			BTMTK_ERR("BEIF write failed(%d) on retry(%d)", ret, _retry-1);
+			return -1;
+		}
+#else
 		ret = mtk_wcn_btif_write(g_btif_id, cmd, tx_len);
 		if (ret < 0) {
 			BTMTK_ERR("BTIF write failed(%d) on retry(%d)", ret, _retry-1);
 			return -1;
 		}
+#endif
 		tx_len -= ret;
 		wr_count += ret;
 		cmd += ret;
@@ -1588,7 +1658,9 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 5. Init semaphore */
 	sema_init(&cif_dev->halt_sem, 1);
 	sema_init(&cif_dev->internal_cmd_sem, 1);
+#if (SUPPORT_BEIF == 0)
 	sema_init(&cif_dev->btif_dpidle_ctrl.sem, 1);
+#endif
 	sema_init(&cif_dev->cmd_tout_sem, 1);
 
 #if SUPPORT_BT_THREAD
@@ -1740,6 +1812,13 @@ int btmtk_cif_register(void)
 		return -1;
 	}
 #endif
+
+#if SUPPORT_BEIF
+	ret = btmtk_wcn_beif_init();
+	if (ret)
+		return -1;
+#endif
+
 	BTMTK_INFO("%s: Done", __func__);
 	return 0;
 }
@@ -1758,7 +1837,6 @@ int btmtk_cif_register(void)
 int btmtk_cif_deregister(void)
 {
 	btmtk_wcn_btif_close();
-
 #if (USE_DEVICE_NODE == 1)
 	rx_queue_destroy();
 #else
@@ -1867,8 +1945,9 @@ int32_t btmtk_tx_thread(void * arg)
 			 *
 			 *  All need to execute the Wakeup procedure.
 			 */
+#if (SUPPORT_BEIF == 0)
 			btmtk_btif_dpidle_ctrl(FALSE);
-
+#endif
 			bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 			wakeup_ret = btmtk_cif_fw_own_clr();
 			if (wakeup_ret) {
@@ -1879,7 +1958,9 @@ int32_t btmtk_tx_thread(void * arg)
 				 * and trigger reset directly
 				 */
 				bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#if (SUPPORT_BEIF == 0)
 				btmtk_btif_dpidle_ctrl(TRUE);
+#endif
 				/* check current bt_state to prevent from conflict
 				 * resetting b/w subsys reset & whole chip reset
 				 */
@@ -1969,7 +2050,22 @@ int32_t btmtk_tx_thread(void * arg)
 			 */
 			if (cif_dev->bt_state == FUNC_ON && cmd_list_isempty() &&
 			   psm->sleep_flag && !psm->force_on) {
-
+#if SUPPORT_BEIF
+				// wait if beif tx is not finish yet
+				for (ii = 0; ii < 5; ii++) {
+					if (beif_is_tx_complete() > 0)
+						break;
+					else
+						usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
+					if (ii == 4)
+						BTMTK_INFO("%s beif_is_tx_complete run 5 times", state_tag);
+				}
+				// re-run while loop
+				if (ii == 4) {
+					BTMTK_INFO("%s beif_is_tx_complete run 5 times", state_tag);
+					break;
+				}
+#else
 				// wait if btif tx is not finish yet
 				for (ii = 0; ii < 5; ii++) {
 					if (mtk_btif_is_tx_complete(g_btif_id) > 0)
@@ -1984,6 +2080,7 @@ int32_t btmtk_tx_thread(void * arg)
 					BTMTK_INFO("%s mtk_btif_is_tx_complete run 5 times", state_tag);
 					break;
 				}
+#endif
 
 				sleep_ret = btmtk_cif_fw_own_set();
 				if (sleep_ret) {
@@ -1995,7 +2092,9 @@ int32_t btmtk_tx_thread(void * arg)
 					break;
 				} else {
 					bt_enable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#if (SUPPORT_BEIF == 0)
 					btmtk_btif_dpidle_ctrl(TRUE);
+#endif
 					psm->state = PSM_ST_SLEEP;
 				}
 			}

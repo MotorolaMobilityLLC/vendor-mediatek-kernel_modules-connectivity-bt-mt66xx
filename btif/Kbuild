@@ -52,14 +52,22 @@ $(info $(LOG_TAG) srctree = $(srctree))
 # connsys security
 ifneq ($(filter 6983, $(BT_PLATFORM)),)
 $(info $(LOG_TAG) support bin to img)
+    ccflags-y += -D SUPPORT_BEIF=0
     ccflags-y += -D SUPPORT_BIN2IMG=1
     ccflags-y += -D CFG_BT_ATF_SUPPORT=1
 else ifneq ($(filter 6886, $(BT_PLATFORM)),)
 $(info $(LOG_TAG) support bin to img)
+    ccflags-y += -D SUPPORT_BEIF=0
     ccflags-y += -D SUPPORT_BIN2IMG=1
     ccflags-y += -D CFG_BT_ATF_SUPPORT=1
+else ifneq ($(filter 6897, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) not support bin to img)
+    ccflags-y += -D SUPPORT_BEIF=1
+    ccflags-y += -D SUPPORT_BIN2IMG=0
+    ccflags-y += -D CFG_BT_ATF_SUPPORT=0
 else
 $(info $(LOG_TAG) not support bin to img)
+    ccflags-y += -D SUPPORT_BEIF=0
     ccflags-y += -D SUPPORT_BIN2IMG=0
     ccflags-y += -D CFG_BT_ATF_SUPPORT=0
 endif
@@ -123,7 +131,7 @@ endif
 
 CORE_OBJS := btmtk_dbg.o btmtk_dbg_tp_evt_if.o btmtk_irq.o btmtk_char_dev.o ../btmtk_fw_log.o ../btmtk_main.o
 CHIP_OBJS := btmtk_mt66xx.o
-HIF_OBJS := btmtk_btif_main.o btmtk_queue.o
+HIF_OBJS := btmtk_btif_main.o btmtk_queue.o btmtk_beif.o btmtk_beif_plat.o
 
 $(MODULE_NAME)-objs  += $(CORE_OBJS)
 $(MODULE_NAME)-objs  += $(HIF_OBJS)

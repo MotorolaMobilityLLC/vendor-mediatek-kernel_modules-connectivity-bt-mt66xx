@@ -143,6 +143,7 @@
 
 #define BGF_SW_IRQ_RESET_ADDR				(0x1803F014)
 #define BGF_SW_IRQ_STATUS				(0x1803F010)
+#define BGF_FW2AP_NOTIFY				BIT(3)
 #define BGF_WHOLE_CHIP_RESET				BIT(2)
 #define BGF_SUBSYS_CHIP_RESET				BIT(1)
 #define BGF_FW_LOG_NOTIFY				BIT(0)
@@ -152,6 +153,10 @@
 #define BGF_IP_VERSION					(BGF_REG_INFO_BASE_ADDR)
 #define BGF_IP_VER_ID					0x02060000
 
+#define BGF_MCUCIRQ 					(0x188280C0)
+#define BGF_BTIF0_WAKEUP_OUT_B				BIT(10)
+#define BEIF_EMI_OFFSET					(0xBA0000)
+#define BEIF_EMI_SIZE					(1024*32)
 
 /*
  * BGF Info base address
@@ -188,6 +193,14 @@
 *
 **********************************************************************
 */
+static inline void beif_notify_fw(void)
+{
+#if (CFG_BT_ATF_SUPPORT == 1)
+	beif_notify_fw_smc(SMC_BT_SET_BEIF_REG);
+#else
+	bt_write_cr(BGF_MCUCIRQ, BGF_BTIF0_WAKEUP_OUT_B, TRUE);
+#endif
+}
 
 /* bgfsys_ccif_on
  *
