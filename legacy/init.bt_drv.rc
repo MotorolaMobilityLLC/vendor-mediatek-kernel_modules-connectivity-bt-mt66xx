@@ -2,3 +2,6 @@
 on property:vendor.connsys.driver.ready=yes
   insmod /vendor/lib/modules/bt_drv.ko
   chown bluetooth bluetooth /proc/driver/bt_dbg
+on property:vendor.connsys.driver.ready=no
+  insmod /vendor/lib/modules/bt_drv.ko
+  chown bluetooth bluetooth /proc/driver/bt_dbg

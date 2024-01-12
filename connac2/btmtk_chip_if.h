@@ -24,7 +24,9 @@
 #include "btmtk_uart.h"
 #elif defined(CHIP_IF_BTIF)
 #include "btmtk_btif.h"
-#if (CONNAC20_CHIPID == 6877)
+#if ((CONNAC20_CHIPID == 6885) || (CONNAC20_CHIPID == 6893))
+	#include "platform_mt6885.h"
+#elif (CONNAC20_CHIPID == 6877)
 	#include "platform_mt6877.h"
 #endif
 #endif

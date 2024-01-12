@@ -207,7 +207,7 @@
  */
 static inline void bgfsys_ccif_on(void)
 {
-	uint8_t *ccif_base = ioremap_nocache(0x10003200, 0x100);
+	uint8_t *ccif_base = ioremap(0x10003200, 0x100);
 
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
@@ -237,7 +237,7 @@ static inline void bgfsys_ccif_off(void)
 {
 	uint8_t *ccif_base = NULL, *bgf2md_base = NULL;
 
-	ccif_base = ioremap_nocache(0x10003200, 0x100);
+	ccif_base = ioremap(0x10003200, 0x100);
 	if (ccif_base == NULL) {
 		BTMTK_ERR("%s: remapping ccif_base fail", __func__);
 		return;
@@ -247,7 +247,7 @@ static inline void bgfsys_ccif_off(void)
 	*(ccif_base + 0x04) = 0x0;
 	iounmap(ccif_base);
 
-	bgf2md_base = ioremap_nocache(0x1025C000, 0x100);
+	bgf2md_base = ioremap(0x1025C000, 0x100);
 	if (bgf2md_base == NULL) {
 		BTMTK_ERR("%s: remapping bgf2md_base fail", __func__);
 		return;
@@ -284,6 +284,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		if (value != CONN_INFRA_CFG_ID)
 			return -1;
 	} else  {
+		conninfra_is_bus_hang();
 		BTMTK_ERR("Conninfra is not readable");
 		return -1;
 	}
@@ -337,6 +338,7 @@ static void inline bt_dump_cpupcr(uint32_t times, uint32_t sleep_ms)
 	}
 }
 
+/* DE Defined: dump all BGF host csr */
 static void inline bt_dump_bgfsys_host_csr(void)
 {
 	uint32_t value = 0;
@@ -369,6 +371,7 @@ static void inline bt_dump_bgfsys_host_csr(void)
 	BTMTK_INFO("%s", g_dump_cr_buffer);
 }
 
+/* DE Defined: dump all BGF MCUSYS debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_mcusys_flag(void)
 {
@@ -404,6 +407,7 @@ static void inline bt_dump_bgfsys_mcusys_flag(void)
 	}
 }
 
+/* DE Defined: dump all BGF BUS debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_bus_flag(void)
 {
@@ -443,13 +447,14 @@ static void inline bt_dump_bgfsys_bus_flag(void)
 	}
 }
 
+/* DE Defined: dump all BGF TOP common/bt part debug flag */
 static void inline bt_dump_bgfsys_top_common_flag(void)
 {
 	uint32_t value = 0;
 	uint32_t i = 0, count = 1, cr_count = 20;
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
-	int32_t retry = 2000;
+	int32_t retry = 20;
 
 	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
@@ -488,6 +493,7 @@ static void inline bt_dump_bgfsys_top_common_flag(void)
 	bt_write_cr(0x18074200, 0x01, FALSE);
 }
 
+/* DE Defined: dump all BGF MCU core debug flag */
 /* please make sure check bus hang before calling this dump */
 static void inline bt_dump_bgfsys_mcu_core_flag(void)
 {
@@ -525,6 +531,7 @@ static void inline bt_dump_bgfsys_mcu_core_flag(void)
 	}
 }
 
+/* DE Defined: dump all BGF MCU PC log */
 static inline void bt_dump_bgfsys_mcu_pc_log(uint8_t first_val, uint8_t last_val)
 {
 	uint32_t value = 0;
@@ -859,7 +866,7 @@ static inline void bgfsys_power_on_dump_cr(void)
 	//REG_WRITEL(CONN_INFRA_CFG_START + 0x0610, BIT(1));
 	//val_r = REG_READL(CONN_INFRA_CFG_START + 0x0610);
 	//BTMTK_INFO("%s: REG[0x18001610] write[0x%08x], REG[0x18001610] read[0x%08x]", __func__, BIT(1), val_r);
-		bt_write_cr(0x1800F000, 0x32C8001C, FALSE);
+	//	bt_write_cr(0x1800F000, 0x32C8001C, FALSE);
 	}
 
 host_csr_only:
@@ -918,7 +925,7 @@ static inline void bgfsys_dump_uart_pta_pready_status(void)
 		REG_READL(CON_REG_INFRA_CFG_ADDR + 0xA00));
 
 	/*
-	base = ioremap_nocache(0x1800C00C, 4);
+	base = ioremap(0x1800C00C, 4);
 	if (base == NULL) {
 		BTMTK_ERR("%s: remapping 0x18001A00 fail", __func__);
 		return;
@@ -1246,7 +1253,7 @@ static inline int32_t bgfsys_power_off(void)
 	// 0x18005128	WR	0x18005128[0] == 1'b1/1'b0
 	// 0x18005128	POLLING 0x18005128[1] == 1'b0
 	addr = 0x18005128;
-	remap_addr = ioremap_nocache(addr, 4);
+	remap_addr = ioremap(addr, 4);
 	if (remap_addr) {
 		CLR_BIT(remap_addr, BIT(0));
 		retry = POS_POLLING_RTY_LMT;
@@ -1259,17 +1266,20 @@ static inline int32_t bgfsys_power_off(void)
 
 		if (retry == 0)
 			ret = -1;
-		iounmap(remap_addr);		
+		iounmap(remap_addr);
 	} else {
 		BTMTK_ERR("ioremap [0x%08x] fail", addr);
 		ret = -1;
 	}
 
-	/* reset bfgsys semaphore, 20201105_POS remove */
+	/* reset bfgsys semaphore */
 	//CLR_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
-	/* release reset bfgsys semaphore, 20201105_POS remove */
+	/* release reset bfgsys semaphore */
 	//SET_BIT(CONN_INFRA_RGU_BGFSYS_SW_RST_B, BGF_SW_RST_B);
-
+	/* reset semaphore, 20210308 update */
+	for (addr = 0x18071200; addr <= 0x18071260; addr += 4)
+		bt_write_cr(addr, 0x1, FALSE);
+ 
 	/* clear bt_emi_req */
 	SET_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);
 	CLR_BIT(CONN_INFRA_CFG_EMI_CTL_BT_EMI_REQ_BT, BT_EMI_CTRL_BIT);

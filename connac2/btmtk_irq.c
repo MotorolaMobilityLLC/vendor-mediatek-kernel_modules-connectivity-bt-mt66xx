@@ -11,7 +11,6 @@
 #include <linux/of.h>
 
 #include "btmtk_chip_if.h"
-#include "btmtk_mt66xx_reg.h"
 #include "conninfra.h"
 #include "connsys_debug_utility.h"
 
@@ -127,28 +126,13 @@ void bt_trigger_reset(void)
  */
 void bt_bgf2ap_irq_handler(void)
 {
-	int32_t ret, bgf_status = 0;
-
+	int32_t bgf_status = 0;
 	g_bdev->bgf2ap_ind = FALSE;
-	/* 1. Check conninfra bus before accessing BGF's CR */
-	if (!conninfra_reg_readable()) {
-		ret = conninfra_is_bus_hang();
-		if (ret > 0) {
-			BTMTK_ERR("conninfra bus is hang, needs reset");
-			conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
-			return;
-		}
-		BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", ret);
-	}
 
-	/* 2. Check bgf bus status */
-	if (bt_is_bgf_bus_timeout()) {
-		bt_dump_bgfsys_all();
+	/* Read IRQ status CR to identify what happens */
+	bgf_status = bgfsys_get_sw_irq_status();
+	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
-	}
-
-	/* 3. Read IRQ status CR to identify what happens */
-	bgf_status = REG_READL(BGF_SW_IRQ_STATUS);
 	if (!(bgf_status & BGF_FW_LOG_NOTIFY)) {
 		BTMTK_INFO("bgf_status = 0x%08x", bgf_status);
 	}
@@ -157,14 +141,14 @@ void bt_bgf2ap_irq_handler(void)
 		bt_dump_bgfsys_all();
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
-		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET);
+		bgfsys_ack_sw_irq_reset();
 		if (g_bdev->rst_level != RESET_LEVEL_NONE)
 			complete(&g_bdev->rst_comp);
 		else
 			schedule_work(&rst_trigger_work);
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
-		SET_BIT(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY);
+		bgfsys_ack_sw_irq_fwlog();
 		connsys_log_irq_handler(CONN_DEBUG_TYPE_BT);
 		bt_enable_irq(BGF2AP_SW_IRQ);
 	} else if (bgf_status &  BGF_WHOLE_CHIP_RESET) {
@@ -274,6 +258,8 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 	}
 
 	BTMTK_INFO("pirq = %p, flag = 0x%08x", pirq, irq_flags);
+	pirq->irq_num = irq_num;
+	spin_lock_init(&pirq->lock);
 	ret = request_irq(irq_num, btmtk_irq_handler, irq_flags,
 			  pirq->name, pirq);
 	if (ret) {
@@ -281,11 +267,11 @@ int32_t bt_request_irq(enum bt_irq_type irq_type)
 		return ret;
 	}
 
+	enable_irq_wake(irq_num);
 	BTMTK_INFO("Request %s (%u) succeed", pirq->name, irq_num);
 	bt_irq_table[irq_type] = pirq;
-	pirq->irq_num = irq_num;
 	pirq->active = TRUE;
-	spin_lock_init(&pirq->lock);
+
 	return 0;
 }
 
@@ -374,6 +360,7 @@ void bt_free_irq(enum bt_irq_type irq_type)
 
 	pirq = bt_irq_table[irq_type];
 	if (pirq) {
+		disable_irq_wake(pirq->irq_num);
 		free_irq(pirq->irq_num, pirq);
 		pirq->active = FALSE;
 		bt_irq_table[irq_type] = NULL;
