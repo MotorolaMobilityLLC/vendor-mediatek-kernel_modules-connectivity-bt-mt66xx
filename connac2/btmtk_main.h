@@ -21,6 +21,7 @@ int btmtk_free_hci_device(struct btmtk_dev *bdev, int hci_bus_type);
 int btmtk_recv(struct hci_dev *hdev, const u8 *data, size_t count);
 int btmtk_recv_event(struct hci_dev *hdev, struct sk_buff *skb);
 int btmtk_recv_acl(struct hci_dev *hdev, struct sk_buff *skb);
+int btmtk_recv_iso(struct hci_dev *hdev, struct sk_buff *skb);
 int btmtk_dispatch_event(struct hci_dev *hdev, struct sk_buff *skb);
 int btmtk_dispatch_acl(struct hci_dev *hdev, struct sk_buff *skb);
 int btmtk_send_init_cmds(struct hci_dev *hdev);
@@ -86,5 +87,14 @@ struct h4_recv_pkt {
 	.lsize = 1, \
 	.maxlen = HCI_MAX_EVENT_SIZE
 
+// TODO: replace by kernel constant if kernel support new spec
+#define HCI_ISODATA_PKT		0x05
+#define HCI_ISO_HDR_SIZE	4
+#define H4_RECV_ISO \
+	.type = HCI_ISODATA_PKT, \
+	.hlen = HCI_ISO_HDR_SIZE, \
+	.loff = 2, \
+	.lsize = 2, \
+	.maxlen = HCI_MAX_FRAME_SIZE
 
 #endif /* __BTMTK_MAIN_H__ */
