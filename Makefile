@@ -16,9 +16,9 @@ KBUILD_MODPOST_FAIL_ON_WARNINGS := y
 # To add WMT dependent Macro and header file, will be removed later
 
 ccflags-y += -D MTK_WCN_WMT_STP_EXP_SYMBOL_ABSTRACT
-ccflags-y += -I$(KERNEL_DIR)/drivers/misc/mediatek/include
-ccflags-y += -I$(KERNEL_DIR)/drivers/misc/mediatek/include/mt-plat
-ccflags-y += -I$(KERNEL_DIR)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/include
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat
+ccflags-y += -I$(srctree)/drivers/misc/mediatek/include/mt-plat/$(MTK_PLATFORM)/include
 
 ###############################################################################
 # To include BT driver dependent header file
