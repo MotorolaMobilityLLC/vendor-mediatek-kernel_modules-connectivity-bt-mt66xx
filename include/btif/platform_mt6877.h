@@ -1150,7 +1150,11 @@ static inline int32_t bgfsys_power_on(void)
 		return -1;
 	}
 
-	/* release conn_infra force on */
+	/* reset BGF_SW_IRQ */
+	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_FW_LOG_NOTIFY, TRUE);
+	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
+
+	/* release conn_infra force on, force on at bgfsys_mcu_rom_patch_dl */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
 	return 0;
