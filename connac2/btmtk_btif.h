@@ -306,6 +306,7 @@ static inline void bt_psm_init(struct bt_psm_ctrl *psm)
 {
 	init_completion(&psm->comp);
 	strncpy(psm->wake_lock.name, "bt_psm", 6);
+	psm->wake_lock.name[6] = '\0';
 	bt_wake_lock_init(&psm->wake_lock);
 }
 

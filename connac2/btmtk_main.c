@@ -715,7 +715,7 @@ int btmtk_allocate_hci_device(struct btmtk_dev *bdev, int hci_bus_type)
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4,4,0))
 	clear_bit(HCI_SETUP, &hdev->dev_flags);
 #else
-	hci_dev_test_and_clear_flag(hdev, HCI_SETUP);
+	hci_dev_clear_flag(hdev, HCI_SETUP);
 #endif
 #endif
 	set_bit(BTMTKUART_REQUIRED_DOWNLOAD, &bdev->tx_state);

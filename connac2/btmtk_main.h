@@ -37,7 +37,7 @@ int32_t btmtk_set_power_off(struct hci_dev*);
 
 //static inline struct sk_buff *mtk_add_stp(struct btmtk_dev *bdev, struct sk_buff *skb);
 
-#define hci_dev_test_and_clear_flag(hdev, nr)  test_and_clear_bit((nr), (hdev)->dev_flags)
+#define hci_dev_clear_flag(hdev, nr)  clear_bit((nr), (hdev)->dev_flags)
 
 /* h4_recv */
 #define hci_skb_pkt_type(skb) bt_cb((skb))->pkt_type
