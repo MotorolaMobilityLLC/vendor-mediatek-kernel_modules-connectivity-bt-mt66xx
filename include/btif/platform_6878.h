@@ -830,6 +830,23 @@ host_csr_only:
 #endif
 }
 
+/* bt_reg_readable_for_coredump()
+ *
+ *    Dump all bgfsys debug cr before coredump
+ *
+ * Arguments:
+ *     N/A
+ *
+ * Return Value:
+ *     N/A
+ *
+ */
+static inline int32_t bt_reg_readable_for_coredump(void)
+{
+	bt_dump_bgfsys_debug_cr();
+	return conninfra_reg_readable_for_coredump();
+}
+
 /* bt_cif_dump_own_cr
  *
  *    Dump fw/driver own relative cr (plus cpucpr) if
