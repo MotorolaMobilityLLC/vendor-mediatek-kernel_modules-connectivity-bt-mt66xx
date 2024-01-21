@@ -1545,7 +1545,7 @@ int32_t btmtk_intcmd_wmt_utc_sync(void)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint8_t cmd[] =  {0x01, 0x6F, 0xFC, 0x01, 0x0C,
+	uint8_t cmd[] =  {0x01, 0x6F, 0xFC, 0x0C, 0x01,
 			  0xF0, 0x09, 0x00, 0x02,
 			  0x00, 0x00, 0x00, 0x00,	/* UTC time second unit */
 			  0x00, 0x00, 0x00, 0x00};	/* UTC time microsecond unit*/

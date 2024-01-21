@@ -863,7 +863,11 @@ static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
  */
 static struct coredump_event_cb bt_coredump_cb =
 {
+#if BT_COREDUMP_CHECK
+	.reg_readable = bt_reg_readable_for_coredump,
+#else
 	.reg_readable = conninfra_reg_readable_for_coredump,
+#endif
 	.poll_cpupcr = bt_dump_cpupcr,
 };
 #endif
