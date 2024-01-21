@@ -3419,14 +3419,14 @@ static int bt_open(struct hci_dev *hdev)
 	if (fstate == BTMTK_FOPS_STATE_OPENED) {
 		BTMTK_WARN("%s: fops opened!", __func__);
 		ret = -EIO;
-		goto failed;
+		goto exit;
 	}
 
 	if ((fstate == BTMTK_FOPS_STATE_CLOSING) ||
 		(fstate == BTMTK_FOPS_STATE_OPENING)) {
 		BTMTK_WARN("%s: fops open/close is on-going !", __func__);
 		ret = -EAGAIN;
-		goto failed;
+		goto exit;
 	}
 
 	BTMTK_INFO("%s", __func__);
@@ -3489,7 +3489,7 @@ static int bt_open(struct hci_dev *hdev)
 
 failed:
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_CLOSED);
-
+exit:
 	if (main_info.hif_hook.cif_mutex_unlock) {
 		main_info.hif_hook.cif_mutex_unlock(bdev);
 	}
