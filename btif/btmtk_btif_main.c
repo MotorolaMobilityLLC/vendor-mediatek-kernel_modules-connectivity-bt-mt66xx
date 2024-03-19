@@ -1697,9 +1697,11 @@ static int btmtk_cif_probe(struct platform_device *pdev)
 	/* 8. Register screen on/off & suspend/wakup notify callback */
 	cif_dev->blank_state = WMT_PARA_SCREEN_ON;
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_V2)
 	if (mtk_disp_notifier_register("btmtk_disp_notifier", &btmtk_disp_notifier)) {
                 BTMTK_ERR("Register mtk_disp_notifier failed\n");
 	}
+#endif
 #else
 	btmtk_fb_notify_register();
 #endif
@@ -1755,7 +1757,9 @@ static int btmtk_cif_remove(struct platform_device *pdev)
 	/* Unregister screen on/off & suspend/wakup notify callback */
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
+#if IS_ENABLED(CONFIG_DRM_MEDIATEK_V2)
 	mtk_disp_notifier_unregister(&btmtk_disp_notifier);
+#endif
 #else
 	btmtk_fb_notify_unregister();
 #endif
