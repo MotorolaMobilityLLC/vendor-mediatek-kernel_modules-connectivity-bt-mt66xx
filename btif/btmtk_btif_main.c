@@ -419,6 +419,10 @@ static int32_t btmtk_cif_fw_own_clr(void)
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_DRVOWN_IN, 0, 0, NULL);
+
+	if (bgfsys_clr_host_csr())
+		return -1;
+
 	do {
 		/* assume wait interval 0.5ms each time,
 		 * wait maximum total 7ms to query status
@@ -493,6 +497,10 @@ static int32_t btmtk_cif_fw_own_set(void)
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_FWOWN_IN, 0, 0, NULL);
+
+	if (bgfsys_clr_host_csr())
+		return -1;
+
 	do {
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
 			if (((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32)) &&
