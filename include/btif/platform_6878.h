@@ -94,6 +94,9 @@
 #define CONN_INFRA_CFG_BT_MANUAL_CTRL			(CONN_INFRA_CFG_START + 0x0108)
 #define BT_MTCMOS_FSM_PWR_ACK				BIT(27)
 
+#define CONN_INFRA_CFG_HOST_CSR				(CONN_INFRA_CFG_START + 0x0600)
+#define BT_CFG_HOST_CSR_CLR				(0x3FF)
+
 /*
  * Connsys Host CSR Top Region
  * 0x18060000
@@ -341,6 +344,25 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	}
 
 	return -1;
+}
+
+static inline int32_t bgfsys_clr_host_csr(void)
+{
+	BTMTK_INFO("%s", __func__);
+        if (bgfsys_check_conninfra_ready()) {
+                BTMTK_WARN("conninfra wakeup fail");
+		return -1;
+	}
+
+        REG_WRITEL(CONN_INFRA_CFG_HOST_CSR, BT_CFG_HOST_CSR_CLR);
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
+	return 0;
 }
 
 static inline u_int8_t bt_is_bgf_bus_timeout(void)
