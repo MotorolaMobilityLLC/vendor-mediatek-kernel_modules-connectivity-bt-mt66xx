@@ -307,6 +307,16 @@ static int32_t bgfsys_check_conninfra_ready(void)
 #endif
 	/* wait 200 us to avoid fake ready */
 	udelay(200);
+	for (i = 0; i < retry; i++) {
+		value = REG_READL(CONN_INFRA_WAKEUP_BT);
+		if (value)
+			break;
+		else
+			BTMTK_INFO("CONN_INFRA_WAKEUP_BT value = [%02d][0x%08x]", i, value);
+		/* retry */
+		SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
+	}
 
 	/* polling conninfra version id */
 	for (i = 0; i < retry; i++) {
@@ -317,6 +327,10 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		}
 
 		BTMTK_DBG("connifra cfg version = 0x%08x", value);
+		value = REG_READL(CONN_INFRA_WAKEUP_BT);
+		if (!value)
+			BTMTK_INFO("CONN_INFRA_WAKEUP_BT value = [0x%08x]", value);
+
 		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 	}
 
