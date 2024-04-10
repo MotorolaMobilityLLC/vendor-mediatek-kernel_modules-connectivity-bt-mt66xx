@@ -343,6 +343,11 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	return -1;
 }
 
+static inline int32_t bgfsys_clr_host_csr(void)
+{
+	return 0;
+}
+
 static inline u_int8_t bt_is_bgf_bus_timeout(void)
 {
 	int32_t mailbox_status = 0;
