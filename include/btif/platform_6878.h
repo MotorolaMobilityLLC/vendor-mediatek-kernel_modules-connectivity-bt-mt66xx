@@ -897,6 +897,7 @@ static inline int32_t bt_reg_readable_for_coredump(void)
  */
 static inline void bt_dump_cif_own_cr(void)
 {
+#if 0
 	uint32_t value = 0, i = 0;
 	int32_t ret = 0;
 
@@ -996,6 +997,7 @@ host_csr_only:
 #else
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 #endif
 }
 
