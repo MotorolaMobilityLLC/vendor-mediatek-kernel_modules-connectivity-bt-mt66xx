@@ -129,7 +129,7 @@ int btmtk_fops_initfwlog(void)
 		goto cdv_error;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0))
-        g_fwlog->pBTClass = class_create(BT_FWLOG_DEV_NODE);
+	g_fwlog->pBTClass = class_create(BT_FWLOG_DEV_NODE);
 #else
 	g_fwlog->pBTClass = class_create(THIS_MODULE, BT_FWLOG_DEV_NODE);
 #endif

@@ -54,6 +54,15 @@
  * Maximum rom patch file name length
  */
 #define MAX_BIN_FILE_NAME_LEN 64
+/**
+ * Maximum wmt command length
+ */
+#define MAX_CMD_LEN 32
+
+/**
+ * Maximum fw version string length
+ */
+#define MAX_FW_VER_STR_LEN 128
 
 /**
  * Type definition
@@ -123,7 +132,7 @@ extern uint8_t btmtk_log_lvl;
 	do {	\
 		if (btmtk_log_lvl >= BTMTK_LOG_LVL_INFO) {	\
 			int cnt_ = 0;	\
-			int len_ = (l <= HCI_SNOOP_MAX_BUF_SIZE ? l : HCI_SNOOP_MAX_BUF_SIZE);	\
+			uint32_t len_ = (l <= HCI_SNOOP_MAX_BUF_SIZE ? l : HCI_SNOOP_MAX_BUF_SIZE);	\
 			uint8_t raw_buf[HCI_SNOOP_MAX_BUF_SIZE * 5 + 10];	\
 			const unsigned char *ptr = p;	\
 			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\
@@ -145,7 +154,7 @@ extern uint8_t btmtk_log_lvl;
 	do {	\
 		if (btmtk_log_lvl >= BTMTK_LOG_LVL_DBG) {	\
 			int cnt_ = 0;	\
-			int len_ = (l <= HCI_SNOOP_MAX_BUF_SIZE ? l : HCI_SNOOP_MAX_BUF_SIZE);	\
+			uint32_t len_ = (l <= HCI_SNOOP_MAX_BUF_SIZE ? l : HCI_SNOOP_MAX_BUF_SIZE);	\
 			uint8_t raw_buf[HCI_SNOOP_MAX_BUF_SIZE * 5 + 10];	\
 			const unsigned char *ptr = p;	\
 			for (cnt_ = 0; cnt_ < len_; ++cnt_) {	\

@@ -419,6 +419,10 @@ static int32_t btmtk_cif_fw_own_clr(void)
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_DRVOWN_IN, 0, 0, NULL);
+
+	if (bgfsys_clr_host_csr())
+		return -1;
+
 	do {
 		/* assume wait interval 0.5ms each time,
 		 * wait maximum total 7ms to query status
@@ -493,6 +497,10 @@ static int32_t btmtk_cif_fw_own_set(void)
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_FWOWN_IN, 0, 0, NULL);
+
+	if (bgfsys_clr_host_csr())
+		return -1;
+
 	do {
 		if ((retry & 0xF) == 0) { /* retry % 16 == 0 */
 			if (((retry < LPCR_POLLING_RTY_LMT && retry >= LPCR_MASS_DUMP_LMT) || (retry == 2048) || (retry == 32)) &&
@@ -863,7 +871,11 @@ static int32_t bt_receive_data_cb(uint8_t *buf, uint32_t count)
  */
 static struct coredump_event_cb bt_coredump_cb =
 {
+#if BT_COREDUMP_CHECK
+	.reg_readable = bt_reg_readable_for_coredump,
+#else
 	.reg_readable = conninfra_reg_readable_for_coredump,
+#endif
 	.poll_cpupcr = bt_dump_cpupcr,
 };
 #endif
@@ -1850,6 +1862,9 @@ int btmtk_cif_register(void)
 	if (ret)
 		return -1;
 #endif
+	ret = btmtk_irq_register();
+	if (ret)
+		return -1;
 	btmtk_reset_init();
 
 	BTMTK_INFO("%s: Done", __func__);
@@ -1876,6 +1891,7 @@ int btmtk_cif_deregister(void)
 	platform_driver_unregister(&mtkbt_btif_driver);
 	platform_device_unregister(mtkbt_btif_device);
 #endif
+	btmtk_irq_deregister();
 
 	return 0;
 }
@@ -2002,7 +2018,7 @@ int32_t btmtk_tx_thread(void * arg)
 				 * resetting b/w subsys reset & whole chip reset
 				 */
 				if (cif_dev->bt_state == FUNC_ON) {
-					BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_clr error!! going to reset", state_tag);
+					BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_clr error!! going to reset", state_tag);
 					bt_trigger_reset();
 				} else
 					BTMTK_WARN("%s bt_state[%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
@@ -2044,6 +2060,7 @@ int32_t btmtk_tx_thread(void * arg)
 				    skb->data[2] == 0xFD && skb->data[3] == 0x00) {
 					kfree_skb(skb);
 					skb_queue_purge(&cif_dev->tx_queue);
+					BTMTK_ERR("%s [BT_DRV assert] host trigger!! going to reset", state_tag);
 					bt_trigger_reset();
 					break;
 				}
@@ -2122,7 +2139,7 @@ int32_t btmtk_tx_thread(void * arg)
 				sleep_ret = btmtk_cif_fw_own_set();
 				if (sleep_ret) {
 					if (cif_dev->bt_state == FUNC_ON) {
-						BTMTK_ERR("%s FATAL: btmtk_cif_fw_own_set error!! going to reset", state_tag);
+						BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_set error!! going to reset", state_tag);
 						bt_trigger_reset();
 					} else
 						BTMTK_WARN("%s bt_state [%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);

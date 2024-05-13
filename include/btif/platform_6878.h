@@ -94,6 +94,9 @@
 #define CONN_INFRA_CFG_BT_MANUAL_CTRL			(CONN_INFRA_CFG_START + 0x0108)
 #define BT_MTCMOS_FSM_PWR_ACK				BIT(27)
 
+#define CONN_INFRA_CFG_HOST_CSR				(CONN_INFRA_CFG_START + 0x0600)
+#define BT_CFG_HOST_CSR_CLR				(0x3FF)
+
 /*
  * Connsys Host CSR Top Region
  * 0x18060000
@@ -286,7 +289,7 @@ static inline void bgfsys_ccif_off(void)
  */
 static int32_t bgfsys_check_conninfra_ready(void)
 {
-	int32_t i = 0, retry = 10, hang_ret = 0;
+	int32_t i = 0, retry = 10, hang_ret = 0, retry_wakeup_count = 3;
 	uint32_t value = 0;
 	uint8_t* conninfra_cfg_version_base = NULL;
 	u_int8_t conninfra_cfg_id_rdy = FALSE;
@@ -296,51 +299,93 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		BTMTK_ERR("CONNINFRA_CFG_VERSION ioremap fail");
 		return -1;
 	}
-#if (CFG_BT_ATF_SUPPORT == 1)
-        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 1);
-#else
-	/* wake up conn_infra off */
-	SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
-#endif
-	/* wait 200 us to avoid fake ready */
-	udelay(200);
 
-	/* polling conninfra version id */
-	for (i = 0; i < retry; i++) {
-		value = REG_READL(conninfra_cfg_version_base);
-		if (value == CONN_INFRA_CFG_ID) {
-			conninfra_cfg_id_rdy = TRUE;
-			break;
+	do {
+#if (CFG_BT_ATF_SUPPORT == 1)
+		bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 1);
+#else
+		/* wake up conn_infra off */
+		SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
+		/* wait 200 us to avoid fake ready */
+		udelay(200);
+		for (i = 0; i < retry; i++) {
+			value = REG_READL(CONN_INFRA_WAKEUP_BT);
+			if (value)
+				break;
+			else
+				BTMTK_INFO("CONN_INFRA_WAKEUP_BT value = [%02d][0x%08x]", i, value);
+			/* retry */
+			SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+			usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 		}
 
-		BTMTK_DBG("connifra cfg version = 0x%08x", value);
-		usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
-	}
+		/* polling conninfra version id */
+		for (i = 0; i < retry; i++) {
+			value = REG_READL(conninfra_cfg_version_base);
+			if (value == CONN_INFRA_CFG_ID) {
+				conninfra_cfg_id_rdy = TRUE;
+				break;
+			}
+
+			BTMTK_DBG("connifra cfg version = 0x%08x", value);
+			value = REG_READL(CONN_INFRA_WAKEUP_BT);
+			if (!value)
+				BTMTK_INFO("CONN_INFRA_WAKEUP_BT value = [0x%08x]", value);
+
+			usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
+		}
+
+		if (conninfra_cfg_id_rdy) {
+			for (i = 0; i < retry; i++) {
+				value = REG_READL(CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1) &
+					CONN_INFRA_RDY;
+				BTMTK_DBG("connifra cfg power control = 0x%08x", value);
+				if (value == CONN_INFRA_RDY) {
+					iounmap(conninfra_cfg_version_base);
+					return 0;
+				}
+
+				usleep_range(500, 550);
+			}
+		} else {
+			value = REG_READL(CONN_INFRA_WAKEUP_BT);
+			BTMTK_INFO("dump CONN_INFRA_WAKEUP_BT value = [0x%08x]", value);
+			/* Check conninfra bus */
+			if (!conninfra_reg_readable()) {
+				hang_ret = conninfra_is_bus_hang();
+				if (hang_ret == CONNINFRA_AP2CONN_CLK_ERR)
+					BTMTK_WARN("Possible turn off by other module, try wakeup again");
+				else if (hang_ret > 0) {
+					BTMTK_ERR("conninfra bus is hang, needs reset");
+					conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
+				}
+				BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
+			}
+		}
+		retry_wakeup_count--;
+	} while (retry_wakeup_count > 0);
 
 	iounmap(conninfra_cfg_version_base);
-	if (conninfra_cfg_id_rdy) {
-		for (i = 0; i < retry; i++) {
-			value = REG_READL(CONN_INFRA_CFG_ON_CONN_INFRA_CFG_PWRCTRL1) &
-				CONN_INFRA_RDY;
-			BTMTK_DBG("connifra cfg power control = 0x%08x", value);
-			if (value == CONN_INFRA_RDY)
-				return 0;
+	return -1;
+}
 
-			usleep_range(500, 550);
-		}
-	} else {
-		/* Check conninfra bus */
-		if (!conninfra_reg_readable()) {
-			hang_ret = conninfra_is_bus_hang();
-			if (hang_ret > 0) {
-				BTMTK_ERR("conninfra bus is hang, needs reset");
-				conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
-			}
-			BTMTK_ERR("conninfra not readable, but not bus hang ret = %d", hang_ret);
-		}
+static inline int32_t bgfsys_clr_host_csr(void)
+{
+        if (bgfsys_check_conninfra_ready()) {
+		BTMTK_WARN("conninfra wakeup fail");
+		return -1;
 	}
 
-	return -1;
+        REG_WRITEL(CONN_INFRA_CFG_HOST_CSR, BT_CFG_HOST_CSR_CLR);
+
+#if (CFG_BT_ATF_SUPPORT == 1)
+        bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
+#else
+        /* release conn_infra force on */
+        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
+	return 0;
 }
 
 static inline u_int8_t bt_is_bgf_bus_timeout(void)
@@ -830,6 +875,23 @@ host_csr_only:
 #endif
 }
 
+/* bt_reg_readable_for_coredump()
+ *
+ *    Dump all bgfsys debug cr before coredump
+ *
+ * Arguments:
+ *     N/A
+ *
+ * Return Value:
+ *     N/A
+ *
+ */
+static inline int32_t bt_reg_readable_for_coredump(void)
+{
+	bt_dump_bgfsys_debug_cr();
+	return conninfra_reg_readable_for_coredump();
+}
+
 /* bt_cif_dump_own_cr
  *
  *    Dump fw/driver own relative cr (plus cpucpr) if
@@ -844,6 +906,7 @@ host_csr_only:
  */
 static inline void bt_dump_cif_own_cr(void)
 {
+#if 0
 	uint32_t value = 0, i = 0;
 	int32_t ret = 0;
 
@@ -943,6 +1006,7 @@ host_csr_only:
 #else
 	/* release conn_infra force on */
 	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+#endif
 #endif
 }
 

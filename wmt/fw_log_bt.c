@@ -288,7 +288,7 @@ int fw_log_bt_init(void)
 
 #if CREATE_NODE_DYNAMIC /* mknod replace */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0))
-        log_class = class_create(BT_LOG_NODE_NAME);
+	log_class = class_create(BT_LOG_NODE_NAME);
 #else
 	log_class = class_create(THIS_MODULE, BT_LOG_NODE_NAME);
 #endif
