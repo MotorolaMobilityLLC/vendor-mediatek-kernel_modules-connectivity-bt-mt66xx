@@ -1092,7 +1092,7 @@ int btmtk_recv_iso(struct hci_dev *hdev, struct sk_buff *skb)
 }
 
 int btmtk_main_send_cmd(struct btmtk_dev *bdev, const uint8_t *cmd,
-		const int cmd_len, const uint8_t *event, const int event_len, int delay,
+		const uint32_t cmd_len, const uint8_t *event, const int event_len, int delay,
 		int retry, int pkt_type)
 {
 	struct sk_buff *skb = NULL;
@@ -3284,6 +3284,7 @@ static int bt_close(struct hci_dev *hdev)
 	int state = BTMTK_STATE_INIT;
 	unsigned char fstate = BTMTK_FOPS_STATE_INIT;
 	struct btmtk_dev *bdev = NULL;
+	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 
 	if (!hdev) {
 		BTMTK_ERR("%s: invalid parameters!", __func__);
@@ -3301,7 +3302,7 @@ static int bt_close(struct hci_dev *hdev)
 	}
 
 	fstate = btmtk_fops_get_state(bdev);
-	if (fstate != BTMTK_FOPS_STATE_OPENED) {
+	if (fstate != BTMTK_FOPS_STATE_OPENED && cif_dev->bt_state != RESET_START) {
 		BTMTK_WARN("%s: fops is not allow close(%d)", __func__, fstate);
 		goto unlock;
 	}
@@ -3418,14 +3419,14 @@ static int bt_open(struct hci_dev *hdev)
 	if (fstate == BTMTK_FOPS_STATE_OPENED) {
 		BTMTK_WARN("%s: fops opened!", __func__);
 		ret = -EIO;
-		goto failed;
+		goto exit;
 	}
 
 	if ((fstate == BTMTK_FOPS_STATE_CLOSING) ||
 		(fstate == BTMTK_FOPS_STATE_OPENING)) {
 		BTMTK_WARN("%s: fops open/close is on-going !", __func__);
 		ret = -EAGAIN;
-		goto failed;
+		goto exit;
 	}
 
 	BTMTK_INFO("%s", __func__);
@@ -3488,7 +3489,7 @@ static int bt_open(struct hci_dev *hdev)
 
 failed:
 	btmtk_fops_set_state(bdev, BTMTK_FOPS_STATE_CLOSED);
-
+exit:
 	if (main_info.hif_hook.cif_mutex_unlock) {
 		main_info.hif_hook.cif_mutex_unlock(bdev);
 	}

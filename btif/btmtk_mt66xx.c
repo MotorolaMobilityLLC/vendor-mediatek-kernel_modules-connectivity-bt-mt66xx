@@ -594,6 +594,31 @@ int32_t bgfsys_bt_patch_dl(void)
 	return bgfsys_bt_ram_code_dl(&g_fwp_info);
 }
 
+#if (SUPPORT_BIN2IMG == 1)
+int32_t btmtk_get_fw_version(struct btmtk_dev *bdev)
+{
+	phys_addr_t emi_ap_phy_base;
+	uint32_t fw_version_addr = 0;
+
+	if (!bdev) {
+		BTMTK_ERR("%s: bdev null pointer", __func__);
+		return -1;
+	}
+
+	conninfra_get_phy_addr(&emi_ap_phy_base, NULL);
+	fw_version_addr = bt_read_cr(emi_ap_phy_base + FW_VERSION_OFFSET_ADDRESS);
+	BTMTK_DBG("fw_version_addr = %0x8X", fw_version_addr);
+
+	memset(bdev->fw_version_str, 0, MAX_FW_VER_STR_LEN);
+	if (fw_version_addr)
+		bt_read_remap_region(emi_ap_phy_base + fw_version_addr, bdev->fw_version_str, MAX_FW_VER_STR_LEN);
+	bdev->fw_version_str[MAX_FW_VER_STR_LEN - 1] = 0;
+	BTMTK_INFO("FW version: [%s]", bdev->fw_version_str);
+
+	return 0;
+}
+#endif
+
 /* bt_hw_and_mcu_on
  *
  *    BT HW / MCU / HAL poweron/init flow
@@ -630,6 +655,10 @@ static int32_t bt_hw_and_mcu_on(void)
 	ret = bgfsys_check_conninfra_ready();
 	if (ret)
 		goto power_on_error;
+
+	ret = btmtk_get_fw_version(g_sbdev);
+	if (ret)
+		BTMTK_WARN("%s: unable to get fw version", __func__);
 #endif
 
 
@@ -648,43 +677,12 @@ static int32_t bt_hw_and_mcu_on(void)
 	//bgfsys_ack_sw_irq_reset();
 	//bgfsys_ack_sw_irq_fwlog();
 
-	/* Register all needed IRQs by MCU */
-#if (SUPPORT_BEIF == 0)
-	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
-	if (ret)
-		goto request_irq_error;
-
-	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
-#endif
-	ret = bt_request_irq(BGF2AP_SW_IRQ);
-	if (ret)
-		goto request_irq_error2;
-
-	bt_disable_irq(BGF2AP_SW_IRQ);
-
-	if (BT_SSPM_TIMER) {
-		ret = bt_request_irq(BT_CONN2AP_SW_IRQ);
-		if (ret)
-			goto bus_operate_error;
-		bt_disable_irq(BT_CONN2AP_SW_IRQ);
-	}
-
 	if (btmtk_wcn_btif_open()) {
 		ret = -EIO;
-		goto bus_operate_error;
+		goto power_on_error;
 	}
 	return 0;
 
-
-bus_operate_error:
-	bt_free_irq(BGF2AP_SW_IRQ);
-
-request_irq_error2:
-#if (SUPPORT_BEIF == 0)
-	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
-
-request_irq_error:
-#endif
 power_on_error:
 	bgfsys_power_off();
 	return ret;
@@ -714,15 +712,8 @@ static void bt_hw_and_mcu_off(void)
 	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
 #endif
 
-	/* Free all registered IRQs */
-	bt_free_irq(BGF2AP_SW_IRQ);
-#if (SUPPORT_BEIF == 0)
-	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
-#endif
-
 	if (BT_SSPM_TIMER) {
 		bt_disable_irq(BT_CONN2AP_SW_IRQ);
-		bt_free_irq(BT_CONN2AP_SW_IRQ);
 	}
 	/* BGFSYS hardware power off */
 	bgfsys_power_off();
@@ -791,7 +782,7 @@ static int32_t _send_wmt_power_cmd(struct hci_dev *hdev, u_int8_t is_on)
 
 	ret = btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
 	if (ret <= 0 && is_on) {
-		BTMTK_ERR("%s: Unable to get event in time, start dump and reset!", __func__);
+		BTMTK_ERR("[BT_DRV assert] unable to get wmt event in time!! going to reset");
 		bt_trigger_reset();
 	}
 
@@ -862,7 +853,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 	ret = btmtk_main_send_cmd(bdev, buffer, pkt_len, NULL, 0, 0, 0, BTMTK_TX_WAIT_VND_EVT);
 
 	if (ret <= 0) {
-		BTMTK_ERR("Unable to get calibration event in time, start dump and reset!");
+		BTMTK_ERR("[BT_DRV assert] unable to get calibration event in time!! going to reset");
 		// TODO: FW request dump & reset, need apply to all internal cmdå
 		bt_trigger_reset();
 		up(&cif_dev->internal_cmd_sem);
@@ -1066,7 +1057,7 @@ int32_t btmtk_intcmd_wmt_power_on(struct hci_dev *hdev)
 	return ret;
 }
 
-int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
+int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev, unsigned int chip_id, unsigned int adie_id)
 {
 	#define BT_ANT_CFG_TAG	"bt_antswap"
 
@@ -1074,9 +1065,9 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
-	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00};
+	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x00, 0x00, 0x00};
 
 	p_img = vmalloc(sizeof(uint8_t) * len);
 	if (p_img == NULL) {
@@ -1085,21 +1076,16 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	}
 	memcpy(p_img, cif_dev->fw_cfg, len - 1);
 	p_img[len - 1] = 0;
-	/* find tag: [BT_ANT_CFG_TAG] */
-	if (snprintf(findTag, sizeof(findTag), "%s: ", BT_ANT_CFG_TAG) < 0) {
+	BTMTK_INFO("%s CHIP_ID: %x, ADIE_ID: %x", __func__, chip_id, adie_id);
+	/* find tag: [BT_ANT_CFG_TAG][CHIP_ID][ADIE_ID] */
+	if (snprintf(findTag, sizeof(findTag), "%s[%x][%x]: ", BT_ANT_CFG_TAG, chip_id, adie_id) < 0) {
 		BTMTK_ERR("%s: snprintf error", __func__);
 		ret = -1;
 		goto done;
 	}
 
 	ptr = strstr(p_img, findTag);
-	if (ptr == NULL) {
-		BTMTK_WARN("%s: ptr is NULL, do not get corresponding tag. Ignore antenna setting", __func__);
-		goto done;
-	}
-
 	memcpy(cmd, cmd_header, sizeof(cmd_header));
-
 	/*
 	 * command and event example
 	 *  0  1  2  3  4  5  6  7  8  9  A
@@ -1112,25 +1098,30 @@ int32_t btmtk_intcmd_wmt_send_antenna_cmd(struct hci_dev *hdev)
 	 * 02 55 02 00 00 SS
 	 * SS : status
 	 */
+	if (ptr == NULL) {
+		BTMTK_INFO("%s: ptr is NULL, do not get corresponding tag. Use default antenna setting", __func__);
+		len = sizeof(cmd_header);
+	} else {
+		/* parse parameter */
+		ptr += (int)strlen(findTag);
 
-	/* parse parameter */
-	ptr += (int)strlen(findTag);
+		/* find line feed */
+		pRaw = ptr;
+		while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
+			pRaw++;
+		*pRaw = 0;
 
-	/* find line feed */
-	pRaw = ptr;
-	while(*pRaw != '\r' && *pRaw != '\n' && pRaw < ptr + len)
-		pRaw++;
-	*pRaw = 0;
-
-	len = sizeof(cmd_header);
-	pRaw = ptr;
-	/* separate by space to get paramter */
-	for (i = 0; ; i++) {
-		ptr = strsep((char **)&pRaw, " ");
-		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
-			cmd[len++] = val;
-		else
-			break;
+		/* overwrite default value */
+		len = sizeof(cmd_header) - 2;
+		pRaw = ptr;
+		/* separate by space to get paramter */
+		for (i = 0; len < MAX_CMD_LEN; i++) {
+			ptr = strsep((char **)&pRaw, " ");
+			if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
+				cmd[len++] = val;
+			else
+				break;
+		}
 	}
 
 	/* we only allocate 32 bytes cmd buffer, only 25 pins are allowed,
@@ -1167,7 +1158,7 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, findTag[32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x00, 0x01, 0x55, 0x03, 0x00, 0x02};
 
@@ -1218,7 +1209,7 @@ int32_t btmtk_intcmd_wmt_send_antswap_cmd(struct hci_dev *hdev)
 	len = sizeof(cmd_header);
 	pRaw = ptr;
 	/* separate by space to get paramter */
-	for (i = 0; ; i++) {
+	for (i = 0; len < MAX_CMD_LEN; i++) {
 		ptr = strsep((char **)&pRaw, " ");
 		if (ptr != NULL && osal_strtol(ptr, 16, &val) == 0)
 			cmd[len++] = val;
@@ -1463,7 +1454,7 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
 	uint32_t i = 0, j = 0, len = cif_dev->fw_cfg_len + 1, ret = 0;
 	uint8_t *p_img = NULL, *ptr = NULL, *pRaw = NULL, *tag_ptr[TAG_NUM], tag[TAG_NUM][32] = {0};
-	uint8_t cmd[32] = {0};
+	uint8_t cmd[MAX_CMD_LEN] = {0};
 	long val = 0;
 	uint8_t cmd_header[] =  {0x01, 0x6F, 0xFC, 0x08, 0x01, 0x02, 0x04, 0x00, 0x10};	/* Connac1 Adie setting */
 
@@ -1503,7 +1494,7 @@ int32_t btmtk_intcmd_wmt_tssi_cfg(void)
 		*pRaw = 0;
 
 		/* separate by space to get paramter */
-		for (i = 0, pRaw = ptr; ; i++) {
+		for (i = 0, pRaw = ptr; len < MAX_CMD_LEN; i++) {
 			ptr = strsep((char **)&pRaw, " ");
 			if (ptr != NULL && osal_strtol(ptr, 10, &val) == 0) {
 				if (val & 0xFF00) {
@@ -1554,7 +1545,7 @@ int32_t btmtk_intcmd_wmt_utc_sync(void)
 {
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
 	struct bt_internal_cmd *p_inter_cmd = &cif_dev->internal_cmd;
-	uint8_t cmd[] =  {0x01, 0x6F, 0xFC, 0x01, 0x0C,
+	uint8_t cmd[] =  {0x01, 0x6F, 0xFC, 0x0C, 0x01,
 			  0xF0, 0x09, 0x00, 0x02,
 			  0x00, 0x00, 0x00, 0x00,	/* UTC time second unit */
 			  0x00, 0x00, 0x00, 0x00};	/* UTC time microsecond unit*/
@@ -1802,7 +1793,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 {
 	int ret;
 	int sch_ret = -1;
-	unsigned int adie_ver;
+	unsigned int chip_id = 0, adie_id = 0;
+	bool is_wmt_power_on_fail = FALSE;
+
 	struct sched_param sch_param;
 	struct btmtk_dev *bdev = hci_get_drvdata(hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
@@ -1958,7 +1951,9 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	cif_dev->rst_count = 0;
 	cif_dev->rst_flag = FALSE;
 
-	/* 10. load BT_FW.cfg file */
+	/* 10. get chip, adie id and load BT_FW.cfg file */
+	chip_id = conninfra_get_ic_info(CONNSYS_SOC_CHIPID);
+	adie_id = conninfra_get_ic_info(CONNSYS_ADIE_CHIPID);
 	ret = btmtk_load_fw_cfg();
 	if (ret) {
 		BTMTK_ERR("skip antenna & tssi settings");
@@ -1973,7 +1968,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	}
 
 	/* 10.2 send bt antenna command before BT on */
-	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev);
+	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev, chip_id, adie_id);
 	if (ret) {
 		BTMTK_WARN("btmtk_send_wmt_antenna_cmd fail");
 		//goto wmt_power_on_error;
@@ -1987,10 +1982,8 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 	}
 
 	/* 10.4 send tssi command before BT on for 6631 */
-	adie_ver = conninfra_get_ic_info(CONNSYS_ADIE_CHIPID);
-	if (adie_ver == 0x6631) {
+	if (adie_id == 0x6631)
 		btmtk_intcmd_wmt_tssi_cfg();
-	}
 
 load_fw_cfg_error:
 	/* 10.5 free BT_FW.cfg file */
@@ -2016,6 +2009,7 @@ load_fw_cfg_error:
 		return -EIO;
 	else if (ret) {
 		BTMTK_ERR("btmtk_intcmd_wmt_power_on fail");
+		is_wmt_power_on_fail = TRUE;
 		goto wmt_power_on_error;
 	}
 
@@ -2051,7 +2045,9 @@ mcu_error:
 		conninfra_pwr_off(CONNDRV_TYPE_BT);
 		bt_pwrctrl_post_off();
 	}
-	up(&cif_dev->halt_sem);
+
+	if (!is_wmt_power_on_fail)
+		up(&cif_dev->halt_sem);
 
 conninfra_error:
 	cif_dev->bt_state = FUNC_OFF;

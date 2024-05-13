@@ -92,7 +92,7 @@ void bt_trigger_reset(void)
 	int32_t ret = conninfra_is_bus_hang();
 	BTMTK_INFO("%s: conninfra_is_bus_hang ret = %d", __func__, ret);
 
-	if (ret > 0)
+	if (ret > 0 && ret != CONNINFRA_AP2CONN_CLK_ERR)
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
 	else if (ret == CONNINFRA_ERR_RST_ONGOING)
 		BTMTK_INFO("whole chip reset is onging, skip subsys reset");
@@ -150,8 +150,10 @@ void bt_bgf2ap_irq_handler(void)
 	} else if (bgf_status & BGF_SUBSYS_CHIP_RESET) {
 		if (cif_dev->rst_level != RESET_LEVEL_NONE)
 			complete(&cif_dev->rst_comp);
-		else
+		else {
+			BTMTK_ERR("[BT_FW assert] fw trigger");
 			schedule_work(&rst_trigger_work);
+		}
 		goto end;
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
 		/* FW notify host to get FW log */
@@ -194,6 +196,7 @@ void bt_conn2ap_irq_handler(void)
 	/* release conn_infra force on */
         CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
 
+	BTMTK_ERR("[BT_DRV assert] bgf bus hang");
 	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
 	bt_trigger_reset();
 }
@@ -287,6 +290,84 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 		return IRQ_HANDLED;
 	}
 	return IRQ_NONE;
+}
+
+/* btmtk_irq_deregister()
+ *
+ *	Free All IRQ BT Driver needed
+ *
+ * Arguments:
+ *	N/A
+ *
+ * Return Value:
+ *	N/A
+ *
+ */
+void btmtk_irq_deregister(void)
+{
+	bt_disable_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
+	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+
+	/* Free all registered IRQs */
+	bt_free_irq(BGF2AP_SW_IRQ);
+#if (SUPPORT_BEIF == 0)
+	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+
+	if (BT_SSPM_TIMER) {
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+		bt_free_irq(BT_CONN2AP_SW_IRQ);
+	}
+}
+
+/* btmtk_irq_register()
+ *
+ *	Request All IRQ BT Driver needed
+ *
+ * Arguments:
+ *	N/A
+ *
+ * Return Value:
+ *	0 if success, otherwise error code
+ *
+ */
+int32_t btmtk_irq_register(void)
+{
+	int ret = -1;
+	/* Register all needed IRQs by MCU */
+#if (SUPPORT_BEIF == 0)
+	ret = bt_request_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+	if (ret)
+		goto request_irq_error;
+
+	bt_disable_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+#endif
+	ret = bt_request_irq(BGF2AP_SW_IRQ);
+	if (ret)
+		goto request_irq_error2;
+
+	bt_disable_irq(BGF2AP_SW_IRQ);
+
+	if (BT_SSPM_TIMER) {
+		ret = bt_request_irq(BT_CONN2AP_SW_IRQ);
+		if (ret)
+			goto bus_operate_error;
+		bt_disable_irq(BT_CONN2AP_SW_IRQ);
+	}
+	return 0;
+
+bus_operate_error:
+	bt_free_irq(BGF2AP_SW_IRQ);
+
+request_irq_error2:
+#if (SUPPORT_BEIF == 0)
+	bt_free_irq(BGF2AP_BTIF_WAKEUP_IRQ);
+
+request_irq_error:
+#endif
+	return ret;
 }
 
 /* bt_request_irq()

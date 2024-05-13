@@ -918,7 +918,7 @@ static int BT_init(void)
 
 #if CREATE_NODE_DYNAMIC /* mknod replace */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0))
-        stpbt_class = class_create("stpbt");
+	stpbt_class = class_create("stpbt");
 #else
 	stpbt_class = class_create(THIS_MODULE, "stpbt");
 #endif

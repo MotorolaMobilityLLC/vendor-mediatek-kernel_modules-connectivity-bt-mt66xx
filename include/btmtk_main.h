@@ -498,6 +498,8 @@ struct btmtk_dev {
 	/* single sku */
 	unsigned char		*country_file_name;
 	u8 opcode_usr[2];
+
+	unsigned char	fw_version_str[MAX_FW_VER_STR_LEN];
 };
 
 typedef int (*cif_bt_init_ptr)(void);
@@ -670,7 +672,7 @@ int btmtk_main_cif_disconnect_notify(struct btmtk_dev *bdev, int hci_bus);
 int btmtk_load_code_from_bin(u8 **image, char *bin_name,
 					 struct device *dev, u32 *code_len, u8 retry);
 int btmtk_main_send_cmd(struct btmtk_dev *bdev, const uint8_t *cmd,
-		const int cmd_len, const uint8_t *event, const int event_len, int delay,
+		const uint32_t cmd_len, const uint8_t *event, const int event_len, int delay,
 		int retry, int pkt_type);
 int btmtk_load_code_from_setting_files(char *setting_file_name,
 			struct device *dev, u32 *code_len, struct btmtk_dev *bdev);
