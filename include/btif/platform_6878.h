@@ -145,7 +145,7 @@
 #define BGF_CON_CR_AHB_AUTO_DIS				BIT(31)
 
 #define BGF_MCCR_SET					(BGF_REG_BASE_ADDR + 0x0104)
-#define BGF_CON_CR_AHB_STOP				BIT(4) | BIT(5) | BIT(8)
+#define BGF_CON_CR_AHB_STOP				(0x304)
 
 #define BGF_SW_IRQ_RESET_ADDR				(0x1803F014)
 #define BGF_SW_IRQ_STATUS				(0x1803F010)
