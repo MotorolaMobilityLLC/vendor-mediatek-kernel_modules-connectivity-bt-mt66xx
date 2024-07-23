@@ -652,6 +652,8 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			if (g_bt_trace_pt)
 				bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_DUMP, 0, NULL);
 			bt_dump_bgfsys_debug_cr();
+			BTMTK_INFO("connsys_coredump_start, handle = [%p], property = %d, drv = %d, reason = %s",
+				    cif_dev->coredump_handle, dump_property, drv, reason);
 			connsys_coredump_start(cif_dev->coredump_handle, dump_property, drv, reason);
 		} else
 			BTMTK_WARN("BT state [%d], skip coredump", cif_dev->bt_state);

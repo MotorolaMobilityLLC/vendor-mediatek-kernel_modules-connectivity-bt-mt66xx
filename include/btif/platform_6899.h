@@ -179,6 +179,7 @@
 
 #define BGF_DRIVER_DUMP_BASE				(0x18023A00)
 
+#define BGF2AP_CONN_INFRA_ON_CCIF4_BGF2AP_PCCIF_ACK_ADDR       (0x1803E014)
 
 /*********************************************************************
 *
@@ -1038,6 +1039,9 @@ static inline int32_t bgfsys_power_on(void)
 	BTMTK_DBG("clear fw own IRQ");
 	REG_WRITEL(BGF_IRQ_STAT, BGF_IRQ_FW_OWN_SET_B);
 	REG_WRITEL(BGF_IRQ_STAT2, BGF_IRQ_FW_OWN_SET_B);
+
+	/* ack AP2BGF CCIF */
+	bt_write_cr(BGF2AP_CONN_INFRA_ON_CCIF4_BGF2AP_PCCIF_ACK_ADDR, 0xFF, FALSE);
 
 	/* release n10 cpu core */
 	SET_BIT(CONN_INFRA_RGU_BGFSYS_CPU_SW_RST, BGF_CPU_SW_RST_B);
