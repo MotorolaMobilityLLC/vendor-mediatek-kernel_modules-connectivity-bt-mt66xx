@@ -84,7 +84,7 @@ static int bt_dbg_trace_pt(int par1, int par2, int par3);
 
 extern int32_t btmtk_set_wakeup(struct hci_dev *hdev, uint8_t need_wait);
 extern int32_t btmtk_set_sleep(struct hci_dev *hdev, u_int8_t need_wait);
-extern void bt_trigger_reset(void);
+extern void bt_trigger_reset(unsigned char *reason);
 extern int32_t btmtk_set_power_on(struct hci_dev*, u_int8_t for_precal);
 extern int32_t btmtk_set_power_off(struct hci_dev*, u_int8_t for_precal);
 
@@ -155,9 +155,9 @@ int bt_dbg_chip_rst(int par1, int par2, int par3)
 {
 	BTMTK_INFO("[BT_DRV assert] adb trigger");
 	if(par2 == 0)
-		bt_trigger_reset();
+		bt_trigger_reset("BT_DBG trigger subsys chip reset");
 	else
-		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bt_dbg");
+		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "BT_DBG trigger whole chip reset");
 	return 0;
 }
 

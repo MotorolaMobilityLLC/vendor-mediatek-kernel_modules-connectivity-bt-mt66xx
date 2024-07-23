@@ -46,7 +46,7 @@ static struct bt_irq_ctrl bgf2ap_btif_wakeup_irq = {.name = "BTIF_WAKEUP_IRQ"};
 static struct bt_irq_ctrl bgf2ap_sw_irq = {.name = "BGF_SW_IRQ"};
 static struct bt_irq_ctrl bt_conn2ap_sw_irq = {.name = "BUS_SW_IRQ"};
 static struct bt_irq_ctrl *bt_irq_table[BGF2AP_IRQ_MAX];
-static struct work_struct rst_trigger_work;
+static struct reset_work_struct rst_trigger_work;
 
 
 /*******************************************************************************
@@ -72,8 +72,10 @@ static struct work_struct rst_trigger_work;
  */
 static void bt_reset_work(struct work_struct *work)
 {
+	struct reset_work_struct  *rst_work = container_of(work, struct reset_work_struct, work);
 	BTMTK_INFO("Trigger subsys reset");
-	bt_chip_reset_flow(RESET_LEVEL_0_5, CONNDRV_TYPE_BT, "BT Subsys reset");
+
+	bt_chip_reset_flow(RESET_LEVEL_0_5, CONNDRV_TYPE_BT, rst_work->reason);
 }
 
 /* bt_trigger_reset
@@ -87,7 +89,7 @@ static void bt_reset_work(struct work_struct *work)
  *    N/A
  *
  */
-void bt_trigger_reset(void)
+void bt_trigger_reset(unsigned char *reason)
 {
 	int32_t ret = conninfra_is_bus_hang();
 	BTMTK_INFO("%s: conninfra_is_bus_hang ret = %d", __func__, ret);
@@ -96,8 +98,12 @@ void bt_trigger_reset(void)
 		conninfra_trigger_whole_chip_rst(CONNDRV_TYPE_BT, "bus hang");
 	else if (ret == CONNINFRA_ERR_RST_ONGOING)
 		BTMTK_INFO("whole chip reset is onging, skip subsys reset");
-	else
-		schedule_work(&rst_trigger_work);
+	else {
+                if (snprintf(rst_trigger_work.reason, sizeof(rst_trigger_work.reason),
+                             reason) < 0)
+			BTMTK_ERR("Error in snprintf");
+		schedule_work(&rst_trigger_work.work);
+	}
 }
 
 /* bt_bgf2ap_irq_handler
@@ -152,7 +158,10 @@ void bt_bgf2ap_irq_handler(void)
 			complete(&cif_dev->rst_comp);
 		else {
 			BTMTK_ERR("[BT_FW assert] fw trigger");
-			schedule_work(&rst_trigger_work);
+			if (snprintf(rst_trigger_work.reason, sizeof(rst_trigger_work.reason),
+				     "FW trigger assert") < 0)
+				BTMTK_ERR("Error in snprintf");
+			schedule_work(&rst_trigger_work.work);
 		}
 		goto end;
 	} else if (bgf_status & BGF_FW_LOG_NOTIFY) {
@@ -198,7 +207,7 @@ void bt_conn2ap_irq_handler(void)
 
 	BTMTK_ERR("[BT_DRV assert] bgf bus hang");
 	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
-	bt_trigger_reset();
+	bt_trigger_reset("bgf bus hang");
 }
 /* btmtk_reset_init()
  *
@@ -213,7 +222,7 @@ void bt_conn2ap_irq_handler(void)
  */
 void btmtk_reset_init(void)
 {
-	INIT_WORK(&rst_trigger_work, bt_reset_work);
+	INIT_WORK(&rst_trigger_work.work, bt_reset_work);
 }
 
 /* btmtk_irq_handler()

@@ -417,7 +417,7 @@ void command_response_timeout(struct work_struct *pwork)
 			// To-do : Need to consider if it has any condition to check
 			cif_dev->cmd_timeout_count = 0;
 			BTMTK_ERR("[BT_DRV assert] %s trigger", __func__);
-			bt_trigger_reset();
+			bt_trigger_reset("BT command timeout");
 		} else {
 			down(&cif_dev->cmd_tout_sem);
 			if(workqueue_task != NULL) {
