@@ -1136,6 +1136,10 @@ static inline int32_t bgfsys_power_off(void)
 	if (ret)
 		return ret;
 
+	/* Dump bysys_status */
+	value = bt_read_cr(0x18053858);
+	BTMTK_INFO("BTSYS DUMP 0x18053858: %08X", value);
+
 	/* enable bt2conn slp_prot tx en */
 	SET_BIT(CONN_INFRA_BT2CONN_GALS_SLP_CTL, BT2CONN_SLP_PROT_TX_EN_B);
 	/* polling bt2conn slp_prot tx ack until it is asserted */
