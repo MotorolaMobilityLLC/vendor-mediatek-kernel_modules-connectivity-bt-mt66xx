@@ -9,6 +9,7 @@
 #include <linux/of_address.h>
 #include <linux/of.h>
 #include <linux/rtc.h>
+#include <linux/vmalloc.h>
 
 #include "btmtk_define.h"
 #include "btmtk_chip_if.h"
