@@ -20,7 +20,7 @@
 #include <linux/spinlock.h>
 #include <linux/kallsyms.h>
 #include <linux/device.h>
-#include <asm/unaligned.h>
+#include <linux/unaligned.h>
 
 /* Define for proce node */
 #include <linux/proc_fs.h>
