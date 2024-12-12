@@ -1222,6 +1222,10 @@ static inline int32_t bgfsys_power_off(void)
 	addr = 0x18003128;
 	remap_addr = ioremap(addr, 4);
 	if (remap_addr) {
+		value = BIT(0) & REG_READL(remap_addr);
+		BTMTK_INFO("CONN_WT_SLP_CTL_REG_WB_SLP_TOP_CK_2_WB_SLP_TOP_CK_2[0] = 0x%08x", value);
+		usleep_range(50, 60);
+
 		CLR_BIT(remap_addr, BIT(0));
 		retry = POS_POLLING_RTY_LMT;
 		do {
