@@ -96,6 +96,27 @@ $(info $(LOG_TAG) not support bin to img)
     ccflags-y += -D BT_COREDUMP_CHECK=0
 endif
 
+# antenna cmd cfg
+ifneq ($(filter 6983, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=1
+else ifneq ($(filter 6895, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=1
+else ifneq ($(filter 6879, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=1
+else ifneq ($(filter 6886, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=1
+else ifneq ($(filter 6899, $(BT_PLATFORM)),)
+$(info $(LOG_TAG) support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=1
+else
+$(info $(LOG_TAG) not support antenna cmd)
+    ccflags-y += -D BT_ANTENNA_CFG=0
+endif
+
 
 # ---------------------------------------------------
 # Compile Options: set feature flag (1: enable, 0: disable)

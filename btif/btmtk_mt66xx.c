@@ -1967,6 +1967,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		//goto wmt_power_on_error;
 	}
 
+#if BT_ANTENNA_CFG
 	/* 10.2 send bt antenna command before BT on */
 	ret = btmtk_intcmd_wmt_send_antenna_cmd(hdev, chip_id, adie_id);
 	if (ret) {
@@ -1980,6 +1981,7 @@ int32_t btmtk_set_power_on(struct hci_dev *hdev, u_int8_t for_precal)
 		BTMTK_WARN("btmtk_send_wmt_antswap_cmd fail");
 		//goto wmt_power_on_error;
 	}
+#endif
 
 	/* 10.4 send tssi command before BT on for 6631 */
 	if (adie_id == 0x6631)
