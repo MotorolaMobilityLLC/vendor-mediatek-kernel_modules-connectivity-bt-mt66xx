@@ -10,6 +10,7 @@
 #include <linux/pm_wakeup.h>
 #include <linux/reboot.h>
 #include <linux/string.h>
+#include <linux/vmalloc.h>
 
 #include "btmtk_define.h"
 #include "btmtk_main.h"
@@ -3740,8 +3741,10 @@ int btmtk_allocate_hci_device(struct btmtk_dev *bdev, int hci_bus_type)
 	hdev->bus = hci_bus_type;
 	hci_set_drvdata(hdev, bdev);
 
+#if (KERNEL_VERSION(6, 10, 0) > LINUX_VERSION_CODE)
 	/* HCI_PRIMARY = 0x00 */
 	hdev->dev_type = 0x00;
+#endif
 
 	bdev->hdev = hdev;
 

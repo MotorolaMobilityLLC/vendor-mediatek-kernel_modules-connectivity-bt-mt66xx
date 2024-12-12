@@ -25,6 +25,7 @@
 #include <linux/sched.h>
 #include <linux/sched/clock.h>
 #include <linux/spinlock_types.h>
+#include <linux/vmalloc.h>
 #include <uapi/linux/sched/types.h>
 #endif
 
