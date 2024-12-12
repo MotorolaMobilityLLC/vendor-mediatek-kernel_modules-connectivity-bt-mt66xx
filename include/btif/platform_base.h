@@ -7,6 +7,7 @@
 #define _PLATFORM_BASE_H
 
 #include "conninfra.h"
+#include "btmtk_define.h"
 #include <linux/arm-smccc.h>
 #include <linux/soc/mediatek/mtk_sip_svc.h>
 
@@ -14,7 +15,6 @@
 #define FW_NAME_LEN		(64)
 #define PATCH_FILE_NUM		2
 
-static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
 #if (CUSTOMER_FW_UPDATE == 1)
 extern uint8_t g_fwp_names[PATCH_FILE_NUM][2[FW_NAME_LEN];
 #else
@@ -143,6 +143,14 @@ struct bt_base_addr {
 
 extern struct bt_base_addr bt_reg;
 
+struct bt_dump_cr_buffer {
+	uint8_t *buffer;
+	uint32_t cr_count;
+	uint32_t count;
+	uint8_t *pos;
+	uint8_t *end;
+};
+
 #define CON_REG_INFRA_RGU_ADDR		bt_reg.reg_base_addr[CONN_INFRA_RGU_BASE_INDEX].vir_addr /* 0x18000000 0x1000 */
 #define CON_REG_INFRA_CFG_ADDR		bt_reg.reg_base_addr[CONN_INFRA_CFG_BASE_INDEX].vir_addr /* 0x18001000 0x1000 */
 #define CON_REG_INFRA_SYS_ADDR		bt_reg.reg_base_addr[CONN_INFRA_SYS_BASE_INDEX].vir_addr /* 0x18050000 0x1000 */
@@ -184,6 +192,8 @@ extern struct bt_base_addr bt_reg;
 */
 
 static uint32_t g_sw_irq_status = 0;
+static uint8_t g_dump_cr_buffer[BT_CR_DUMP_BUF_SIZE];
+static struct bt_dump_cr_buffer g_btmtk_cr_dump;
 
 /*********************************************************************
 *
@@ -191,6 +201,47 @@ static uint32_t g_sw_irq_status = 0;
 *
 **********************************************************************
 */
+static inline void BT_DUMP_CR_BUFFER_RESET(void)
+{
+	g_btmtk_cr_dump.buffer = &g_dump_cr_buffer[0];
+	memset(g_btmtk_cr_dump.buffer, 0, BT_CR_DUMP_BUF_SIZE);
+	g_btmtk_cr_dump.pos = g_btmtk_cr_dump.buffer;
+	g_btmtk_cr_dump.end = g_btmtk_cr_dump.pos + BT_CR_DUMP_BUF_SIZE - 1;
+}
+
+static inline void BT_DUMP_CR_INIT(const uint8_t *tag, uint32_t cr_count)
+{
+	BTMTK_INFO("%s Count = %d", tag, cr_count);
+	BT_DUMP_CR_BUFFER_RESET();
+	g_btmtk_cr_dump.count = 0;
+	g_btmtk_cr_dump.cr_count = cr_count;
+}
+
+static inline int BT_DUMP_CR_PRINT(uint32_t value)
+{
+	uint32_t ret = 0;
+
+	ret = snprintf(g_btmtk_cr_dump.pos,
+				  (g_btmtk_cr_dump.end - g_btmtk_cr_dump.pos + 1),
+				  "%08x ", value);
+	if (ret >= (g_btmtk_cr_dump.end - g_btmtk_cr_dump.pos + 1)) {
+		BTMTK_ERR("%s: error in sprintf while dumping cr", __func__);
+		if (g_btmtk_cr_dump.count)
+			BTMTK_INFO("%s", g_btmtk_cr_dump.buffer);
+		return -1;
+	}
+
+	g_btmtk_cr_dump.pos += ret;
+	g_btmtk_cr_dump.count++;
+
+	if ((g_btmtk_cr_dump.count & 0xF) == 0 ||
+		g_btmtk_cr_dump.count == g_btmtk_cr_dump.cr_count) {
+		BTMTK_INFO("%s", g_btmtk_cr_dump.buffer);
+		BT_DUMP_CR_BUFFER_RESET();
+	}
+
+	return 0;
+}
 
 static uint32_t inline bt_read_cr(uint32_t addr)
 {
@@ -245,8 +296,8 @@ static void inline bt_dump_memory8(uint8_t *buf, uint32_t len)
 	uint8_t *pos = NULL, *end = NULL;
 	int32_t ret = 0;
 
-	memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 	pos = &g_dump_cr_buffer[0];
+	memset(pos, 0, BT_CR_DUMP_BUF_SIZE);
 	end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 
 	BTMTK_INFO("%s: length = (%d)", __func__, len);
@@ -258,8 +309,8 @@ static void inline bt_dump_memory8(uint8_t *buf, uint32_t len)
 
 		if ((i & 0xF) == 0xF || i == len - 1) {
 			BTMTK_INFO("%s", g_dump_cr_buffer);
-			memset(g_dump_cr_buffer, 0, BT_CR_DUMP_BUF_SIZE);
 			pos = &g_dump_cr_buffer[0];
+			memset(pos, 0, BT_CR_DUMP_BUF_SIZE);
 			end = pos + BT_CR_DUMP_BUF_SIZE - 1;
 		}
 	}
