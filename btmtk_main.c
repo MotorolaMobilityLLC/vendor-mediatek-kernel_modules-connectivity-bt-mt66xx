@@ -2167,6 +2167,8 @@ int btmtk_picus_disable(struct btmtk_dev *bdev)
 int btmtk_load_fw_cfg_setting(char *block_name, struct fw_cfg_struct *save_content,
 		int counter, u8 *searchcontent, enum fw_cfg_index_len index_length)
 {
+	return 0;
+#if 0
 	int ret = 0, i = 0;
 	u16 temp_len = 0;
 	u8 temp[TEMP_LEN]; /* save for total hex number */
@@ -2275,6 +2277,7 @@ int btmtk_load_fw_cfg_setting(char *block_name, struct fw_cfg_struct *save_conte
 	}
 
 	return ret;
+#endif
 }
 
 int btmtk_load_code_from_setting_files(char *setting_file_name,
