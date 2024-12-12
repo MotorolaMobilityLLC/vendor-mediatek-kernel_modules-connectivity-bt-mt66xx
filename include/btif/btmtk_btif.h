@@ -217,6 +217,11 @@ struct bt_dbg_st {
 	uint8_t rx_buf_ctrl;
 };
 
+struct reset_work_struct {
+	struct work_struct work;
+	unsigned char reason[128];
+};
+
 typedef void (*BT_STATE_CHANGE_CB) (uint8_t state);
 
 struct wmt_pkt_param {
@@ -422,7 +427,7 @@ int bt_request_irq(enum bt_irq_type irq_type);
 void bt_enable_irq(enum bt_irq_type irq_type);
 void bt_disable_irq(enum bt_irq_type irq_type);
 void bt_free_irq(enum bt_irq_type irq_type);
-void bt_trigger_reset(void);
+void bt_trigger_reset(unsigned char *reason);
 int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			     enum consys_drv_type drv,
 			     char *reason);

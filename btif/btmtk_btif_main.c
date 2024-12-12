@@ -2019,7 +2019,7 @@ int32_t btmtk_tx_thread(void * arg)
 				 */
 				if (cif_dev->bt_state == FUNC_ON) {
 					BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_clr error!! going to reset", state_tag);
-					bt_trigger_reset();
+					bt_trigger_reset("Driver own fail");
 				} else
 					BTMTK_WARN("%s bt_state[%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
 				break;
@@ -2061,7 +2061,7 @@ int32_t btmtk_tx_thread(void * arg)
 					kfree_skb(skb);
 					skb_queue_purge(&cif_dev->tx_queue);
 					BTMTK_ERR("%s [BT_DRV assert] host trigger!! going to reset", state_tag);
-					bt_trigger_reset();
+					bt_trigger_reset("BT Stack error trigger assert");
 					break;
 				}
 
@@ -2140,7 +2140,7 @@ int32_t btmtk_tx_thread(void * arg)
 				if (sleep_ret) {
 					if (cif_dev->bt_state == FUNC_ON) {
 						BTMTK_ERR("%s [BT_DRV assert] btmtk_cif_fw_own_set error!! going to reset", state_tag);
-						bt_trigger_reset();
+						bt_trigger_reset("FW own fail");
 					} else
 						BTMTK_WARN("%s bt_state [%d] is not FUNC_ON, skip reset", state_tag, cif_dev->bt_state);
 					break;
