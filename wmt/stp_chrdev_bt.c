@@ -476,7 +476,7 @@ ssize_t send_hci_frame(const PUINT8 buff, size_t count)
 
 ssize_t BT_write_iter(struct kiocb *iocb, struct iov_iter *from)
 {
-	INT32 retval = 0;
+	ssize_t retval = 0;
 	size_t count = iov_iter_count(from);
 
 	ftrace_print("%s get called, count %zu", __func__, count);
