@@ -1712,6 +1712,10 @@ int btmtk_load_rom_patch_766x(struct btmtk_dev *bdev)
 
 	btmtk_load_code_from_bin(&rom_patch, bdev->rom_patch_bin_file_name, NULL,
 							&rom_patch_len, 10);
+	if (rom_patch_len <= PATCH_INFO_SIZE) {
+		BTMTK_ERR("%s, rom_patch_len is %d!", __func__, rom_patch_len);
+		return -EINVAL;
+	}
 
 	do {
 		patch_status = btmtk_check_need_load_rom_patch(bdev);
