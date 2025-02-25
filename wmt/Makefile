@@ -4,9 +4,9 @@ $(info [bt_drv] wmt/makefile start)
 LOG_TAG := [BT_Drv][wmt]
 ifneq ($(wildcard $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include),)
 include $(KERNEL_SRC)/$(DEVICE_MODULES_REL_DIR)/Makefile.include
-extra_symbols := $(abspath $(OUT_DIR)/../vendor/mediatek/kernel_modules/connectivity/common/Module.symvers)
+extra_symbols := $(abspath $(OUT_DIR)/../vendor/mediatek/kernel_modules/connectivity/common/*Module.symvers)
 else
-extra_symbols := $(abspath $(O)/../vendor/mediatek/kernel_modules/connectivity/common/Module.symvers)
+extra_symbols := $(abspath $(O)/../vendor/mediatek/kernel_modules/connectivity/common/*Module.symvers)
 endif
 
 
