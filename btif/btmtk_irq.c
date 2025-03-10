@@ -100,7 +100,7 @@ void bt_trigger_reset(unsigned char *reason)
 		BTMTK_INFO("whole chip reset is onging, skip subsys reset");
 	else {
                 if (snprintf(rst_trigger_work.reason, sizeof(rst_trigger_work.reason),
-                             reason) < 0)
+                             "%s", reason) < 0)
 			BTMTK_ERR("Error in snprintf");
 		schedule_work(&rst_trigger_work.work);
 	}

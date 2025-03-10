@@ -272,6 +272,7 @@ void bt_dbg_user_trx_proc(char *cmd_raw)
 ssize_t bt_dbg_write(struct file *filp, const char __user *buffer, size_t count, loff_t *f_pos)
 {
 #if (CFG_ENABLE_DEBUG_WRITE == 0)
+	(void) bt_dev_dbg_struct;
 	return -ENODEV;
 #else
 	bool is_passwd = FALSE, is_turn_on = FALSE;
