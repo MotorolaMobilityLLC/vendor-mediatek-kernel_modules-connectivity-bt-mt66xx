@@ -69,6 +69,8 @@ static int g_rx_rec_idx;
 static int g_tx_rec_idx;
 static int g_rxd_in_cb;
 static unsigned char *g_beif_rx_buf;
+static u64 g_last_receive_sec;
+static unsigned long g_last_receive_nsec;
 
 static int beif_rx_init(void);
 static int beif_rx_deinit(void);
@@ -158,6 +160,7 @@ void beif_print_tx_log(void)
 
 void beif_print_rx_log(void)
 {
+	pr_info("[beif]last beif_receive_data invoked at [%llu.%06lu]\n", g_last_receive_sec, g_last_receive_nsec);
 	pr_info("[beif]RX:%llu bytes", g_total_receive_bytes);
 	beif_print_record(BEIF_DIR_RX);
 }
@@ -441,6 +444,7 @@ static int beif_data_consummer(void)
 int beif_receive_data(void)
 {
 #ifndef BEIF_CTP_LOAD
+	beif_get_local_time(&g_last_receive_sec, &g_last_receive_nsec);
 	complete(&rx_comp);
 #else
 	beif_data_consummer();
