@@ -17,7 +17,8 @@ all:
 
 modules_install:
 	$(MAKE) M=$(M) -C $(KERNEL_SRC) modules_install
-
+compile_commands.json:
+	$(MAKE) M=$(M) -C $(KERNEL_SRC) compile_commands.json $(KBUILD_OPTIONS) BT_PLATFORM=connac1x LOG_TAG=$(PRIVATE_LOG_TAG) KBUILD_EXTRA_SYMBOLS="$(EXTRA_SYMBOLS)"
 clean:
 	$(MAKE) -C $(KERNEL_SRC) M=$(M) clean
 
