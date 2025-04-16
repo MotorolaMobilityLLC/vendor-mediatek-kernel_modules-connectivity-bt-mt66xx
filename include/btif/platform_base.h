@@ -319,7 +319,7 @@ static void inline bt_dump_memory8(uint8_t *buf, uint32_t len)
 
 static inline u_int8_t fwp_has_flavor_bin(uint8_t *flavor)
 {
-	#define TARGET_KEY "flavor_bin"
+	#define TARGET_KEY "flavor-bin"
 	u_int8_t ret = FALSE;
 	const char *str;
 	struct device_node *node = NULL;
