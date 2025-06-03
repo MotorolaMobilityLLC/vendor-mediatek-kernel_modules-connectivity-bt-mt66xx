@@ -21,6 +21,7 @@ ddk_headers(
 )
 
 platforms = [
+    "6895",
     "6858",
 ]
 
@@ -64,6 +65,7 @@ define_mgk_ddk_ko(
         "-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/connectivity/power_throttling",
         "-I$(DEVICE_MODULES_PATH)/drivers/gpu/drm/mediatek/mediatek_v2",
         "-I$(DEVICE_MODULES_PATH)/drivers/misc/mediatek/btif/common/inc",
+        "-Wno-macro-redefined",
     ],
     header_deps = [
         "//vendor/mediatek/kernel_modules/connectivity/conninfra:conninfra_headers",
@@ -95,12 +97,12 @@ define_mgk_ddk_ko(
         "SUPPORT_BIN2IMG=1",
         "CFG_BT_ATF_SUPPORT=0",
         "DTS_REORDERED=1",
-    ] if p == "6878" else []) + ([
+    ] if p in ["6878","6899","6858"] else []) + ([
         "SUPPORT_BEIF=0",
         "SUPPORT_BIN2IMG=0",
         "CFG_BT_ATF_SUPPORT=0",
         "DTS_REORDERED=0",
-    ] if p not in ["6878","6886","6897","6983"] else []) + ([
+    ] if p not in ["6878","6886","6897","6983","6899","6858"] else []) + ([
         "BT_COREDUMP_CHECK=1",
     ] if p in ["6878","6899","6858"] else [
         "BT_COREDUMP_CHECK=0",
