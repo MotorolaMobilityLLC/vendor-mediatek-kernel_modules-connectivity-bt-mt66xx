@@ -23,6 +23,8 @@ ifneq (true,$(strip $(TARGET_NO_KERNEL)))
   LOG_TAG := [BT_Drv][btif]
   BT_PLATFORM := 6895
   include $(LOCAL_PATH_B)/btif/Android.mk
+  BT_PLATFORM := 6858
+  include $(LOCAL_PATH_B)/btif/Android.mk
 endif
 endif
 

@@ -21,7 +21,7 @@ ddk_headers(
 )
 
 platforms = [
-    "6895",
+    "6858",
 ]
 
 define_mgk_ddk_ko(
@@ -102,11 +102,11 @@ define_mgk_ddk_ko(
         "DTS_REORDERED=0",
     ] if p not in ["6878","6886","6897","6983"] else []) + ([
         "BT_COREDUMP_CHECK=1",
-    ] if p in ["6878","6899"] else [
+    ] if p in ["6878","6899","6858"] else [
         "BT_COREDUMP_CHECK=0",
     ]) + ([
         "BT_ANTENNA_CFG=1",
-    ] if p in ["6879","6886","6895","6899","6983"] else [
+    ] if p in ["6879","6886","6895","6899","6983","6858"] else [
         "BT_ANTENNA_CFG=0",
     ]),
 ) for p in platforms]
