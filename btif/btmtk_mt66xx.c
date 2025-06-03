@@ -347,7 +347,7 @@ static void bgfsys_cal_data_backup(
 
 	memcpy_fromio(cal_data, (const volatile void *)(CON_REG_INFRA_SYS_ADDR + start_offset), data_len);
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 }
 
 /* bgfsys_cal_data_restore
@@ -404,7 +404,7 @@ static void bgfsys_cal_data_restore(uint32_t start_addr,
 	BTMTK_DBG("Ready pattern after restore cal=[0x%08x]", ready_status);
 #endif
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 }
 
 /* __download_patch_to_emi
@@ -890,7 +890,7 @@ static int32_t _send_wmt_get_cal_data_cmd(
 				BTMTK_ERR("get wrong calibration length [%d]", *p_data_len);
 		}
 		/* release conn_infra force on */
-		CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+		bgfsys_release_conn_infra_force_on();
 		ret = -EIO;
 	}
 

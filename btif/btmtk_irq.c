@@ -132,8 +132,8 @@ void bt_bgf2ap_irq_handler(void)
 	/* Read stored IRQ status CR to identify what happens */
 	bgf_status = bgfsys_get_sw_irq_status();
 
-        /* release conn_infra force on */
-        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	/* release conn_infra force on */
+	bgfsys_release_conn_infra_force_on();
 
 	if (bgf_status == RET_SWIRQ_ST_FAIL)
 		return;
@@ -203,7 +203,7 @@ void bt_conn2ap_irq_handler(void)
 	value = bt_read_cr(BT_SSPM_TIMER);
 
 	/* release conn_infra force on */
-        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 
 	BTMTK_ERR("[BT_DRV assert] bgf bus hang");
 	BTMTK_INFO("%s: [SSPM] [0x%08x] = [0x%08x]", __func__, BT_SSPM_TIMER, value);
@@ -277,8 +277,8 @@ static irqreturn_t btmtk_irq_handler(int irq, void * arg)
 #if (CFG_BT_ATF_SUPPORT == 1)
         	bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
 #else
-        	/* release conn_infra force on */
-        	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+		/* release conn_infra force on */
+		bgfsys_release_conn_infra_force_on();
 #endif
 #if IS_ENABLED(CONFIG_MTK_IRQ_MONITOR_DEBUG)
 		irq_timer[9] = sched_clock();

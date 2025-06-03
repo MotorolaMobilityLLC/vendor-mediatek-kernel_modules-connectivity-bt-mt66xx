@@ -104,6 +104,8 @@
 #define CONN_HOST_CSR_TOP_START				CON_REG_SPM_BASE_ADDR
 
 #define CONN_INFRA_WAKEUP_BT				(CONN_HOST_CSR_TOP_START + 0x01A8)
+#define WAKE_UP_CONN_INFRA_OFF				(0x42540001)
+#define RELEASE_CONN_INFRA_FORCE_ON			(0x42540000)
 #define CONN_HOST_CSR_TOP_CONN_SLP_PROT_CTRL		(CONN_HOST_CSR_TOP_START + 0x0184)
 #define CONN_HOST_CSR_TOP_CONNSYS_PWR_STATES		(CONN_HOST_CSR_TOP_START + 0x0A10)
 #define BGFSYS_ON_ISO_EN				BITS(18, 19)
@@ -157,7 +159,7 @@
 #define BGF_MCU_CFG_SW_DBG_CTL				(BGF_REG_BASE_ADDR + 0x016C)
 
 #define BGF_IP_VERSION					(BGF_REG_INFO_BASE_ADDR)
-#define BGF_IP_VER_ID					0x020A0000
+#define BGF_IP_VER_ID					0x020C0000
 
 #define BGF_MCUCIRQ 					(0x1803F00C)
 #define BGF_BTIF0_WAKEUP_OUT_B				BIT(0) | BIT(1)
@@ -189,7 +191,7 @@
 */
 #define BIN_NAME_MCU			"soc7_0_ram_mcu_1"
 #define BIN_NAME_BT			"soc7_0_ram_bt_1"
-#define CONN_INFRA_CFG_ID		(0x02050403)
+#define CONN_INFRA_CFG_ID		(0x02050405)
 
 #define MET_EMI_ADDR	(0x2BC00)
 #define BT_SSPM_TIMER	(0x1c011008)
@@ -306,7 +308,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 		bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 1);
 #else
 		/* wake up conn_infra off */
-		SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+		REG_WRITEL(CONN_INFRA_WAKEUP_BT, WAKE_UP_CONN_INFRA_OFF);
 #endif
 		/* wait 200 us to avoid fake ready */
 		udelay(200);
@@ -317,7 +319,7 @@ static int32_t bgfsys_check_conninfra_ready(void)
 			else
 				BTMTK_INFO("CONN_INFRA_WAKEUP_BT value = [%02d][0x%08x]", i, value);
 			/* retry */
-			SET_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+			REG_WRITEL(CONN_INFRA_WAKEUP_BT, WAKE_UP_CONN_INFRA_OFF);
 			usleep_range(USLEEP_1MS_L, USLEEP_1MS_H);
 		}
 
@@ -371,6 +373,12 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	return -1;
 }
 
+static void bgfsys_release_conn_infra_force_on(void)
+{
+	REG_WRITEL(CONN_INFRA_WAKEUP_BT, RELEASE_CONN_INFRA_FORCE_ON);
+	return;
+}
+
 static inline int32_t bgfsys_clr_host_csr(void)
 {
         if (bgfsys_check_conninfra_ready()) {
@@ -383,8 +391,8 @@ static inline int32_t bgfsys_clr_host_csr(void)
 #if (CFG_BT_ATF_SUPPORT == 1)
         bt_conn_infra_on_off_smc(SMC_BT_CONN_INFRA_FORCE_ON_OFF_OPID, 0);
 #else
-        /* release conn_infra force on */
-        CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	/* release conn_infra force on */
+	bgfsys_release_conn_infra_force_on();
 #endif
 	return 0;
 }
@@ -792,7 +800,7 @@ host_csr_only:
 
 	bt_dump_bgfsys_all();
 
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 #else
 	bt_dump_bgfsys_all();
 #endif
@@ -1101,14 +1109,15 @@ static inline int32_t bgfsys_power_on(void)
 	bt_write_cr(BGF_SW_IRQ_RESET_ADDR, BGF_SUBSYS_CHIP_RESET, TRUE);
 
 	/* release conn_infra force on, force on at bgfsys_mcu_rom_patch_dl */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 	return 0;
 
 error:
 	bgfsys_power_on_dump_cr();
 
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
+
 	return -1;
 }
 
@@ -1288,7 +1297,7 @@ static inline int32_t bgfsys_power_off(void)
 	bgfsys_dump_conn_wt_slp_ctrl_reg();
 
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 	return ret;
 }
 

@@ -315,6 +315,12 @@ static int32_t bgfsys_check_conninfra_ready(void)
 	return -1;
 }
 
+static void bgfsys_release_conn_infra_force_on(void)
+{
+	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	return;
+}
+
 static inline int32_t bgfsys_clr_host_csr(void)
 {
 	return 0;
@@ -669,7 +675,7 @@ static inline void bt_dump_bgfsys_debug_cr(void)
 host_csr_only:
 	bt_dump_bgfsys_all();
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 }
 
 /* bt_cif_dump_own_cr
@@ -768,7 +774,7 @@ host_csr_only:
 
 	bt_dump_bgfsys_all();
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 #endif
 }
 
@@ -898,7 +904,7 @@ host_csr_only:
 
 	bt_dump_bgfsys_all();
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 }
 
 static inline void bgfsys_dump_uart_pta_pready_status(void)
@@ -1169,7 +1175,7 @@ static inline int32_t bgfsys_power_on(void)
 	bgfsys_dump_uart_pta_pready_status();
 
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 
 	/*
 	 * polling BGFSYS MCU sw_dbg_ctl cr to wait it becomes 0x1D1E,
@@ -1209,7 +1215,7 @@ error:
 	bgfsys_power_on_dump_cr();
 
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 
 	return -1;
 
@@ -1334,7 +1340,7 @@ static inline int32_t bgfsys_power_off(void)
 	bgfsys_dump_conn_wt_slp_ctrl_reg();
 
 	/* release conn_infra force on */
-	CLR_BIT(CONN_INFRA_WAKEUP_BT, BIT(0));
+	bgfsys_release_conn_infra_force_on();
 
 	return ret;
 }
