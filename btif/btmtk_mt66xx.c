@@ -1009,6 +1009,11 @@ int btmtk_inttrx_DynamicAdjustTxPower(uint8_t mode, int8_t req_val, BT_RX_EVT_HA
 		}
 
 		BTMTK_INFO("%s: set_val[%d]", __func__, set_val);
+		if (cif_dev->dy_pwr.last_set_val == set_val) {
+			BTMTK_INFO("%s: value is the same as last time, skip set cmd", __func__);
+			return 0;
+		}
+		cif_dev->dy_pwr.last_set_val = set_val;
 		cmd_set[5] = set_val;
 
 		btmtk_btif_internal_trx(cmd_set,

@@ -314,6 +314,7 @@ struct bt_DyPwr_st {
 	BT_RX_EVT_HANDLER_CB cb;
 	/* Power Throttling Feature */
 	enum conn_pwr_low_battery_level lp_cur_lv;
+	int8_t last_set_val;
 };
 
 struct internal_trx_st {
