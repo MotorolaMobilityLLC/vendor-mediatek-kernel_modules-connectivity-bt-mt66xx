@@ -603,6 +603,7 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 	int32_t ret = 0;
 	struct btmtk_dev *bdev = hci_get_drvdata(g_sbdev->hdev);
 	struct btmtk_btif_dev *cif_dev = (struct btmtk_btif_dev *)g_sbdev->cif_dev;
+        uint32_t pad_eint_val = 0;
 
 	if (g_bt_trace_pt)
 		bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_START, 0, NULL);
@@ -632,22 +633,26 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 		 *    trigger coredump only if the first time reset
 		 *    (compare with the case of subsys reset fail)
 		 */
+		down(&cif_dev->halt_sem);
+		pad_eint_val = REG_READL(BGF_PAD_EINT);
+		BTMTK_INFO("before CLR, pad_eint_val= 0x%x", pad_eint_val);
 		CLR_BIT(BGF_PAD_EINT, BIT(9));
 		bt_enable_irq(BGF2AP_SW_IRQ);
 
 		/* 2. Wait for IRQ */
-		if (!wait_for_completion_timeout(&cif_dev->rst_comp, msecs_to_jiffies(2000))) {
+		if (!wait_for_completion_timeout(&cif_dev->rst_comp, msecs_to_jiffies(1000))) {
 #if SUPPORT_COREDUMP
 			dump_property = CONNSYS_DUMP_PROPERTY_NO_WAIT;
 #endif
-			BTMTK_ERR("uanble to get reset IRQ in 2000ms");
+			BTMTK_ERR("uanble to get reset IRQ in 1000ms");
 		}
 
 		/* 3. Reset PAD_INT CR */
 		SET_BIT(BGF_PAD_EINT, BIT(9));
+		pad_eint_val = REG_READL(BGF_PAD_EINT);
+		BTMTK_INFO("after SET, pad_eint_val= 0x%x", pad_eint_val);
 #if SUPPORT_COREDUMP
 		/* 4. Do coredump, only do this while BT is on */
-		down(&cif_dev->halt_sem);
 		if (cif_dev->bt_state != RESET_START && cif_dev->bt_state != FUNC_OFF) {
 			if (g_bt_trace_pt)
 				bt_dbg_tp_evt(TP_ACT_RST, TP_PAR_RST_DUMP, 0, NULL);
@@ -657,8 +662,8 @@ int bt_chip_reset_flow(enum bt_reset_level rst_level,
 			connsys_coredump_start(cif_dev->coredump_handle, dump_property, drv, reason);
 		} else
 			BTMTK_WARN("BT state [%d], skip coredump", cif_dev->bt_state);
-		up(&cif_dev->halt_sem);
 #endif
+		up(&cif_dev->halt_sem);
 	}
 
 	/* Dump assert reason, only for subsys reset */
